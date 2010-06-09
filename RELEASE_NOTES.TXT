@@ -1,0 +1,14 @@
+Release notes for module DFAgent
+
+                      RELEASE NOTES 1.0
+
+Interface
+	
+Bugs 
+	
+Implementation
+
+Known errors
+
+
+

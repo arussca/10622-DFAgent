@@ -1,0 +1,110 @@
+// Copyright (c) 2004 Gran Telescopio Canarias, S.A. (GRANTECAN)
+// All Rights Reserved
+
+//$Log$
+
+
+#ifndef _DFAGENT_idl_
+#define _DFAGENT_idl_
+
+#include "RawFrameReceiver.idl"
+#include "DCF.idl"
+#include "Frame.idl"
+
+#pragma prefix "gtc"
+
+module DFAGENT
+{
+  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce
+  {
+    // Specific DFAgent operations
+    /*void receiveFrame(in DDPKF::Frame frame, in long currentWindow, in long numWindows,
+                      in DGT::TinyVector topLeft, in DGT::TinyVector bottomRight, 
+                      in DGT::TimeValue timestamp, in DGT::TimeValue exposureTime,
+                      in string cameraId) 
+			raises (DGT::GCSException); */
+
+    void setPrincipalInvestigatorName(in string piName) 
+			raises (DGT::GCSException); 
+
+    void setObserverName(in string observerName) 
+			raises (DGT::GCSException); 
+
+    void setObjectName(in string objectName) 
+			raises (DGT::GCSException); 
+
+    void setProgramId(in string programId) 
+			raises (DGT::GCSException); 
+
+    void setObservationBlockId(in string obId) 
+			raises (DGT::GCSException); 
+
+    void setImageTitle(in string imageTitle) 
+			raises (DGT::GCSException); 
+
+    void setObservationComment(in string observationComment) 
+			raises (DGT::GCSException); 
+
+    void setObsModeLowLevel(in short obsMode) 
+			raises (DGT::GCSException); 
+
+    void setPropagateFrame(in boolean doesPropagate) 
+			raises (DGT::GCSException); 
+
+    void setSaveFrame(in boolean doesSave) 
+			raises (DGT::GCSException); 
+
+    void setPropagateFITS(in boolean doesPropagate) 
+			raises (DGT::GCSException); 
+
+    void setSaveFITS(in boolean doesSave) 
+			raises (DGT::GCSException); 
+
+    void createArchiveFits() 
+			raises (DGT::GCSException); 
+
+    void importFitsFile() 
+			raises (DGT::GCSException); 
+
+    void commitArchiveFits() 
+			raises (DGT::GCSException); 
+
+    void setAutoReduce(in boolean doesAutoReduce) 
+			raises (DGT::GCSException); 
+
+    void setWriteKeywords(in boolean doesWriteKeywords) 
+			raises (DGT::GCSException); 
+
+    void setReductionRecipe() 
+			raises (DGT::GCSException); 
+
+    void commitOR() 
+			raises (DGT::GCSException); 
+
+    // Monitorable attributes (device magnitudes)
+    readonly attribute boolean              doesSaveFrame;
+    readonly attribute boolean              doesPropagateFrame;
+    readonly attribute boolean              doesSaveFITS;
+    readonly attribute boolean              doesPropagateFITS;
+    readonly attribute boolean              doesAutoReduce;
+    readonly attribute boolean              doesWriteKeywords;    
+    
+    // Configurable attributes (device properties)
+    attribute string               offlineImagesPath;
+    attribute string               monitorManagerInstanceName;
+    attribute string               dfBranchInstanceName;
+    attribute string               dfAgentPartnerInstanceName;
+    attribute short                propagateFrame;
+    attribute short                saveFrame;
+    attribute short                propagateFITS;
+    attribute short                saveFITS;
+    attribute short                autoReduce;
+    attribute short                writeKeywords;    
+    attribute string               obsModeKeywordListPath;
+    attribute string               recipeDictionaryPath;
+    attribute string               gcsComponent;
+    attribute string               cameraName;
+  };
+};
+#endif // _DFAGENT_idl_ 
+

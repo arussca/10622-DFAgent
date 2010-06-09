@@ -1,0 +1,20 @@
+#-------------------------------------------------------------------------------
+# Application specific libraries
+#-------------------------------------------------------------------------------
+ld < libDFAgent.so
+#cd "MODULE_DIR"
+ld < tests/testDFAgent.p/vx.O/testDFAgent
+ld < examples/runDFAgent.p/vx.O/runDFAgent
+#ld < examples/useDFAgent.p/vx.O/useDFAgent
+
+# moduleShow
+#-------------------------------------------------------------------------------
+# start_LCU    -> starts LCU services and applications
+# start_LCU(1) -> performs the update of the Devices
+
+# testDFAgent DEVICE_NAME,UPDATE,MODE,PRIORITY,THREADS
+# testDFAgent "DevLib/DFAgent",0,0,50,4
+# testDFAgent "DevLib/DFAgent",1,1,50,4
+# testDFAgent "DevLib/DFAgent",0,1,50,4
+
+#-------------------------------------------------------------------------------

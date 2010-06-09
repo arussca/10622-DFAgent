@@ -1,0 +1,297 @@
+// Copyright (c) 2001 Gran Telescopio de Canarias, S.A. (GRANTECAN)
+// All Rights Reserved
+/* $Log */
+ 
+package gtc.DSL.CK.GDEV;
+ 
+public abstract class DFAgent
+{
+ 
+   //-------------------------------------------------------------
+   // Commands
+   //------------------------------------------------------------- 
+    
+   /**
+   * Starts the process when a frame is received
+   */
+   void receiveFrame();
+
+   /**
+   * Sets the image propietary name
+   */
+   void setPIName(String piName);   
+   
+   /**
+   * Sets the observer name
+   */
+   void setObserverName(String observerName);
+
+   /**
+   * Sets the Object Name
+   */
+   void setObjectName(String objectName);
+
+   /**
+   * Sets Program Identifier
+   */
+   void setGtcProgId(String progId);
+   
+   /**
+   * Sets OB Identifier
+   */
+   void setGtcOBId(String obId);
+      
+   /**
+   * Sets Image Title
+   */
+   void setImageTitle(String imageTitle);
+   
+   /**
+   * Sets Observation Comment
+   */
+   void setObservationComment(String observationComment);
+              
+   /**
+   * Sets up observation mode
+   *  @param obsMode Short associated with observation mode
+   */
+   void setObsModeLowLevel (short obsMode);
+   
+   /**
+   * Sets frame propagate flag state
+   */
+   void setPropagateFrame (short doesPropagate);
+
+   /**
+   * Sets frame save flag state
+   */
+   void setSaveFrame (short doesSave);
+
+   /**
+   * Sets FITS propagate flag state
+   */
+   void setPropagateFITS (short doesPropagate);
+
+   /**
+   * Sets FITS save flag state
+   */
+   void setSaveFITS (short doesSave);
+
+   /**
+   * Creates archive fits
+   */
+   void createArchiveFits();
+   
+   /**
+   * Imports fits file
+   */
+   void importFitsFile();
+
+   /**
+   * Commits Archive file
+   */
+   void commitArchiveFits();
+
+   /**
+   * Sets auto reduce
+   */
+   void setAutoReduce();
+
+   /**
+   * Sets reduction recipe
+   */
+   void setReductionRecipe();
+
+   /**
+   * Commits Observation Result
+   */
+   void commitOR();
+
+  
+   //-------------------------------------------------------------
+   // Monitors
+   //-------------------------------------------------------------  
+
+   /**
+   * Current state of saveFrame flag
+   * @magnitude
+   * @description Save Frame flag
+   */
+   private boolean doesSaveFrame;
+
+   /**
+   * Current state of propagateFrame flag
+   * @magnitude
+   * @description propagate Frame flag
+   */
+   private boolean doesPropagateFrame;
+  
+   /**
+   * Current state of saveFITS flag
+   * @magnitude
+   * @description Save FITS flag
+   */
+   private boolean doesSaveFITS;
+
+   /**
+   * Current state of propagateFITS flag
+   * @magnitude
+   * @description propagate FITS flag
+   */
+   private boolean doesPropagateFITS;
+  
+  
+   //-------------------------------------------------------------
+   // Alarms
+   //-------------------------------------------------------------
+ 
+   /**
+   * Generic alarm
+   * @alarm
+   * @description Device is in FAULT status
+   * @severity LEVEL1
+   * @acknowledge Yes
+   * @actions "Check status"
+   */
+   private Alarm DeviceFault;  
+ 
+
+   //----------------------------------------------------------------------
+   //  Device Properties
+   //  
+   //----------------------------------------------------------------------
+ 
+   /**
+   * Path to directory where instrument places the image
+   * @property
+   * @description Path to directory where instrument places the image
+   * @default offlineDirectory
+   */
+   private String offlineImagesPath;
+
+   /**
+   * Instance name of the Monitor Manager
+   * @property
+   * @description Instance name of the Monitor Manager
+   * @default MonitorManager
+   */
+   private String monitorManagerInstanceName;
+
+   /**
+   * Instance name of the DF branch
+   * @property
+   * @description Instance name of the DF branch
+   * @default DF/DFBranch
+   */
+   private String dfBranchInstanceName;
+
+   /**
+   * Set propagateFrame to a default value
+   * @property
+   * @description State of propagate frame by default
+   * @minimum 0
+   * @maximum 1
+   * @default 1
+   */
+   private short propagateFrame;
+
+   /**
+   * Set saveFrame to a default value
+   * @property
+   * @description State of save Frame by default
+   * @minimum 0
+   * @maximum 1
+   * @default 1
+   */
+   private short saveFrame;
+
+   /**
+   * Set propagateFITS to a default value
+   * @property
+   * @description State of propagate FITS by default
+   * @minimum 0
+   * @maximum 1
+   * @default 1
+   */
+   private short propagateFITS;
+
+   /**
+   * Set saveFITS to a default value
+   * @property
+   * @description State of save FITS by default
+   * @minimum 0
+   * @maximum 1
+   * @default 1
+   */
+   private short saveFITS;
+   
+   /**
+   * Array with paths to keyword list for each obs mode
+   * @property
+   * @description Array with paths to keyword list for each obs mode
+   * @default Path
+   */
+   private String obsModeKeywordListPath;
+   
+   /**
+   * Path to recipe dictionary
+   * @property
+   * @description Path to element dictionary between recipes
+   * @default dictionary
+   */
+   private String recipeDictionaryPath;
+
+   /**
+   * GCS Component name
+   * @property
+   * @description GCS Component name
+   * @default gcsComponent
+   */
+   private String gcsComponent;
+
+   /**
+   * cameraName
+   * @property
+   * @description Camera name
+   * @default cameraName
+   */
+   private String cameraName;
+
+   
+   //----------------------------------------------------------------------
+   //  INSTANCES of class DFAgent
+   //----------------------------------------------------------------------
+ 
+   /**
+   * DFAgent
+   * @instance
+   * @name      DevLib/DFAgent
+   * @mode      INTEGRATED
+   * @priority  50
+   * @threads   4
+   */
+   private Device dfAgent;
+  
+   //----------------------------------------------------------------------
+   //  APPLICATION
+   //----------------------------------------------------------------------
+ 
+   /**
+   * Application is used to create the device
+   * @application
+   * @name dfAgentApp
+   */
+   private Application dfAgentApp;   
+ 
+   //----------------------------------------------------------------------
+   //  LCU
+   //----------------------------------------------------------------------
+ 
+   /**
+   * The LCU starts the applications
+   * @lcu
+   * @name dfAgentLCU
+   */
+   private LCU dfAgentLCU;
+  
+}
