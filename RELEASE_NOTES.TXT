@@ -1,4 +1,17 @@
-		RELEASE NOTES 1.0.1
+RELEASE NOTES 1.0.2
+Interface
+
+Bugs
+ We do not connect to partner if it is null string
+
+Implementation
+                                lmk updated by gcsenv
+Known errors
+
+
+Release notes for module DFAgent
+	
+	RELEASE NOTES 1.0.1
 Interface
 
 Bugs

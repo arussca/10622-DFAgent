@@ -615,7 +615,8 @@ void DFAgent::initDFAgentPartnerInstance_()
 {
   try
   {
-    if(dfAgentPartnerInstanceName_.in() != "" && CORBA::is_nil(const_cast<const DFAGENT::DFAgent_ifce_var&>(dfAgentPartnerInstance_)))
+    if((dfAgentPartnerInstanceName_.length() != 0) && CORBA::is_nil(const_cast<const DFAGENT::DFAgent_ifce_var&>(dfAgentPartnerInstance_)))
+
     {  //blank string means no agent partner supported for the specific agent
       // Initializing pointer to data factory corba object
       logInfo_ ("Connecting to DFAgent Partner");
