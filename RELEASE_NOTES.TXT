@@ -1,3 +1,11 @@
+RELEASE NOTES 1.0.3
+Interface
+
+Bugs
+	Bug: Reconnect with branch and reiniziate session 
+Implementation
+Known errors
+
 RELEASE NOTES 1.0.2
 Interface
 

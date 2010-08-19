@@ -41,6 +41,7 @@ DFAgent::DFAgent(string name)
   gcsComponent_              = "gcsComponent";
   cameraName_                = "cameraName";
   dfSessionId_               = 0;
+  shortObsMode_              = 0;
     
   //@ipc
   //init pointer to devices to null
@@ -549,6 +550,8 @@ void DFAgent::initDFBranchInstance_()
       dfBranchInstance_->ping();
       logInfo_("Connected to DF Branch!");
       trace_.out ("Connected to DF Branch!");
+      logInfo_("Opening session with default mode");
+      setObsModeLowLevel (shortObsMode_);
     }
   }
   catch(const CORBA::Exception &ex)
@@ -1087,7 +1090,11 @@ void DFAgent::setObsModeLowLevel(short obsMode)
     shortObsMode_ = obsMode;
     if(isSessionRunning_)
     { // Agent can manage only one session at a time, if it exists, it must be closed before opening a new one
-      dfBranchInstance_->closeObsMode(dfSessionId_);
+      try
+      {
+         dfBranchInstance_->closeObsMode(dfSessionId_);
+       }
+       catch (...) {}	 
     }
     
     dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str() );
