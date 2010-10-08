@@ -1,3 +1,14 @@
+RELEASE NOTES 1.0.4
+Interface
+
+Bugs
+
+Implementation
+  - Exception handled when readimg keywords from monitor manager.
+  - Checking Monitor Manager status when initializing pointer.
+  
+Known errors
+
 RELEASE NOTES 1.0.3
 Interface
 

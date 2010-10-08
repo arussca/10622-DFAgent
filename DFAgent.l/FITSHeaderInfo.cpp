@@ -111,7 +111,14 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
     catch (GCSException& ex)
     {
       cerr<<"ERROR gathering header keyword: "<<it->keyName<<endl;
-      ex.addToTrace ("gatherMonitorKeywords_()");      
+      ex.addToTrace ("gatherMonitorKeywords_()");   
+//      logError_ ("Error gathering header keyword: %s", ex.toString());
+      cerr<<ex<<endl;
+    }
+    catch (const CORBA::Exception &ex)
+    {
+      cerr << "CORBA ERROR gathering header keyword" << endl;
+//      logError_ ("CORBA Error gathering header keyword: %s", ex.toString());     
       cerr<<ex<<endl;
     }   
     //increment position

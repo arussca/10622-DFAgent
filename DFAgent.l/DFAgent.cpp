@@ -580,6 +580,23 @@ void DFAgent::initMonitorManagerInstance_()
 {
   try
   {
+    if(!CORBA::is_nil(const_cast<const MONITOR::Manager_ifce_var&>(monitorManagerInstance_)))
+    { //if corba pointer is not null, then try to ping the object to check its status
+      try
+      {//try to make a ping, if it doesn't success, then reconnect with the corba object
+        cout << "Pinging the MonitorManager..." << endl;
+        monitorManagerInstance_->ping();
+      }
+      catch(const CORBA::Exception &ex)
+      {
+        GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+        if (gcsex.isA ("CorbaException"))
+        {  //It is a timeout, set null the corba pointer
+          monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
+        }
+      }
+    }
+
     if(CORBA::is_nil(const_cast<const MONITOR::Manager_ifce_var&>(monitorManagerInstance_)))
     {  // Initializing pointer to monitor manager corba object
       logInfo_ ("Connecting to Monitor Manager");
@@ -813,11 +830,12 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     }
     rawFrame_->dataDescription() = shortFrame.dataDescription();
     cout << "Sending a frame of " << rawFrame_->sizeOfDimensions() << endl;
-    
+
+    trace_.out ("Gathering monitor keywords values...");
+    TimeValue expStartTime ( fromIDL(idlTimestamp) );
     try
     {
-      trace_.out ("Gathering monitor keywords values...");
-      TimeValue expStartTime ( fromIDL(idlTimestamp) );
+      //CORBAException & GCSException are treated inside gatherMonitorKeywords function each time it reads a keyword
       obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, *rawFrame_);
     }
     catch (const CORBA::Exception &ex)
@@ -827,15 +845,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
       {  //It is a timeout, was a communications error
         monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
       }  
-      if(rawFrame_ != NULL)
-      {
-        delete rawFrame_;
-        rawFrame_ = NULL;
-      }
-      goIdle_();
-      unlock_();
-    }
-    
+    }    
     
     writeStandardKeywords_(*rawFrame_);
     writeAdditionalKeywords_(*rawFrame_);
