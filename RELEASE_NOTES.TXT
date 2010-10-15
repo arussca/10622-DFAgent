@@ -1,3 +1,13 @@
+RELEASE NOTES 1.0.5
+Interface
+
+Bugs
+
+Implementation
+  - Refresh CORBA pointers when string object names are updated.
+  
+Known errors
+
 RELEASE NOTES 1.0.4
 Interface
 

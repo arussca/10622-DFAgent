@@ -1444,7 +1444,12 @@ void DFAgent::monitorManagerInstanceName(const char* new_monitorManagerInstanceN
   trace_.out("monitorManagerInstanceName(%s)\n",new_monitorManagerInstanceName);
   // Change property
   monitorManagerInstanceName_ = new_monitorManagerInstanceName;
-  
+  if(isIdle())
+  {
+    monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
+    initMonitorManagerInstance_();
+  }
+
   propertyChange_("monitorManagerInstanceName");
 }
 
@@ -1465,7 +1470,12 @@ void DFAgent::dfBranchInstanceName(const char* new_dfBranchInstanceName)
   trace_.out("dfBranchInstanceName(%s)\n",new_dfBranchInstanceName);
   // Change property
   dfBranchInstanceName_ = new_dfBranchInstanceName;
-  
+  if(isIdle())
+  {
+    dfBranchInstance_ = DF::Branch_ifce::_nil();
+    initDFBranchInstance_();
+  }
+
   propertyChange_("dfBranchInstanceName");
 }
 
@@ -1486,7 +1496,12 @@ void DFAgent::dfAgentPartnerInstanceName(const char* new_dfAgentPartnerInstanceN
   trace_.out("dfAgentPartnerInstanceName(%s)\n",new_dfAgentPartnerInstanceName);
   // Change property
   dfAgentPartnerInstanceName_ = new_dfAgentPartnerInstanceName;
-  
+  if(isIdle())
+  {
+    dfAgentPartnerInstance_ = DFAGENT::DFAgent_ifce::_nil();
+    initDFAgentPartnerInstance_();
+  }
+
   propertyChange_("dfAgentPartnerInstanceName");
 }
 
