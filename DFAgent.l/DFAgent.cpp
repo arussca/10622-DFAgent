@@ -913,6 +913,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      }
      goIdle_();
      unlock_();
+     throw;
   }
   catch( GCSException& ex )
   {
@@ -925,6 +926,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      }    
      goIdle_();
      unlock_();
+     throw;
   }
   goIdle_();
   unlock_();
