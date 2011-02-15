@@ -1,3 +1,13 @@
+RELEASE NOTES 1.0.7
+Interface
+
+Bugs
+
+Implementation
+  - FrameServer library is obsolete and was removed from lmk.solgnu files.
+  
+Known errors
+
 RELEASE NOTES 1.0.6
 Interface
 
