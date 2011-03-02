@@ -35,6 +35,15 @@ class DFAgent : public Device
   //--------------------------------------------------
   public:
 
+  /**
+   *  Current Observation Mode
+   */
+  enum ObservationType
+  {
+    SCIENCE, CALIB
+  };
+
+
   //####################### CONSTRUCTOR & DESTRUCTOR #####################
   
   /** Device Constructor */
@@ -95,6 +104,16 @@ class DFAgent : public Device
   * Sets the Principal Investigator name
   */
   void setPrincipalInvestigatorName(const char* piName);
+
+  /**
+  * Sets Observation Type [SCIENCE|CALIB]
+  */
+  void setObservationType(ObservationType obsType);
+
+  /**
+  * Sets the instrument mode
+  */
+  void setInstrumentMode(const char* insMode);
 
   /**
   * Sets the observer name
@@ -419,8 +438,10 @@ class DFAgent : public Device
   string observationComment_;  ///< Comment about observation
   string observationBlockId_;   ///< Observation Block Id
   string principalInvestigatorName_; ///< Principal investigator Name
+  string instrumentMode_; ///< Instrument Mode
   string observerName_; ///< Observer name
   string programId_; ///< Program Id
+  ObservationType obsType_; ///< Current Observation Type
   
   short shortObsMode_;   ///< Short variable with the running obs mode, 
   Frame<double,2> *rawFrame_;   ///< raw frame acquired by the instrument
@@ -428,6 +449,7 @@ class DFAgent : public Device
   DFAGENT::DFAgent_ifce_var dfAgentPartnerInstance_;  ///< Pointer to an auxiliar agent, which helps in coxplex tasks
   MONITOR::Manager_ifce_var monitorManagerInstance_;   ///< Pointer to Obs engine instance in corba  
   map<short, std::string> obsModeName_; ///< Map with string associated with each obsMode
+  map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [SCIENCE|CALIB]
   map<short, std::vector<bool> > obsModeSettings_; ///< Map with settings for each obsMode
   long dfSessionId_; ///< Long number with the session id currently opened.
   vector<string> recipeElementNames_; ///< List with element names used in a recipe.

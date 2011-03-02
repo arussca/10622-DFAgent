@@ -15,6 +15,11 @@
 
 module DFAGENT
 {
+  enum ObservationType
+  {
+    SCIENCE, CALIB
+  };
+  
   interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce
   {
     // Specific DFAgent operations
@@ -25,6 +30,12 @@ module DFAGENT
 			raises (DGT::GCSException); */
 
     void setPrincipalInvestigatorName(in string piName) 
+			raises (DGT::GCSException); 
+
+    void setObservationType(in ObservationType obsType) 
+			raises (DGT::GCSException); 
+ 
+    void setInstrumentMode(in string insMode) 
 			raises (DGT::GCSException); 
 
     void setObserverName(in string observerName) 

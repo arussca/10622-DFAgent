@@ -36,6 +36,8 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
                                const DGT::TinyVector &, const DGT::TinyVector &, 
 	                       const DGT::TimeValue &, const DGT::TimeValue &, const char * );
   void   setPrincipalInvestigatorName            (const char* piName);
+  void   setInstrumentMode    (const char* insMode);
+  void   setObservationType   (DFAGENT::ObservationType obsType);
   void   setObserverName      (const char* observerName);
   void   setObjectName        (const char* objectName);
   void   setProgramId         (const char* programId);

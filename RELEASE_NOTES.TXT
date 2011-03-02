@@ -1,3 +1,15 @@
+RELEASE NOTES 1.0.8
+Interface
+  - New enum type ObservationType has been added.
+  - Two new methods added: setObservationType, setInstrumentMode
+  
+Bugs
+
+Implementation
+  - Two new methods added: setObservationType, setInstrumentMode
+    
+Known errors
+
 RELEASE NOTES 1.0.7
 Interface
 

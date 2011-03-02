@@ -43,6 +43,12 @@ DFAgent::DFAgent(string name)
   dfSessionId_               = 0;
   shortObsMode_              = 0;
     
+  //Initialize ObsType variable to default value
+  obsType_ = CALIB;
+  //initialize map with ObservationType and string names..
+  obsTypeName_[SCIENCE] = "Science";
+  obsTypeName_[CALIB] = "Calib";
+  
   //@ipc
   //init pointer to devices to null
   dfBranchInstance_ = DF::Branch_ifce::_nil();
@@ -584,7 +590,6 @@ void DFAgent::initMonitorManagerInstance_()
     { //if corba pointer is not null, then try to ping the object to check its status
       try
       {//try to make a ping, if it doesn't success, then reconnect with the corba object
-        cout << "Pinging the MonitorManager..." << endl;
         monitorManagerInstance_->ping();
       }
       catch(const CORBA::Exception &ex)
@@ -683,6 +688,22 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     {
       frame.modifyKeyword("OBJECT", objectName_.c_str());
     }
+    try
+    {
+      frame.addKeyword(Keyword<string>("INSMODE", instrumentMode_.c_str(), "", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("INSMODE", instrumentMode_.c_str());
+    }
+    try
+    {
+      frame.addKeyword(Keyword<string>("OBSTYPE", obsTypeName_[obsType_].c_str(), "", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("OBSTYPE", obsTypeName_[obsType_].c_str());
+    }    
     try
     {
       frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "", ""));
@@ -928,6 +949,39 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      unlock_();
      throw;
   }
+  goIdle_();
+  unlock_();
+}
+
+//----------------------------------------------------------------------
+// setObservationType
+//----------------------------------------------------------------------
+void DFAgent::setObservationType(ObservationType obsType)
+{
+  trace_.out("setObservationType(%s)\n", obsTypeName_[obsType].c_str());
+  //## check if input parameters are valid here
+  lock_();
+  goRunning_();
+  
+  obsType_ = obsType;
+  
+  goIdle_();
+  unlock_();
+}
+
+
+//----------------------------------------------------------------------
+// setInstrumentMode
+//----------------------------------------------------------------------
+void DFAgent::setInstrumentMode(const char* insMode)
+{
+  trace_.out("setInstrumentMode(%s)\n",insMode);
+  //## check if input parameters are valid here
+  lock_();
+  goRunning_();
+  
+  instrumentMode_ = insMode;
+  
   goIdle_();
   unlock_();
 }

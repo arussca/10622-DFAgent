@@ -60,6 +60,32 @@ void DFAgentAdapter::setPrincipalInvestigatorName(const char* piName)
 }
 
 //----------------------------------------------------------------------
+void DFAgentAdapter::setObservationType(DFAGENT::ObservationType obsType)
+{
+  try
+  {
+    device_->setObservationType((DFAgent::ObservationType)obsType);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
+void DFAgentAdapter::setInstrumentMode(const char* insMode)
+{
+  try
+  {
+    device_->setInstrumentMode(insMode);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
 void DFAgentAdapter::setObserverName(const char* observerName)
 {
   try
