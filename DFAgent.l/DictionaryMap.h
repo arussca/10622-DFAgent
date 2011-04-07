@@ -9,6 +9,7 @@ struct WordSet
 {
   std::string rawFrame;
   std::string exposureTime;
+  std::string theExcludedLensletIDsCophasing;
 };
 
 class DictionaryMap : public PersistentHashMap< WordSet >

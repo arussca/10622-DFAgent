@@ -44,6 +44,23 @@ void DictionaryMap::fromPortableObject( const PortableObject& object,
     throw;
   }
 
+  attribute = object.getAttribute("theExcludedLensletIDsCophasing");
+  if(attribute == "")
+  {
+    std::string msg = "Attribute '" + attribute +
+      	      	      "' not found in portable object";
+    throw NotFound("DictionaryMap::fromPortableObjecct()", msg.c_str());
+  }    
+  try
+  {
+    wordSet.theExcludedLensletIDsCophasing = attribute;
+  }
+  catch(GCSException& exception)
+  {
+    exception.addToTrace("DictionaryMap::fromPortableObject()");
+    throw;
+  }
+
 }
 
 inline std::string DictionaryMap::fetchTranslation(const std::string& word, const std::string& wordSetID)
@@ -58,6 +75,10 @@ inline std::string DictionaryMap::fetchTranslation(const std::string& word, cons
     {
       return this->entry(wordSetID).exposureTime;
     }
+    else if(word == "theExcludedLensletIDsCophasing")
+    {
+      return this->entry(wordSetID).theExcludedLensletIDsCophasing;
+    }    
     else
     {
       // no translation found
@@ -83,6 +104,10 @@ inline std::string DictionaryMap::fetchOriginal(const std::string& word, const s
     {
       return std::string("exposureTime");
     }
+    else if(this->entry(wordSetID).theExcludedLensletIDsCophasing == word)
+    {
+      return std::string("theExcludedLensletIDsCophasing");
+    }    
     else
     {
       //no original found

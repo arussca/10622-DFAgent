@@ -205,7 +205,22 @@ class DFAgent : public Device
   * Commits Observation Result
   */
   void commitOR();
-    
+
+  /**
+  * Receive Data Blocks (from MONITOR::Consumer_ifce)
+  */
+  void receiveDataBlocks (const MONITOR::DataBlockList &msgs);
+
+  /**
+  * Receive State Changes (from MONITOR::Consumer_ifce)
+  */
+  void receiveStateChanges (const MONITOR::StateChangeList &msgs);
+
+  /**
+  * Receive Magnitude Changes (from MONITOR::Consumer_ifce)
+  */
+  void receiveMagnitudeChanges (const MONITOR::MagnitudeChangeList &msgs);
+  
   //####################### MONITORS #####################################
 
   /**
@@ -442,6 +457,7 @@ class DFAgent : public Device
   string observerName_; ///< Observer name
   string programId_; ///< Program Id
   ObservationType obsType_; ///< Current Observation Type
+  unsigned char monitorManagerSubscriptionID_;  ///< identifier for monitor manager subscription session
   
   short shortObsMode_;   ///< Short variable with the running obs mode, 
   Frame<double,2> *rawFrame_;   ///< raw frame acquired by the instrument

@@ -38,8 +38,8 @@ class FITSHeaderInfo
   public:
     void writeHeaderToFile( const TimeValue& time, MONITOR::Manager_ifce_var &manager, fitsfile* rawFile);
     void parseKeywordsFile(const string& fileName);
-    void gatherMonitorKeywords(const TimeValue& time, 
-                                MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame );
+    void gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame );
+    void subscribeToMonitors(MONITOR::Manager_ifce_var &manager, unsigned char monitorManagerSubscriptionID);
   private:
     std::string formatRadianToHms_(double rad);
     std::string formatRadianToDms_(double rad);

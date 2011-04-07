@@ -320,6 +320,45 @@ void DFAgentAdapter::commitOR()
 }
 
 //----------------------------------------------------------------------
+void DFAgentAdapter::receiveDataBlocks(const MONITOR::DataBlockList &msgs)
+{
+  try
+  {
+    device_->receiveDataBlocks(msgs);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
+void DFAgentAdapter::receiveStateChanges(const MONITOR::StateChangeList &msgs)
+{
+  try
+  {
+    device_->receiveStateChanges(msgs);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
+void DFAgentAdapter::receiveMagnitudeChanges(const MONITOR::MagnitudeChangeList &msgs)
+{
+  try
+  {
+    device_->receiveMagnitudeChanges(msgs);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
 
 //----------------------------------------------------------------------
 // Monitorable attributes (device magnitudes) 

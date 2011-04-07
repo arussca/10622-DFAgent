@@ -10,7 +10,7 @@
 #include "RawFrameReceiver.idl"
 #include "DCF.idl"
 #include "Frame.idl"
-
+#include "MONITOR.idl"
 #pragma prefix "gtc"
 
 module DFAGENT
@@ -20,7 +20,7 @@ module DFAGENT
     SCIENCE, CALIB
   };
   
-  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce
+  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce, MONITOR::Consumer_ifce
   {
     // Specific DFAgent operations
     /*void receiveFrame(in DDPKF::Frame frame, in long currentWindow, in long numWindows,
@@ -91,7 +91,7 @@ module DFAGENT
 
     void commitOR() 
 			raises (DGT::GCSException); 
-
+         
     // Monitorable attributes (device magnitudes)
     readonly attribute boolean              doesSaveFrame;
     readonly attribute boolean              doesPropagateFrame;

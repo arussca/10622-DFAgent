@@ -3,6 +3,7 @@
 #include <vector>
 #include <cctype>
 #include <FITSHeaderInfo.h>
+#include <DCFC.h>
 
 using namespace std;
 
@@ -81,6 +82,50 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
   }
 }
 
+void FITSHeaderInfo::subscribeToMonitors(MONITOR::Manager_ifce_var &manager, unsigned char monitorManagerSubscriptionID)
+{
+  vector<KeywordInfo>::const_iterator it, endIt;
+
+  it = monList_.begin();
+  endIt = monList_.end();
+  
+  while (it != endIt)
+  {
+    try
+    { //pseudo coding
+      DCF::Device_ifce_var deviceInstance;
+      CORBARef<DCF::Device_ifce> dev_ref((it->deviceName).c_str(), 0);
+      dev_ref.roundtripTimeout( TimeValue(60, 0) );
+      deviceInstance = dev_ref.typedRef();
+      deviceInstance->ping();
+      
+      MONITOR::MagnitudeMonitor_ifce_var magnitudeMonitorInstance = deviceInstance->magnitudeMonitor((it->monitorName).c_str());
+      magnitudeMonitorInstance->start(monitorManagerSubscriptionID);        
+    }
+    catch (GCSException& ex)
+    {
+/*    
+      cerr << "ERROR subscribing to monitor: " << it->keyName << endl;
+      ex.addToTrace("subscribeToMonitors()");      
+//      logError_ ("Error subscribing to monitors: %s", ex.toString());
+      cerr << ex << endl;
+*/      
+    }
+    catch (const CORBA::Exception &ex)
+    {
+/*    
+      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+      cerr << "CORBA ERROR subscribing to monitors" << it->keyName << endl;
+//      logError_ ("CORBA Error subscribing to monitors: %s", gcsex.toString());
+      cerr << gcsex << endl;
+*/      
+    }   
+    //increment position
+    ++it;
+  }
+  
+}
+
 void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame)
 {
   vector<KeywordInfo>::const_iterator it, endIt;
@@ -93,7 +138,6 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
   {
     try
     {
-      cout<<it->keyName<<endl;
       if (it->monitorType == "SAMPLED")
       {
         gatherSampledMonitor_(*it, time, manager, frame);
@@ -110,16 +154,20 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
     }
     catch (GCSException& ex)
     {
+/*    
       cerr<<"ERROR gathering header keyword: "<<it->keyName<<endl;
       ex.addToTrace ("gatherMonitorKeywords_()");   
 //      logError_ ("Error gathering header keyword: %s", ex.toString());
       cerr<<ex<<endl;
+*/      
     }
     catch (const CORBA::Exception &ex)
     {
+/*    
       cerr << "CORBA ERROR gathering header keyword" << endl;
 //      logError_ ("CORBA Error gathering header keyword: %s", ex.toString());     
       cerr<<ex<<endl;
+*/      
     }   
     //increment position
     ++it;

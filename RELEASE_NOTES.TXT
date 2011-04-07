@@ -1,3 +1,15 @@
+RELEASE NOTES 1.0.9
+Interface
+  - Now inherits from MONITOR::Consumer_ifce.
+  
+Bugs
+
+Implementation
+  - Subscribe to monitors before read values from them.
+  - New element added to dicctionary.
+    
+Known errors
+
 RELEASE NOTES 1.0.8
 Interface
   - New enum type ObservationType has been added.

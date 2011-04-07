@@ -610,6 +610,8 @@ void DFAgent::initMonitorManagerInstance_()
       mm_ref.roundtripTimeout( TimeValue(60, 0) );
       monitorManagerInstance_ = mm_ref.typedRef();
       monitorManagerInstance_->ping();
+      DFAgentAdapter* adapter = dynamic_cast<DFAgentAdapter*>(adapter_);
+      monitorManagerSubscriptionID_ = monitorManagerInstance_->subscribeToDataBlocks(adapter->_this(), false);
       logInfo_("Connected to Monitor Manager!");
       trace_.out ("Connected to Monitor Manager!");
     }
@@ -855,8 +857,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     trace_.out ("Gathering monitor keywords values...");
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
     try
-    {
-      //CORBAException & GCSException are treated inside gatherMonitorKeywords function each time it reads a keyword
+    { //CORBAException & GCSException are treated inside gatherMonitorKeywords function each time it reads a keyword
       obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, *rawFrame_);
     }
     catch (const CORBA::Exception &ex)
@@ -1162,14 +1163,15 @@ void DFAgent::setObsModeLowLevel(short obsMode)
        }
        catch (...) {}	 
     }
-    
+    //Subscribe to monitor needed for this obsMode, using .spec keywords. Agent will read from them shortly
+    obsModeKeywordList_[shortObsMode_].subscribeToMonitors(monitorManagerInstance_, monitorManagerSubscriptionID_);   
     dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str() );
     applyObsModeSettings_( obsModeSettings_[shortObsMode_] );
-    dfBranchInstance_->setInstrumentId (cameraName_, gcsComponent_, dfBranchInstanceName_, dfSessionId_);
+    dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
     dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
     isSessionRunning_ = true;
     fetchORInfo_();
-
+ 
     //send early elements, the ones which can be sent while waiting for the rawFrame
     for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind1st( mem_fun( &DFAgent::sendElement_ ), this ));
   }
@@ -1377,6 +1379,33 @@ void DFAgent::commitOR()
     
   goIdle_();
   unlock_();
+}
+
+//----------------------------------------------------------------------
+// receiveDataBlocks 
+//----------------------------------------------------------------------
+void DFAgent::receiveDataBlocks(const MONITOR::DataBlockList &msgs)
+{
+  //do nothing, DFAgent inherits from MONITOR::Consumer_ifce now
+  //and these function must be implemented
+}
+
+//----------------------------------------------------------------------
+// receiveStateChanges 
+//----------------------------------------------------------------------
+void DFAgent::receiveStateChanges(const MONITOR::StateChangeList &msgs)
+{
+  //do nothing, DFAgent inherits from MONITOR::Consumer_ifce now
+  //and these function must be implemented
+}
+
+//----------------------------------------------------------------------
+// receiveMagnitudeChanges 
+//----------------------------------------------------------------------
+void DFAgent::receiveMagnitudeChanges(const MONITOR::MagnitudeChangeList &msgs)
+{
+  //do nothing, DFAgent inherits from MONITOR::Consumer_ifce now
+  //and these function must be implemented
 }
 
 /************************************************************************

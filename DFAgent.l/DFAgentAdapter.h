@@ -56,6 +56,9 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void   setWriteKeywords        (CORBA::Boolean doesWriteKeywords);  
   void   setReductionRecipe   ();
   void   commitOR             ();
+  void   receiveDataBlocks    (const MONITOR::DataBlockList &msgs);
+  void   receiveStateChanges  (const MONITOR::StateChangeList &msgs);
+  void   receiveMagnitudeChanges (const MONITOR::MagnitudeChangeList &msgs);
 
   //----------------------------------------------------------------------
   // Monitorable attributes (device magnitudes) 
