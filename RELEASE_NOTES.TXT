@@ -1,3 +1,15 @@
+RELEASE NOTES 1.1.0
+Interface
+  
+Bugs
+
+Implementation
+  - Subscribe to EKW's monitors, read and include them in FITS header.
+  - Initialize pointer within sendElement_ function.
+  - Change timeout when subscribing to monitors from 60 to 1.
+    
+Known errors
+
 RELEASE NOTES 1.0.9
 Interface
   - Now inherits from MONITOR::Consumer_ifce.

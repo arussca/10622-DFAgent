@@ -499,7 +499,7 @@ bool DFAgent::belongsToRecipe_(const string& elementName)
 //----------------------------------------------------------------------
 void DFAgent::sendElement_(string elementRecipeName)
 {
-  DDPKF::DataElement * pDataElement;
+  DDPKF::DataElement * pDataElement = NULL;
   try
   {      
      //check dfBranchInstance_ isn't null, otherwise reconnect to it.

@@ -95,7 +95,7 @@ void FITSHeaderInfo::subscribeToMonitors(MONITOR::Manager_ifce_var &manager, uns
     { //pseudo coding
       DCF::Device_ifce_var deviceInstance;
       CORBARef<DCF::Device_ifce> dev_ref((it->deviceName).c_str(), 0);
-      dev_ref.roundtripTimeout( TimeValue(60, 0) );
+      dev_ref.roundtripTimeout( TimeValue(1, 0) );
       deviceInstance = dev_ref.typedRef();
       deviceInstance->ping();
       
