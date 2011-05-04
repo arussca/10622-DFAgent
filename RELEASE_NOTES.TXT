@@ -1,3 +1,13 @@
+RELEASE NOTES 1.1.1
+Interface
+  
+Bugs
+
+Implementation
+  - Comment out some goRunning, goIdle callings.
+      
+Known errors
+
 RELEASE NOTES 1.1.0
 Interface
   

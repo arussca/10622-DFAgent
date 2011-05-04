@@ -612,7 +612,7 @@ void DFAgent::initMonitorManagerInstance_()
       monitorManagerInstance_->ping();
       DFAgentAdapter* adapter = dynamic_cast<DFAgentAdapter*>(adapter_);
       monitorManagerSubscriptionID_ = monitorManagerInstance_->subscribeToDataBlocks(adapter->_this(), false);
-      logInfo_("Connected to Monitor Manager!");
+      logInfo_("Connected to Monitor Manager! %d", (int)monitorManagerSubscriptionID_);
       trace_.out ("Connected to Monitor Manager!");
     }
   }
@@ -816,7 +816,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
   trace_.out("receiveFrame()\n");
   //## check if input parameters are valid here
   lock_();
-  goRunning_();        
+//  goRunning_();        
   
   //check dfBranchInstance_, monitorManagerInstance_ aren't null, otherwise reconnect to them.
   initDFBranchInstance_();
@@ -950,7 +950,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      unlock_();
      throw;
   }
-  goIdle_();
+//  goIdle_();
   unlock_();
 }
 
@@ -962,11 +962,11 @@ void DFAgent::setObservationType(ObservationType obsType)
   trace_.out("setObservationType(%s)\n", obsTypeName_[obsType].c_str());
   //## check if input parameters are valid here
   lock_();
-  goRunning_();
+//  goRunning_();
   
   obsType_ = obsType;
   
-  goIdle_();
+//  goIdle_();
   unlock_();
 }
 
