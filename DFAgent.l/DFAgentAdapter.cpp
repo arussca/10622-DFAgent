@@ -607,6 +607,26 @@ void DFAgentAdapter::writeKeywords(CORBA::Short value)
 }
 
 //----------------------------------------------------------------------
+// get flippedImage
+CORBA::Short DFAgentAdapter::flippedImage()
+{
+  return device_->flippedImage();
+}
+//-------------------------------
+// set flippedImage
+void DFAgentAdapter::flippedImage(CORBA::Short value)
+{
+  try
+  {
+    device_->flippedImage(value);
+  }
+  catch(GCSException& ex)
+  {
+    throw CORBA::BAD_PARAM();
+  }
+}
+
+//----------------------------------------------------------------------
 // get obsModeKeywordListPath
 char* DFAgentAdapter::obsModeKeywordListPath()
 {
@@ -679,6 +699,30 @@ void DFAgentAdapter::cameraName(const char* value)
   try
   {
     device_->cameraName(value);
+  }
+  catch(GCSException& ex)
+  {
+    throw CORBA::BAD_PARAM();
+  }
+}
+
+//----------------------------------------------------------------------
+// get referencePixel
+DGT::DoubleArray* DFAgentAdapter::referencePixel()
+{
+  DGT::DoubleArray* idl_prop = new DGT::DoubleArray;
+  toIDL(device_->referencePixel(), *idl_prop);
+  return idl_prop;
+}
+//-------------------------------
+// set referencePixel
+void DFAgentAdapter::referencePixel(const DGT::DoubleArray& value)
+{
+  try
+  {
+    DoubleArray1D prop;
+    fromIDL(value,prop);
+    device_->referencePixel(prop);
   }
   catch(GCSException& ex)
   {

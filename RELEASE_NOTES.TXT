@@ -1,3 +1,13 @@
+RELEASE NOTES 1.1.2
+Interface
+  
+Bugs
+
+Implementation
+  - Two more profile properties: flippedImage and referencePixel.
+      
+Known errors
+
 RELEASE NOTES 1.1.1
 Interface
   

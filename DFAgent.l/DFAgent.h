@@ -359,6 +359,17 @@ class DFAgent : public Device
   void autoReduce(short new_value); 
 
   /**
+  * Set flippedImage to a default value
+  * @property:
+  * @description:State of flippedImage by default
+  * @minimum:0
+  * @maximum:1
+  * @default:1
+  */
+  short flippedImage();
+  void flippedImage(short new_value); 
+
+  /**
   * Set writeKeywords to a default value
   * @property:
   * @description:State of writeKeywords by default
@@ -405,6 +416,18 @@ class DFAgent : public Device
   const char* cameraName();
   void cameraName(const char* new_value); 
   
+  /**
+  * Reference Pixel for WCSParams
+  * @property:
+  * @description: Reference Pixel for WCSParams
+  * @default:[512.0, 512.0]
+  * @maximum:[1000.0, 1000.0]
+  * @minimum:[1.0, 1.0]
+  * @width:2
+  */
+  const DoubleArray1D referencePixel();
+  void referencePixel(const DoubleArray1D& new_value); 
+  
   //-----------------------------------------------------------------
   // protected section 
   //-----------------------------------------------------------------
@@ -434,6 +457,7 @@ class DFAgent : public Device
   String gcsComponent_              ; ///<GCS Component name
   String cameraName_                ; ///<cameraName
   String dfAgentPartnerInstanceName_; ///<Instance name of the agent partner
+  bool flippedImage_                ; ///<State of flipped image flag
   
   // MonitorAgent
   MonitorAgent<DFAgent>* DFAgentMonitorAgent_;
@@ -458,7 +482,8 @@ class DFAgent : public Device
   string programId_; ///< Program Id
   ObservationType obsType_; ///< Current Observation Type
   unsigned char monitorManagerSubscriptionID_;  ///< identifier for monitor manager subscription session
-  
+  TinyVector<double,2> referencePixel_;    ///< Reference Pixel for WCS params
+    
   short shortObsMode_;   ///< Short variable with the running obs mode, 
   Frame<double,2> *rawFrame_;   ///< raw frame acquired by the instrument
   DF::Branch_ifce_var dfBranchInstance_;     ///< Pointer to data factory branch instance in corba
@@ -482,7 +507,7 @@ class DFAgent : public Device
   DGT::TimeValue timestamp_;    ///< Time with the timestamp value
   DGT::TimeValue exposureTime_;  ///< Time with the exposure time value
   string cameraId_;         ///< string which carries the cameraID
-			     
+		     
   //custom member function
   virtual DDPKF::DataElement *dataElementFromElementName_(const string & elementName);///< create DataElement object from the name of the element
   void scanDirectory_(vector<pair<time_t, string> > &timeFileList); ///< Function that search the directory looking for fits files

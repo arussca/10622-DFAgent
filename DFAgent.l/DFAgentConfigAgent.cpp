@@ -28,6 +28,7 @@ DFAgentConfigAgent::DFAgentConfigAgent(DFAgent* device, const int mode, TimerEng
   saveFITS_            = 1;
   autoReduce_          = 1;  
   writeKeywords_       = 1;  
+  flippedImage_        = 1;  
   obsModeKeywordListPath_  = "Path";
   recipeDictionaryPath_  = "dictionary";
   gcsComponent_        = "gcsComponent";
@@ -60,10 +61,12 @@ void DFAgentConfigAgent::applyProperties()
     device_->saveFITS(this->saveFITS_);
     device_->autoReduce(this->autoReduce_);
     device_->writeKeywords(this->writeKeywords_);    
+    device_->flippedImage(this->flippedImage_);        
     device_->obsModeKeywordListPath(this->obsModeKeywordListPath_);
     device_->recipeDictionaryPath(this->recipeDictionaryPath_);
     device_->gcsComponent(this->gcsComponent_);
     device_->cameraName(this->cameraName_);
+    device_->referencePixel(this->referencePixel_);    
   }
   catch (GCSException& ex)
   {
@@ -91,10 +94,12 @@ int DFAgentConfigAgent::readProperties()
     this->saveFITS_            = device_->saveFITS();
     this->autoReduce_            = device_->autoReduce();    
     this->writeKeywords_            = device_->writeKeywords();    
+    this->flippedImage_            = device_->flippedImage();        
     this->obsModeKeywordListPath_  = device_->obsModeKeywordListPath();
     this->recipeDictionaryPath_  = device_->recipeDictionaryPath();
     this->gcsComponent_        = device_->gcsComponent();
     this->cameraName_          = device_->cameraName();
+    this->referencePixel_      = device_->referencePixel();    
   }
   catch (GCSException& ex)
   {
@@ -125,10 +130,12 @@ void DFAgentConfigAgent::toConfiguration(CONFIG::Configuration& c)
     addProperty(c, "saveFITS", saveFITS_);
     addProperty(c, "autoReduce", autoReduce_);    
     addProperty(c, "writeKeywords", writeKeywords_);
+    addProperty(c, "flippedImage", flippedImage_);    
     addProperty(c, "obsModeKeywordListPath", obsModeKeywordListPath_);
     addProperty(c, "recipeDictionaryPath", recipeDictionaryPath_);
     addProperty(c, "gcsComponent", gcsComponent_);
     addProperty(c, "cameraName", cameraName_);
+    addProperty(c, "referencePixel", referencePixel_);    
   }
   catch (GCSException& ex)
   {
@@ -158,10 +165,12 @@ void DFAgentConfigAgent::fromConfiguration(const CONFIG::Configuration& c)
     extractProperty(c, "saveFITS", saveFITS_);
     extractProperty(c, "autoReduce", autoReduce_);
     extractProperty(c, "writeKeywords", writeKeywords_);    
+    extractProperty(c, "flippedImage", flippedImage_);    
     extractProperty(c, "obsModeKeywordListPath", obsModeKeywordListPath_);
     extractProperty(c, "recipeDictionaryPath", recipeDictionaryPath_);
     extractProperty(c, "gcsComponent", gcsComponent_);
     extractProperty(c, "cameraName", cameraName_);
+    extractProperty(c, "referencePixel", referencePixel_);    
   }
   catch (GCSException& ex)
   {

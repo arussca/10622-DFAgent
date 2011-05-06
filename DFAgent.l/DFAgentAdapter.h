@@ -93,6 +93,8 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void                 autoReduce                  (CORBA::Short value);   
   CORBA::Short         writeKeywords                  ();
   void                 writeKeywords                  (CORBA::Short value);     
+  CORBA::Short         flippedImage                  ();
+  void                 flippedImage                  (CORBA::Short value);       
   char*                obsModeKeywordListPath    ();
   void                 obsModeKeywordListPath    (const char* value); 
   char*                recipeDictionaryPath      ();
@@ -101,6 +103,8 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void                 gcsComponent              (const char* value); 
   char*                cameraName                ();
   void                 cameraName                (const char* value); 
+  DGT::DoubleArray*    referencePixel();
+  void                 referencePixel(const DGT::DoubleArray& value);  
 
   
   //-----------------------------------------------------------------

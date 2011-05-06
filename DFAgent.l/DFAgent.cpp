@@ -42,6 +42,11 @@ DFAgent::DFAgent(string name)
   cameraName_                = "cameraName";
   dfSessionId_               = 0;
   shortObsMode_              = 0;
+  for(int w=0; w<referencePixel_.size(); w++) referencePixel_[w]=0;  
+
+  //initialize variables  
+  referencePixel_[0] = 512.0;
+  referencePixel_[1] = 512.0;
     
   //Initialize ObsType variable to default value
   obsType_ = CALIB;
@@ -320,6 +325,7 @@ char* DFAgent::report(short level)
   ost << "saveFITS            =" << saveFITS()          << endl;
   ost << "autoReduce            =" << autoReduce()          << endl;  
   ost << "writeKeywords            =" << writeKeywords()          << endl;    
+  ost << "flippedImage            =" << flippedImage()          << endl;  
   ost << "obsModeKeywordListPath =" << obsModeKeywordListPath() << endl;
   ost << "recipeDictionaryPath=" << recipeDictionaryPath() << endl;
   ost << "gcsComponent        =" << gcsComponent()      << endl;
@@ -1723,6 +1729,27 @@ void DFAgent::writeKeywords(short new_writeKeywords)
 }
 
 //----------------------------------------------------------------------
+// Get flippedImage property
+//----------------------------------------------------------------------
+short DFAgent::flippedImage()
+{
+  trace_.out("flippedImage()\n");
+  return flippedImage_;
+}
+
+//----------------------------------------------------------------------
+// Set flippedImage property
+//----------------------------------------------------------------------
+void DFAgent::flippedImage(short new_flippedImage)
+{
+  trace_.out("flippedImage(%hd)\n",new_flippedImage);
+  // Change property
+  flippedImage_ = new_flippedImage;
+  
+  propertyChange_("flippedImage");
+}
+
+//----------------------------------------------------------------------
 // Get obsModeKeywordListPath property
 //----------------------------------------------------------------------
 const char* DFAgent::obsModeKeywordListPath()
@@ -1756,7 +1783,7 @@ void DFAgent::obsModeKeywordListPath(const char* new_obsModeKeywordListPath)
   }
   else
   {
-    OperationFailed("AGDFAgent::obsModeKeywordListPath(const char*)",
+    OperationFailed("DFAgent::obsModeKeywordListPath(const char*)",
                           ("Missing fileName: " + obsModeKeywordListPath_).c_str());
   }
   //@epc  
@@ -1842,5 +1869,43 @@ void DFAgent::cameraName(const char* new_cameraName)
   cameraName_ = new_cameraName;
   
   propertyChange_("cameraName");
+}
+
+//----------------------------------------------------------------------
+// Get referencePixel property
+//----------------------------------------------------------------------
+const DoubleArray1D DFAgent::referencePixel()
+{
+  trace_.out("referencePixel()\n");
+  DoubleArray1D doubleArray1D(referencePixel_.size());
+  for(unsigned int w=0; w<referencePixel_.size(); w++) 
+  { 
+    doubleArray1D[w] = referencePixel_[w];
+  }
+
+  return doubleArray1D;
+}
+
+//----------------------------------------------------------------------
+// Set referencePixel property
+//----------------------------------------------------------------------
+void DFAgent::referencePixel(const DoubleArray1D& new_referencePixel)
+{
+  trace_.out("referencePixel(double[%ld])\n",new_referencePixel.width());
+  
+  // Check if is a valid array
+  if (new_referencePixel.width()!=referencePixel_.size())
+  {
+    logError_("Array property is out of range");
+    throw InvalidValue(name_.c_str(),"Index out of range in array");
+  }
+  
+  // Change property
+  for(unsigned int w=0; w<new_referencePixel.width(); w++)
+  {
+    referencePixel_[w] = new_referencePixel[w];
+  }
+  
+  propertyChange_("referencePixel");
 }
 

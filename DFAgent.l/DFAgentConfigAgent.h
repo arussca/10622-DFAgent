@@ -67,10 +67,12 @@ class DFAgentConfigAgent : public ConfigAgent
   short                saveFITS_           ; 
   short                autoReduce_           ;   
   short                writeKeywords_           ;  
+  short                flippedImage_           ;  
   String               obsModeKeywordListPath_ ; 
   String               recipeDictionaryPath_ ; 
   String               gcsComponent_       ; 
   String               cameraName_         ; 
+  DoubleArray1D        referencePixel_     ;  
 };
 
 #endif // _DFAgentConfigAgent_h_ 

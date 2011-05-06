@@ -111,10 +111,12 @@ module DFAGENT
     attribute short                saveFITS;
     attribute short                autoReduce;
     attribute short                writeKeywords;    
+    attribute short                flippedImage;    
     attribute string               obsModeKeywordListPath;
     attribute string               recipeDictionaryPath;
     attribute string               gcsComponent;
     attribute string               cameraName;
+    attribute DGT::DoubleArray     referencePixel;    
   };
 };
 #endif // _DFAGENT_idl_ 
