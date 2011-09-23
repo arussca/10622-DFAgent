@@ -112,6 +112,20 @@ void DFAgentAdapter::setObjectName(const char* objectName)
 }
 
 //----------------------------------------------------------------------
+char* DFAgentAdapter::getObjectName()
+{
+  try
+  {
+    string tmpObjectName = device_->getObjectName();
+    return CORBA::string_dup(tmpObjectName.c_str());
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
 void DFAgentAdapter::setProgramId(const char* programId)
 {
   try

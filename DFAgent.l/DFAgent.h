@@ -126,6 +126,11 @@ class DFAgent : public Device
   void setObjectName(const char* objectName);
 
   /**
+  * Gets the name of the Object to be observed
+  */
+  string getObjectName();
+
+  /**
   * Sets Program Identifier
   */
   void setProgramId(const char* programId);

@@ -44,6 +44,9 @@ module DFAGENT
     void setObjectName(in string objectName) 
 			raises (DGT::GCSException); 
 
+    string getObjectName() 
+			raises (DGT::GCSException); 
+
     void setProgramId(in string programId) 
 			raises (DGT::GCSException); 
 

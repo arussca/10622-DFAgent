@@ -1042,6 +1042,14 @@ void DFAgent::setObjectName(const char* objectName)
 }
 
 //----------------------------------------------------------------------
+// getObjectName 
+//----------------------------------------------------------------------
+string DFAgent::getObjectName()
+{
+  return objectName_;
+}
+
+//----------------------------------------------------------------------
 // setProgramId 
 //----------------------------------------------------------------------
 void DFAgent::setProgramId(const char* programId)

@@ -40,6 +40,7 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void   setObservationType   (DFAGENT::ObservationType obsType);
   void   setObserverName      (const char* observerName);
   void   setObjectName        (const char* objectName);
+  char*  getObjectName        ();  
   void   setProgramId         (const char* programId);
   void   setObservationBlockId           (const char* obId);
   void   setImageTitle        (const char* imageTitle);
