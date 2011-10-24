@@ -17,6 +17,11 @@ module DFAGENT
 {
   enum ObservationType
   {
+    OBJECTS, FLAT
+  };
+
+  enum ObservationClass
+  {
     SCIENCE, CALIB
   };
   
@@ -34,6 +39,9 @@ module DFAGENT
 
     void setObservationType(in ObservationType obsType) 
 			raises (DGT::GCSException); 
+
+    void setObservationClass(in ObservationClass obsClass) 
+			raises (DGT::GCSException); 
  
     void setInstrumentMode(in string insMode) 
 			raises (DGT::GCSException); 
@@ -48,6 +56,9 @@ module DFAGENT
 			raises (DGT::GCSException); 
 
     void setProgramId(in string programId) 
+			raises (DGT::GCSException); 
+
+    void setESOProgramId(in string esoProgramId) 
 			raises (DGT::GCSException); 
 
     void setObservationBlockId(in string obId) 
@@ -115,6 +126,7 @@ module DFAGENT
     attribute short                autoReduce;
     attribute short                writeKeywords;    
     attribute short                flippedImage;    
+    attribute short                testingMode;    
     attribute string               obsModeKeywordListPath;
     attribute string               recipeDictionaryPath;
     attribute string               gcsComponent;

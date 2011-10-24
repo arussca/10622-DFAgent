@@ -49,10 +49,16 @@ DFAgent::DFAgent(string name)
   referencePixel_[1] = 512.0;
     
   //Initialize ObsType variable to default value
-  obsType_ = CALIB;
+  obsType_ = OBJECTS;
   //initialize map with ObservationType and string names..
-  obsTypeName_[SCIENCE] = "Science";
-  obsTypeName_[CALIB] = "Calib";
+  obsTypeName_[OBJECTS] = "Object";
+  obsTypeName_[FLAT] = "Flat";
+
+  //Initialize ObsClass variable to default value
+  obsClass_ = SCIENCE;
+  //initialize map with ObservationClass and string names..
+  obsClassName_[SCIENCE] = "Science";
+  obsClassName_[CALIB] = "Calib";
   
   //@ipc
   //init pointer to devices to null
@@ -326,6 +332,7 @@ char* DFAgent::report(short level)
   ost << "autoReduce            =" << autoReduce()          << endl;  
   ost << "writeKeywords            =" << writeKeywords()          << endl;    
   ost << "flippedImage            =" << flippedImage()          << endl;  
+  ost << "testingMode            =" << testingMode()          << endl;  
   ost << "obsModeKeywordListPath =" << obsModeKeywordListPath() << endl;
   ost << "recipeDictionaryPath=" << recipeDictionaryPath() << endl;
   ost << "gcsComponent        =" << gcsComponent()      << endl;
@@ -690,7 +697,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
   {
     try
     {
-      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "Object observed", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -698,7 +705,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("INSMODE", instrumentMode_.c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("INSMODE", instrumentMode_.c_str(), "Instrument Mode", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -706,7 +713,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSTYPE", obsTypeName_[obsType_].c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("OBSTYPE", obsTypeName_[obsType_].c_str(), "Observation Type", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -714,7 +721,15 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }    
     try
     {
-      frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("OBSCLASS", obsClassName_[obsClass_].c_str(), "Observation Class", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("OBSCLASS", obsClassName_[obsClass_].c_str());
+    }        
+    try
+    {
+      frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "Personal Investigator", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -722,7 +737,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -730,15 +745,28 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("GTCPRGID", programId_.c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("GTCPRGID", programId_.c_str(), "Program Identifier", ""));
     }
     catch(AlreadyExists &ex)
     {
       frame.modifyKeyword("GTCPRGID", programId_.c_str());
     }
+//   
+    if(esoProgramId_ != "")
+    {  
+      try
+      {
+        frame.addKeyword(Keyword<string>("ESOPRGID", esoProgramId_.c_str(), "ESO Program Identifier", ""));
+      }
+      catch(AlreadyExists &ex)
+      {
+        frame.modifyKeyword("ESOPRGID", esoProgramId_.c_str());
+      }    
+    }
+//    
     try
     {
-      frame.addKeyword(Keyword<string>("GTCOBID", observationBlockId_.c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("GTCOBID", observationBlockId_.c_str(), "Observation Block", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -746,7 +774,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "", ""));
+      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -759,6 +787,46 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     catch(AlreadyExists &ex)
     {
       frame.modifyKeyword("OBSMODE", obsModeName_[shortObsMode_].c_str());
+    }
+    try
+    {
+      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "Organization responsible for creating the FITS file", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("ORIGIN", "GRANTECAN");
+    }
+    try
+    {
+      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Observatory (IRAF style)", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("OBSERVAT", "ORM");
+    }
+    try
+    {
+      frame.addKeyword(Keyword<long>("LATITUDE", 28762000, "Telescope latitude  (degrees), +28:45:43.2", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("LATITUDE", (long)28762000);
+    }
+    try
+    {
+      frame.addKeyword(Keyword<long>("LONGITUD", 17877639, "Telescope longitude (degrees), +17:52:39.5", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("LONGITUD", (long)17877639);
+    }
+    try
+    {
+      frame.addKeyword(Keyword<long>("HEIGHT", 2348, "Telescope height above sea level (m)", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("HEIGHT", (long)2348);
     }
   }
   catch( GCSException& ex )
@@ -976,6 +1044,22 @@ void DFAgent::setObservationType(ObservationType obsType)
   unlock_();
 }
 
+//----------------------------------------------------------------------
+// setObservationClass
+//----------------------------------------------------------------------
+void DFAgent::setObservationClass(ObservationClass obsClass)
+{
+  trace_.out("setObservationClass(%s)\n", obsClassName_[obsClass].c_str());
+  //## check if input parameters are valid here
+  lock_();
+//  goRunning_();
+  
+  obsClass_ = obsClass;
+  
+//  goIdle_();
+  unlock_();
+}
+
 
 //----------------------------------------------------------------------
 // setInstrumentMode
@@ -1060,6 +1144,22 @@ void DFAgent::setProgramId(const char* programId)
   goRunning_();
   
   programId_ = programId;
+  
+  goIdle_();
+  unlock_();
+}
+
+//----------------------------------------------------------------------
+// setESOProgramId 
+//----------------------------------------------------------------------
+void DFAgent::setESOProgramId(const char* esoProgramId)
+{
+  trace_.out("setESOProgramId(%s)\n",esoProgramId);
+  //## check if input parameters are valid here
+  lock_();
+  goRunning_();
+  
+  esoProgramId_ = esoProgramId;
   
   goIdle_();
   unlock_();
@@ -1755,6 +1855,27 @@ void DFAgent::flippedImage(short new_flippedImage)
   flippedImage_ = new_flippedImage;
   
   propertyChange_("flippedImage");
+}
+
+//----------------------------------------------------------------------
+// Get testingMode property
+//----------------------------------------------------------------------
+short DFAgent::testingMode()
+{
+  trace_.out("testingMode()\n");
+  return testingMode_;
+}
+
+//----------------------------------------------------------------------
+// Set testingMode property
+//----------------------------------------------------------------------
+void DFAgent::testingMode(short new_testingMode)
+{
+  trace_.out("testingMode(%hd)\n",new_testingMode);
+  // Change property
+  testingMode_ = new_testingMode;
+  
+  propertyChange_("testingMode");
 }
 
 //----------------------------------------------------------------------

@@ -17,13 +17,15 @@
 
 struct KeywordInfo
 {
-   KeywordInfo (string key, string dev, string mon, string type, string format, string range)
+   KeywordInfo (string key, string dev, string mon, string type, string format, string range, string labels, string comment)
     : keyName(key)
      ,monitorName(mon)
      ,deviceName(dev)
      ,monitorType(type)
      ,keyFormat(format)
-     ,arrayRange(range) {} 
+     ,arrayRange(range)
+     ,enumLabels(labels)
+     ,keyComment(comment) {} 
    
    string keyName;
    string deviceName;
@@ -31,6 +33,8 @@ struct KeywordInfo
    string monitorType;
    string keyFormat;
    string arrayRange;
+   string enumLabels;
+   string keyComment;
 };
 
 class FITSHeaderInfo
@@ -45,13 +49,14 @@ class FITSHeaderInfo
     std::string formatRadianToDms_(double rad);
     double formatRadianToDeg_(double rad);
     std::pair<unsigned int, unsigned int> rangeFromString_( const string &range );
+    string getLabelFromValue_(const string &sLabels, const long &val);
     
     template<class ListType, typename ValueType> 
     void addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, Frame<double,2>& frame);
     
     template<typename C>
     C trimmedArray1D_(const C arrayIn, const std::string sRange);
-
+    
     void gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 
                                 MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame );
     void gatherDiscreteMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 

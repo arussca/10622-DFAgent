@@ -38,10 +38,12 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void   setPrincipalInvestigatorName            (const char* piName);
   void   setInstrumentMode    (const char* insMode);
   void   setObservationType   (DFAGENT::ObservationType obsType);
+  void   setObservationClass   (DFAGENT::ObservationClass obsClass);  
   void   setObserverName      (const char* observerName);
   void   setObjectName        (const char* objectName);
   char*  getObjectName        ();  
   void   setProgramId         (const char* programId);
+  void   setESOProgramId         (const char* esoProgramId);  
   void   setObservationBlockId           (const char* obId);
   void   setImageTitle        (const char* imageTitle);
   void   setObservationComment(const char* observationComment);
@@ -96,6 +98,8 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void                 writeKeywords                  (CORBA::Short value);     
   CORBA::Short         flippedImage                  ();
   void                 flippedImage                  (CORBA::Short value);       
+  CORBA::Short         testingMode                  ();
+  void                 testingMode                  (CORBA::Short value);         
   char*                obsModeKeywordListPath    ();
   void                 obsModeKeywordListPath    (const char* value); 
   char*                recipeDictionaryPath      ();

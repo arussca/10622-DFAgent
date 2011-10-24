@@ -73,6 +73,19 @@ void DFAgentAdapter::setObservationType(DFAGENT::ObservationType obsType)
 }
 
 //----------------------------------------------------------------------
+void DFAgentAdapter::setObservationClass(DFAGENT::ObservationClass obsClass)
+{
+  try
+  {
+    device_->setObservationClass((DFAgent::ObservationClass)obsClass);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
 void DFAgentAdapter::setInstrumentMode(const char* insMode)
 {
   try
@@ -131,6 +144,19 @@ void DFAgentAdapter::setProgramId(const char* programId)
   try
   {
     device_->setProgramId(programId);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+}
+
+//----------------------------------------------------------------------
+void DFAgentAdapter::setESOProgramId(const char* esoProgramId)
+{
+  try
+  {
+    device_->setESOProgramId(esoProgramId);
   }
   catch(GCSException& ex)
   {
@@ -633,6 +659,26 @@ void DFAgentAdapter::flippedImage(CORBA::Short value)
   try
   {
     device_->flippedImage(value);
+  }
+  catch(GCSException& ex)
+  {
+    throw CORBA::BAD_PARAM();
+  }
+}
+
+//----------------------------------------------------------------------
+// get testingMode
+CORBA::Short DFAgentAdapter::testingMode()
+{
+  return device_->testingMode();
+}
+//-------------------------------
+// set testingMode
+void DFAgentAdapter::testingMode(CORBA::Short value)
+{
+  try
+  {
+    device_->testingMode(value);
   }
   catch(GCSException& ex)
   {

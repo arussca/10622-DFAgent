@@ -36,9 +36,17 @@ class DFAgent : public Device
   public:
 
   /**
-   *  Current Observation Mode
+   *  Current Observation Type
    */
   enum ObservationType
+  {
+    OBJECTS, FLAT
+  };
+
+  /**
+   *  Current Observation Class
+   */
+  enum ObservationClass
   {
     SCIENCE, CALIB
   };
@@ -106,9 +114,14 @@ class DFAgent : public Device
   void setPrincipalInvestigatorName(const char* piName);
 
   /**
-  * Sets Observation Type [SCIENCE|CALIB]
+  * Sets Observation Type [OBJECTS|FLAT]
   */
   void setObservationType(ObservationType obsType);
+
+  /**
+  * Sets Observation Class [SCIENCE|CALIB]
+  */
+  void setObservationClass(ObservationClass obsClass);
 
   /**
   * Sets the instrument mode
@@ -134,6 +147,11 @@ class DFAgent : public Device
   * Sets Program Identifier
   */
   void setProgramId(const char* programId);
+
+  /**
+  * Sets ESO Program Identifier
+  */
+  void setESOProgramId(const char* esoProgramId);
 
   /**
   * Sets Observation Block identifier
@@ -375,6 +393,17 @@ class DFAgent : public Device
   void flippedImage(short new_value); 
 
   /**
+  * Set testingMode to a default value
+  * @property:
+  * @description:State of testingMode by default
+  * @minimum:0
+  * @maximum:1
+  * @default:0
+  */
+  short testingMode();
+  void testingMode(short new_value); 
+
+  /**
   * Set writeKeywords to a default value
   * @property:
   * @description:State of writeKeywords by default
@@ -463,6 +492,7 @@ class DFAgent : public Device
   String cameraName_                ; ///<cameraName
   String dfAgentPartnerInstanceName_; ///<Instance name of the agent partner
   bool flippedImage_                ; ///<State of flipped image flag
+  bool testingMode_                ; ///<State of testing Mode flag  
   
   // MonitorAgent
   MonitorAgent<DFAgent>* DFAgentMonitorAgent_;
@@ -485,7 +515,9 @@ class DFAgent : public Device
   string instrumentMode_; ///< Instrument Mode
   string observerName_; ///< Observer name
   string programId_; ///< Program Id
+  string esoProgramId_; ///< ESO Program Id  
   ObservationType obsType_; ///< Current Observation Type
+  ObservationClass obsClass_; ///< Current Observation Class  
   unsigned char monitorManagerSubscriptionID_;  ///< identifier for monitor manager subscription session
   TinyVector<double,2> referencePixel_;    ///< Reference Pixel for WCS params
     
@@ -495,7 +527,8 @@ class DFAgent : public Device
   DFAGENT::DFAgent_ifce_var dfAgentPartnerInstance_;  ///< Pointer to an auxiliar agent, which helps in coxplex tasks
   MONITOR::Manager_ifce_var monitorManagerInstance_;   ///< Pointer to Obs engine instance in corba  
   map<short, std::string> obsModeName_; ///< Map with string associated with each obsMode
-  map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [SCIENCE|CALIB]
+  map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [OBJECTS|FLAT]
+  map<short, std::string> obsClassName_; ///< Map with string associated with each obsClass [SCIENCE|CALIB]  
   map<short, std::vector<bool> > obsModeSettings_; ///< Map with settings for each obsMode
   long dfSessionId_; ///< Long number with the session id currently opened.
   vector<string> recipeElementNames_; ///< List with element names used in a recipe.

@@ -41,27 +41,40 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListT
 {
    if (list.length() < 1)
       throw NotFound ("addSampledMonitorKeyword_()", "Data length is 0");
-   
+   std::string unitComment;
    if (keyword.keyFormat == "RAD_TO_HMS")
-      frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0]), "h:m:s"));   
+   {
+     unitComment = ", h:m:s";
+     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0]), (keyword.keyComment + unitComment).c_str() )); 
+   }
    else if (keyword.keyFormat == "RAD_TO_DMS")
-      frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0]), "d:m:s"));   
+   {
+     unitComment = ", d:m:s";
+     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0]), (keyword.keyComment + unitComment).c_str() ));
+   }
    else if (keyword.keyFormat == "RAD_TO_DEG")
-      frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0]), "degrees"));      
-   else   
-      frame.addKeyword (Keyword<ValueType>(keyword.keyName, (ValueType) list[0], ""));   
+   {
+     unitComment = ", degrees";
+     frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0]), (keyword.keyComment + unitComment).c_str() ));
+   }
+   else
+   {
+     frame.addKeyword (Keyword<ValueType>(keyword.keyName, (ValueType) list[0], keyword.keyComment));
+   }
 }
 
 
 void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
 {
   ifstream f(fileName.c_str());
-  string devName, monName, keyName, keyType, keyFormat, arrayRange, specLine;
+  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, specLine, cell;
   if (f.is_open())
   {
     while(!f.eof())
     { //this keyword is not mandatory, so it needs to be cleaned from previous value
       arrayRange = "";
+      enumLabels = "";
+      keyComment = "";
       
       getline(f,specLine);
       stringstream ss(specLine);
@@ -71,12 +84,35 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
       ss >> monName;
       ss >> keyType;
       ss >> keyFormat;
-      if(ss.good())
-      { //this keyword is optional in order to keep it compatible with previuos versions
-        ss >> arrayRange;
-      }
 
-      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange));
+      //optional fields, must be tab separated!!! No spaces allowed!!
+      while(ss.good())
+      {
+        std::getline(ss, cell, '\t');
+	if(cell != "")
+	{
+          string tag = cell.substr(0,cell.find_first_of("="));
+          if(tag == "range")
+	  {
+            arrayRange = cell.substr(cell.find_first_of("=") + 1);
+          }
+          else if(tag == "labels")
+          {
+            enumLabels = cell.substr(cell.find_first_of("=") + 1);
+          }
+          else if(tag == "comment")
+          {
+            keyComment = cell.substr(cell.find_first_of("=") + 1);
+	    keyComment = keyComment.substr(keyComment.find_first_of("[") + 1, keyComment.find_first_of("]") - 1);
+          }
+          else
+          {
+            cout << "ERROR: No valid field tag have been found." << endl;
+          }
+	}
+      }      
+
+      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment));
     }
     f.close();
   }
@@ -173,6 +209,28 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
   }
 }
 
+string FITSHeaderInfo::getLabelFromValue_(const string &sLabels, const long &val)
+{
+  string label;
+  string labelList = sLabels.substr(sLabels.find_first_of("[") + 1, sLabels.find_first_of("]") - 1);
+  stringstream strs(labelList);
+  unsigned int count = 0;
+  while(strs.good())
+  {
+    std::getline(strs, label, ',');
+    if(count == val)
+    {
+      break;
+    }
+    else
+    {
+      label = "";
+      count++;
+    }
+  }
+  return label;
+}
+
 std::pair<unsigned int, unsigned int> FITSHeaderInfo::rangeFromString_( const string &sRange )
 {
   //parse string with the format as follows; [valueX1,valueX2]
@@ -265,35 +323,35 @@ void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const Tim
          {
 	        ostringstream formatbuf;
 	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_d()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), "")); 
+	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
          case DGT::TYPE_FLOAT_ARRAY1D:
          {
 	        ostringstream formatbuf;
 	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_f()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), "")); 
+	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;         
          case DGT::TYPE_LONG_ARRAY1D:
          {
 	        ostringstream formatbuf;
 	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_l()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), "")); 
+	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }
 	      break;
          case DGT::TYPE_SHORT_ARRAY1D:
          {
 	        ostringstream formatbuf;
 	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_s()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), "")); 
+	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
          case DGT::TYPE_OCTET_ARRAY1D:
          {
 	        ostringstream formatbuf;
 	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_o()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), "")); 
+	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
       }
@@ -327,7 +385,14 @@ void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const Ti
       if (mons->length() < 1)
          throw NotFound ("", "Data not found");
       
-      frame.addKeyword(Keyword<long>(keyword.keyName, mons[0].new_value, ""));   
+      if(keyword.enumLabels == "")
+      {
+        frame.addKeyword(Keyword<long>(keyword.keyName, mons[0].new_value, keyword.keyComment));
+      }
+      else
+      {
+        frame.addKeyword(Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels,mons[0].new_value), keyword.keyComment));        
+      }
    }
    catch (GCSException& ex)
    {
