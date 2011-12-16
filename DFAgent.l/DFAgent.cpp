@@ -1268,19 +1268,22 @@ void DFAgent::setObsModeLowLevel(short obsMode)
     initDFBranchInstance_();
     
     //Checked already that the same obs mode isn't running
+    if(shortObsMode_ != obsMode)
+    {
+      applyObsModeSettings_( obsModeSettings_[obsMode] );
+    }  
     shortObsMode_ = obsMode;
     if(isSessionRunning_)
     { // Agent can manage only one session at a time, if it exists, it must be closed before opening a new one
       try
       {
          dfBranchInstance_->closeObsMode(dfSessionId_);
-       }
-       catch (...) {}	 
+      }
+      catch (...) {}	 
     }
     //Subscribe to monitor needed for this obsMode, using .spec keywords. Agent will read from them shortly
     obsModeKeywordList_[shortObsMode_].subscribeToMonitors(monitorManagerInstance_, monitorManagerSubscriptionID_);   
     dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str() );
-    applyObsModeSettings_( obsModeSettings_[shortObsMode_] );
     dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
     dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
     isSessionRunning_ = true;

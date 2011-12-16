@@ -1,3 +1,13 @@
+RELEASE NOTES 1.1.5
+Interface
+      
+Bugs
+  - Reset Obs Mode settings to default only when changing to a new one.
+  
+Implementation
+
+Known errors
+
 RELEASE NOTES 1.1.4
 Interface
   - Corba function setESOProgramId added
