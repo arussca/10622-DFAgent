@@ -548,7 +548,6 @@ class DFAgent : public Device
 		     
   //custom member function
   virtual DDPKF::DataElement *dataElementFromElementName_(const string & elementName);///< create DataElement object from the name of the element
-  void scanDirectory_(vector<pair<time_t, string> > &timeFileList); ///< Function that search the directory looking for fits files
   void sendElement_(string elementRecipeName);  ///< Send the element to DataFactory
   void initDFBranchInstance_();    ///< initilize the DFBranchInstance object, connect to the Branch
   void initDFAgentPartnerInstance_();  ///< Initialize pointer and connect to DFAgentPartner

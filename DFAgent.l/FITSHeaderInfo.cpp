@@ -89,11 +89,11 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
       while(ss.good())
       {
         std::getline(ss, cell, '\t');
-	if(cell != "")
-	{
+        if(cell != "")
+        {
           string tag = cell.substr(0,cell.find_first_of("="));
           if(tag == "range")
-	  {
+          {
             arrayRange = cell.substr(cell.find_first_of("=") + 1);
           }
           else if(tag == "labels")
@@ -103,13 +103,13 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
           else if(tag == "comment")
           {
             keyComment = cell.substr(cell.find_first_of("=") + 1);
-	    keyComment = keyComment.substr(keyComment.find_first_of("[") + 1, keyComment.find_first_of("]") - 1);
+            keyComment = keyComment.substr(keyComment.find_first_of("[") + 1, keyComment.find_first_of("]") - 1);
           }
           else
           {
             cout << "ERROR: No valid field tag have been found." << endl;
           }
-	}
+        }
       }      
 
       monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment));

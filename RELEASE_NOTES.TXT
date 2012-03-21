@@ -1,3 +1,13 @@
+RELEASE NOTES 1.1.6
+Interface
+      
+Bugs
+  
+Implementation
+  - scanDirectory fuction has been removed.
+  
+Known errors
+
 RELEASE NOTES 1.1.5
 Interface
       

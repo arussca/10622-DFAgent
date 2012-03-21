@@ -433,57 +433,6 @@ void DFAgent::createDevices_(bool update)
 ************************************************************************/
 
 //----------------------------------------------------------------------
-// scanDirectory_
-//----------------------------------------------------------------------
-void DFAgent::scanDirectory_(vector<pair<time_t, string> > &timeFileList)
-{ 
-  //Open directory and check whether a new image has arrived
-  DIR *dp;
-  struct dirent *ep;
-  string path(offlineImagesPath_);
-  char * c_path = new char [path.size()+1];
-  strcpy (c_path, path.c_str());
-  dp = opendir ( c_path );
-  if (dp != NULL)
-  {
-    while (ep = readdir (dp))
-    {
-      string fileName(ep->d_name);
-      if(fileName != "." && fileName != ".." && fileName != "")
-      {
-        string::size_type pos = path.find_last_of("/");
-        string foreslash = (pos != string::npos) ? "/" : "";
-        string filePath( path + foreslash + fileName );
-        struct stat st;
-        char * cs = new char [filePath.size()+1];
-        strcpy (cs, filePath.c_str());
-
-        if(stat(cs,&st) != 0)
-        {
-	       logError_ ("ERROR when getting info from file");
-          delete cs;
-          throw OperationFailed("DFAgent::scanDirectory_", "Unable to get info from file");
-        }
-        time_t t = st.st_mtime;
-        timeFileList.push_back(make_pair(t, filePath));
-
-        delete cs;
-      }
-    }
-    sort( timeFileList.begin(), timeFileList.end() );
-    delete c_path;
-    (void) closedir (dp);
-  }
-  else
-  {
-    delete c_path;
-    logError_ ("ERROR Unable to open directory");
-    throw OperationFailed("DFAgent::scanDirectory_", "Unable to open directory");
-  }
-}
-
-
-//----------------------------------------------------------------------
 // dataElementFromElementName_
 //----------------------------------------------------------------------
 DDPKF::DataElement *DFAgent::dataElementFromElementName_(const string & elementName)
@@ -1299,6 +1248,7 @@ void DFAgent::setObsModeLowLevel(short obsMode)
      {  //It is a timeout, was a communications error
        dfBranchInstance_ = DF::Branch_ifce::_nil();
      }
+     logError_ ("Error reading initializing ObsMode: %s", gcsex.toString());
      throw gcsex;
   }
   catch( GCSException& ex )
