@@ -39,6 +39,7 @@ double FITSHeaderInfo::formatRadianToDeg_(double rad)
 template<class ListType, typename ValueType>
 void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, Frame<double,2>& frame)
 {
+   cout << "@@##is in addSampled:@@## " << keyword.keyName << "; value: " << (ValueType) list[0] << endl;
    if (list.length() < 1)
       throw NotFound ("addSampledMonitorKeyword_()", "Data length is 0");
    std::string unitComment;
@@ -88,17 +89,18 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
       //optional fields, must be tab separated!!! No spaces allowed!!
       while(ss.good())
       {
-        std::getline(ss, cell, '\t');
+        std::getline(ss, cell, ']');
         if(cell != "")
-        {
+        { 
           string tag = cell.substr(0,cell.find_first_of("="));
+          tag.erase(remove_if(tag.begin(), tag.end(), isspace), tag.end());
           if(tag == "range")
           {
-            arrayRange = cell.substr(cell.find_first_of("=") + 1);
+            arrayRange = cell.substr(cell.find_first_of("[") + 1);
           }
           else if(tag == "labels")
           {
-            enumLabels = cell.substr(cell.find_first_of("=") + 1);
+            enumLabels = cell.substr(cell.find_first_of("[") + 1);
           }
           else if(tag == "comment")
           {
@@ -168,7 +170,6 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
 
   it = monList_.begin();
   endIt = monList_.end();
-  
   while (it != endIt)
   {
     try
@@ -189,20 +190,16 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
     }
     catch (GCSException& ex)
     {
-/*    
       cerr<<"ERROR gathering header keyword: "<<it->keyName<<endl;
       ex.addToTrace ("gatherMonitorKeywords_()");   
 //      logError_ ("Error gathering header keyword: %s", ex.toString());
-      cerr<<ex<<endl;
-*/      
+      cerr<<ex<<endl;      
     }
     catch (const CORBA::Exception &ex)
     {
-/*    
       cerr << "CORBA ERROR gathering header keyword" << endl;
 //      logError_ ("CORBA Error gathering header keyword: %s", ex.toString());     
       cerr<<ex<<endl;
-*/      
     }   
     //increment position
     ++it;
@@ -212,8 +209,8 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manag
 string FITSHeaderInfo::getLabelFromValue_(const string &sLabels, const long &val)
 {
   string label;
-  string labelList = sLabels.substr(sLabels.find_first_of("[") + 1, sLabels.find_first_of("]") - 1);
-  stringstream strs(labelList);
+//  string labelList = sLabels.substr(sLabels.find_first_of("[") + 1, sLabels.find_first_of("]") - 1);
+  stringstream strs(sLabels);
   unsigned int count = 0;
   while(strs.good())
   {
@@ -235,8 +232,8 @@ std::pair<unsigned int, unsigned int> FITSHeaderInfo::rangeFromString_( const st
 {
   //parse string with the format as follows; [valueX1,valueX2]
   unsigned int startIndex, endIndex;
-  string vX1(sRange.substr(sRange.find_first_of("[") + 1, sRange.find_first_of(",")));
-  string vX2(sRange.substr(sRange.find_first_of(",") + 1, sRange.find_last_of("]")));
+  string vX1(sRange.substr(0, sRange.find_first_of(",")));
+  string vX2(sRange.substr(sRange.find_first_of(",") + 1, string::npos));
   
   istringstream issvX1(vX1), issvX2(vX2);
   if( (issvX1 >> dec >> startIndex).fail() || (issvX2 >> dec >> endIndex).fail() )
@@ -292,15 +289,16 @@ void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const Tim
 {
    DGT::TimeInterval ti;
    TimeValue startTime = requestedTime - TimeValue(1,0);
-   
    try
    {  
       ti.begin = toIDL(startTime);
       ti.end = toIDL(requestedTime);
-      
       MONITOR::DataBlockList_var mons = manager->retrieveData (keyword.deviceName.c_str(), keyword.monitorName.c_str(), ti);
       if (mons->length() < 1)
-         throw NotFound ("", "Data not found");
+      {
+        string notFoundMessage = "deviceName: " + keyword.deviceName + "; monitorName: " + keyword.monitorName + "; time: " + requestedTime.toString();
+        throw NotFound (notFoundMessage.c_str(), "Data not found");
+      }
       
       switch ( (*mons)[0].samples._d() )
       {
@@ -354,13 +352,26 @@ void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const Tim
 	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
+          
+         default:
+          throw InvalidValue("FITSHeaderInfo::gatherSampledMonitor_()","No type identified.");
+          
       }
    }
    catch (GCSException& ex)
    {
+     
       ex.addToTrace ("gatherSampledMonitor()");
       throw;
    }
+   catch (const CORBA::Exception &ex)
+   {
+      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+      cout << "##Error@@: " << gcsex << endl;      
+      gcsex.addToTrace ("gatherSampledMonitor()");
+      throw gcsex;
+   }   
+   
 }
 
 void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::MagnitudeChangeRepo_ifce_var &manager, Frame<double,2>& frame)

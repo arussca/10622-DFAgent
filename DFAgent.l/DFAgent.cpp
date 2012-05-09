@@ -646,7 +646,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
   {
     try
     {
-      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "Object observed", ""));
+      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "User defined target name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -670,7 +670,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }    
     try
     {
-      frame.addKeyword(Keyword<string>("OBSCLASS", obsClassName_[obsClass_].c_str(), "Observation Class", ""));
+      frame.addKeyword(Keyword<string>("OBSCLASS", obsClassName_[obsClass_].c_str(), "Observation class", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -678,7 +678,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }        
     try
     {
-      frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "Personal Investigator", ""));
+      frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "Principal Investigator", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -747,7 +747,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Observatory (IRAF style)", ""));
+      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Observatory name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -755,19 +755,19 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<long>("LATITUDE", 28762000, "Telescope latitude  (degrees), +28:45:43.2", ""));
+      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (HH:MM:SS)", ""));      
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("LATITUDE", (long)28762000);
+      frame.modifyKeyword("LATITUDE", "+28:45:43.2");
     }
     try
     {
-      frame.addKeyword(Keyword<long>("LONGITUD", 17877639, "Telescope longitude (degrees), +17:52:39.5", ""));
+      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (HH:MM:SS)", ""));      
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("LONGITUD", (long)17877639);
+      frame.modifyKeyword("LONGITUD", "+17:52:39.5");
     }
     try
     {
