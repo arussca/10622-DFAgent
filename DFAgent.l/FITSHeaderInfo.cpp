@@ -37,7 +37,7 @@ double FITSHeaderInfo::formatRadianToDeg_(double rad)
 }
 
 template<class ListType, typename ValueType>
-void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, Frame<double,2>& frame)
+void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, DataDescription& frame)
 {
    cout << "@@##is in addSampled:@@## " << keyword.keyName << "; value: " << (ValueType) list[0] << endl;
    if (list.length() < 1)
@@ -163,7 +163,8 @@ void FITSHeaderInfo::subscribeToMonitors(MONITOR::Manager_ifce_var &manager, uns
   
 }
 
-void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame)
+
+void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, DataDescription& frame)
 {
   vector<KeywordInfo>::const_iterator it, endIt;
   MONITOR::MagnitudeChangeRepo_ifce_var changeRepo = manager->magnitudeChangeRepo();
@@ -285,7 +286,8 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   return arrayOut;
 }
 
-void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame)
+
+void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::Manager_ifce_var &manager, DataDescription& frame)
 {
    DGT::TimeInterval ti;
    TimeValue startTime = requestedTime - TimeValue(1,0);
@@ -374,7 +376,7 @@ void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const Tim
    
 }
 
-void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::MagnitudeChangeRepo_ifce_var &manager, Frame<double,2>& frame)
+void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::MagnitudeChangeRepo_ifce_var &manager, DataDescription& frame)
 {
    DGT::TimeInterval ti;
    TimeValue startTime = requestedTime - TimeValue(1,0);
@@ -415,9 +417,8 @@ void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const Ti
 void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, MONITOR::Manager_ifce_var &manager, fitsfile* rawFile)
 {
   //first of all we gather monitor keywrods into the dataDescription object
-  Frame<double,2> nFrame;
-  gatherMonitorKeywords (time, manager, nFrame);
-  DataDescription newKeywords(nFrame.dataDescription());
+  DataDescription newKeywords;
+  gatherMonitorKeywords (time, manager, newKeywords);
   
   int status_=0;
   //We replace fits_write_key with fits_update_key funtion

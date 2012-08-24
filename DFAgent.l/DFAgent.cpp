@@ -640,7 +640,7 @@ void DFAgent::initDFAgentPartnerInstance_()
 //----------------------------------------------------------------------
 // writeStandardKeywords_
 //----------------------------------------------------------------------
-void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
+void DFAgent::writeStandardKeywords_(DataDescription& frame)
 {
   try
   {
@@ -789,7 +789,7 @@ void DFAgent::writeStandardKeywords_(Frame<double,2>& frame)
 //----------------------------------------------------------------------
 // writeAdditionalKeywords_
 //----------------------------------------------------------------------
-void DFAgent::writeAdditionalKeywords_(Frame<double,2>& frame)
+void DFAgent::writeAdditionalKeywords_(DataDescription& frame)
 {
   // Implemented if needed by inherited class
 }
@@ -881,7 +881,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
     try
     { //CORBAException & GCSException are treated inside gatherMonitorKeywords function each time it reads a keyword
-      obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, *rawFrame_);
+      obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, rawFrame_->dataDescription());
     }
     catch (const CORBA::Exception &ex)
     {  
@@ -892,8 +892,8 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
       }  
     }    
     
-    writeStandardKeywords_(*rawFrame_);
-    writeAdditionalKeywords_(*rawFrame_);
+    writeStandardKeywords_(rawFrame_->dataDescription());
+    writeAdditionalKeywords_(rawFrame_->dataDescription());
     
     
     //####Temporal fix solution#######
@@ -1862,10 +1862,14 @@ void DFAgent::obsModeKeywordListPath(const char* new_obsModeKeywordListPath)
       fitsHeaderInfo.parseKeywordsFile(fitsHeaderPath.c_str());
       obsModeKeywordList_.push_back(fitsHeaderInfo);
     }
+    if (obsModeKeywordList_.size() == 0)
+    {
+      throw InvalidValue("obsModeKeywordListPath","No keywords configuration found.");
+    }
   }
   else
   {
-    OperationFailed("DFAgent::obsModeKeywordListPath(const char*)",
+    throw OperationFailed("DFAgent::obsModeKeywordListPath(const char*)",
                           ("Missing fileName: " + obsModeKeywordListPath_).c_str());
   }
   //@epc  

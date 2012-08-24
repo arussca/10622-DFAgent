@@ -552,9 +552,9 @@ class DFAgent : public Device
   void initDFBranchInstance_();    ///< initilize the DFBranchInstance object, connect to the Branch
   void initDFAgentPartnerInstance_();  ///< Initialize pointer and connect to DFAgentPartner
   void initMonitorManagerInstance_();  ///< Initilize pointer and connect to MonitorManager
-  void writeStandardKeywords_(Frame<double,2>& frame);  ///< Write standar keywords in Frame object
+  void writeStandardKeywords_(DataDescription& frame);  ///< Write standar keywords in Frame object
   virtual void applyObsModeSettings_(const std::vector<bool> & settings);  ///< Stores settings values in the local variables
-  virtual void writeAdditionalKeywords_(Frame<double,2>& frame);  ///< Write additional keywords in Frame object
+  virtual void writeAdditionalKeywords_(DataDescription& frame);  ///< Write additional keywords in Frame object
   virtual void fetchORInfo_();  ///< Fetch Observation result info, and element names for current observation mode
   bool belongsToRecipe_(const string& elementName);  ///< Indicates if the element name is used in the recipe currently used
   //@epc

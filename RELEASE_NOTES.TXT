@@ -1,3 +1,17 @@
+RELEASE NOTES 1.1.8
+Interface
+      
+Bugs
+  
+Implementation
+  - writeAdditionalKeywords_ and writeStandardKeywords_ functions from
+  DFAgent.cpp, now accept DataDescription elements as arguments in order to make
+  it more generic.
+  - Functions from FITSHeaderInfo.cpp now accept DataDescription element as
+  arguments in order to make it more generic.
+  
+Known errors
+
 RELEASE NOTES 1.1.7
 Interface
       

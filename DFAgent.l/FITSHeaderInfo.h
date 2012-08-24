@@ -42,7 +42,7 @@ class FITSHeaderInfo
   public:
     void writeHeaderToFile( const TimeValue& time, MONITOR::Manager_ifce_var &manager, fitsfile* rawFile);
     void parseKeywordsFile(const string& fileName);
-    void gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame );
+    void gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, DataDescription& frame );
     void subscribeToMonitors(MONITOR::Manager_ifce_var &manager, unsigned char monitorManagerSubscriptionID);
   private:
     std::string formatRadianToHms_(double rad);
@@ -52,15 +52,15 @@ class FITSHeaderInfo
     string getLabelFromValue_(const string &sLabels, const long &val);
     
     template<class ListType, typename ValueType> 
-    void addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, Frame<double,2>& frame);
+    void addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, DataDescription& frame);
     
     template<typename C>
     C trimmedArray1D_(const C arrayIn, const std::string sRange);
     
     void gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 
-                                MONITOR::Manager_ifce_var &manager, Frame<double,2>& frame );
+                                MONITOR::Manager_ifce_var &manager, DataDescription& frame );
     void gatherDiscreteMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 
-                                 MONITOR::MagnitudeChangeRepo_ifce_var &manager, Frame<double,2>& frame );
+                                 MONITOR::MagnitudeChangeRepo_ifce_var &manager, DataDescription& frame );
     std::vector<KeywordInfo> monList_;
     
 };
