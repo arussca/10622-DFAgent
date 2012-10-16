@@ -1,3 +1,17 @@
+        RELEASE NOTES 1.1.9
+Interface
+      
+Bugs
+  
+Implementation
+  - Function receiveFrame doesn't convert frames to double by default anymore.
+  It has to be done by derievd class now if necessary.
+  - Function sendElement now has a new argument to indicate whether the frame
+  has arrived or not.
+  
+Known errors
+
+
 RELEASE NOTES 1.1.8
 Interface
       

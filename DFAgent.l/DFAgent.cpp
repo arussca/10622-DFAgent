@@ -433,9 +433,18 @@ void DFAgent::createDevices_(bool update)
 ************************************************************************/
 
 //----------------------------------------------------------------------
-// dataElementFromElementName_
+// getWithFrameRecipeElement_
 //----------------------------------------------------------------------
-DDPKF::DataElement *DFAgent::dataElementFromElementName_(const string & elementName)
+DDPKF::DataElement *DFAgent::getWithFrameRecipeElement_(const string & elementName)
+{
+  //virtual function to be implemented by 
+  return NULL;  
+}  
+
+//----------------------------------------------------------------------
+// getBeforeFrameRecipeElement_
+//----------------------------------------------------------------------
+DDPKF::DataElement *DFAgent::getBeforeFrameRecipeElement_(const string & elementName)
 {
   //virtual function to be implemented by 
   return NULL;  
@@ -459,6 +468,59 @@ bool DFAgent::belongsToRecipe_(const string& elementName)
 //----------------------------------------------------------------------
 // sendElement_
 //----------------------------------------------------------------------
+void DFAgent::sendElement_(string elementRecipeName, bool hasFrameArrived)
+{
+  DDPKF::DataElement * pDataElement = NULL;
+  try
+  {      
+     //check dfBranchInstance_ isn't null, otherwise reconnect to it.
+    initDFBranchInstance_();
+  
+    // If pointer to corba object isn't NULL, send element to DF
+    if (!CORBA::is_nil(const_cast<const DF::Branch_ifce_var&>(dfBranchInstance_)))
+    {
+      //Translate recipe specific term into generic agent varaible name
+      //agentName is the same as recipeName by default    
+      string elementName(recipeDictionary_.fetchOriginal(elementRecipeName, obsModeName_[shortObsMode_]) );
+      if(hasFrameArrived)
+      {
+        pDataElement = getWithFrameRecipeElement_(elementName);
+      }
+      else
+      {
+        pDataElement = getBeforeFrameRecipeElement_(elementName);
+      }
+      
+      if( pDataElement != NULL)
+      {
+        dfBranchInstance_->receiveORParam( *pDataElement, dfBranchInstanceName_, dfSessionId_);
+        cout << elementName << " sent!!" << endl;
+        delete pDataElement;
+      }
+    }
+  }
+  catch(const CORBA::Exception &ex)
+  {
+     GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+     if (gcsex.isA ("CorbaException"))
+     {  //It is a timeout, was a communications error
+       dfBranchInstance_ = DF::Branch_ifce::_nil();
+     }
+     delete pDataElement;
+     throw gcsex;
+  }
+  catch( GCSException& ex )
+  {
+    ex.addToTrace("DFAgent::sendElement_(const string&)");
+    logError_ ("Error while sending element: %s", ex.toString());
+    delete pDataElement;
+    throw;
+  }
+}
+
+//----------------------------------------------------------------------
+// sendElement_
+//----------------------------------------------------------------------
 void DFAgent::sendElement_(string elementRecipeName)
 {
   DDPKF::DataElement * pDataElement = NULL;
@@ -473,7 +535,12 @@ void DFAgent::sendElement_(string elementRecipeName)
       //Translate recipe specific term into generic agent varaible name
       //agentName is the same as recipeName by default    
       string elementName(recipeDictionary_.fetchOriginal(elementRecipeName, obsModeName_[shortObsMode_]) );
-      pDataElement = dataElementFromElementName_(elementName);
+      pDataElement = getWithFrameRecipeElement_(elementName);
+      if(pDataElement == NULL)
+      { //try BeforeFrame, just in case it is not an withFrame element
+        pDataElement = getBeforeFrameRecipeElement_(elementName);
+      }
+      
       if( pDataElement != NULL)
       {
         dfBranchInstance_->receiveORParam( *pDataElement, dfBranchInstanceName_, dfSessionId_);
@@ -787,9 +854,9 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
 }
 
 //----------------------------------------------------------------------
-// writeAdditionalKeywords_
+// writeWCSKeywords_
 //----------------------------------------------------------------------
-void DFAgent::writeAdditionalKeywords_(DataDescription& frame)
+void DFAgent::writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long, 2>& frameSize)
 {
   // Implemented if needed by inherited class
 }
@@ -858,10 +925,11 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 
     //create new frame by using double instead of short values
     //short frames are not supported by now
-    Frame<short,2> shortFrame;    
+    Frame<short,2> shortFrame;
     fromIDL(idlNoKeywordsFrame, shortFrame);
     cout << "Received a Frame of " << shortFrame.sizeOfDimensions() << endl;
-    rawFrame_ = new Frame<double,2>(NoErrors);
+/*    
+    rawFrame_ = new Frame<double,2>(NoErrors);    
     rawFrame_->resize (shortFrame.sizeOfDimensions());
     DPKArray<double,2>::iterator itDest;
     DPKArray<short,2>::const_iterator itOrig, itEnd;   
@@ -876,12 +944,12 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     }
     rawFrame_->dataDescription() = shortFrame.dataDescription();
     cout << "Sending a frame of " << rawFrame_->sizeOfDimensions() << endl;
-
+*/
     trace_.out ("Gathering monitor keywords values...");
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
     try
     { //CORBAException & GCSException are treated inside gatherMonitorKeywords function each time it reads a keyword
-      obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, rawFrame_->dataDescription());
+      obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, shortFrame.dataDescription());
     }
     catch (const CORBA::Exception &ex)
     {  
@@ -892,18 +960,19 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
       }  
     }    
     
-    writeStandardKeywords_(rawFrame_->dataDescription());
-    writeAdditionalKeywords_(rawFrame_->dataDescription());
+    writeStandardKeywords_(shortFrame.dataDescription());
+    TinyVector<unsigned long, 2> sizeF = shortFrame.sizeOfDimensions();
+    writeWCSKeywords_(shortFrame.dataDescription(), sizeF);
     
     
     //####Temporal fix solution#######
     try
     {
-      rawFrame_->addKeyword(Keyword<double>("EXPTIME", (fromIDL(idlExposureTime)).toFloat(), "", ""));
+      shortFrame.addKeyword(Keyword<double>("EXPTIME", (fromIDL(idlExposureTime)).toFloat(), "", ""));
     }
     catch(AlreadyExists &ex)
     {
-      rawFrame_->modifyKeyword("EXPTIME", (fromIDL(idlExposureTime)).toFloat());
+      shortFrame.modifyKeyword("EXPTIME", (fromIDL(idlExposureTime)).toFloat());
     }
     catch( GCSException& ex )
     {
@@ -915,12 +984,16 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     
             
     DDPKF::Frame idlFrame;
-    toIDL(*rawFrame_, idlFrame);
+    toIDL(shortFrame, idlFrame);
 
     if (!CORBA::is_nil(const_cast<const DF::Branch_ifce_var&>(dfBranchInstance_)))
     {
-      //sends leftover elements to the recipe,, checks rawFrame != NULL
-      for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind1st( mem_fun( &DFAgent::sendElement_ ), this ));
+      vector<string>::iterator it, itBegin = recipeElementNames_.begin(), itEnd = recipeElementNames_.end();
+      for(it = itBegin; it != itEnd; it++)
+      {//hasFrameArrived = true
+        sendElement_(*it, true);
+      }
+//      for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind2nd( mem_fun( &DFAgent::sendElement_ ), this ));
       
       if(multiFrameRecipe_)
       {
@@ -937,10 +1010,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
                                                         idlBottomRight, idlTimestamp, idlExposureTime, doesPropagateFrame_, 
                                                         doesSaveFrame_, dfBranchInstanceName_, dfSessionId_ );
       }
-    }
-    
-    delete rawFrame_;
-    rawFrame_ = NULL;
+    }    
   }
   catch (const CORBA::Exception &ex)
   {  
@@ -951,11 +1021,6 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      {  //It is a timeout, was a communications error
        dfBranchInstance_ = DF::Branch_ifce::_nil();
      }  
-     if(rawFrame_ != NULL)
-     {
-       delete rawFrame_;
-       rawFrame_ = NULL;
-     }
      goIdle_();
      unlock_();
      throw;
@@ -964,11 +1029,6 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
   {
      ex.addToTrace("DFAgent::receiveFrame()");
      logError_ ("Error while receiveing raw frame: %s", ex.toString());
-     if(rawFrame_ != NULL)
-     {
-       delete rawFrame_;
-       rawFrame_ = NULL;
-     }    
      goIdle_();
      unlock_();
      throw;
@@ -1239,7 +1299,14 @@ void DFAgent::setObsModeLowLevel(short obsMode)
     fetchORInfo_();
  
     //send early elements, the ones which can be sent while waiting for the rawFrame
-    for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind1st( mem_fun( &DFAgent::sendElement_ ), this ));
+    vector<string>::iterator it, itBegin = recipeElementNames_.begin(), itEnd = recipeElementNames_.end();
+    for(it = itBegin; it != itEnd; it++)
+    {  //hasFrameArrived = false
+      sendElement_(*it, false);
+    }    
+    
+//    for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind2nd( mem_fun( &DFAgent::sendElement_ ), this ));
+
   }
   catch(const CORBA::Exception &ex)
   {

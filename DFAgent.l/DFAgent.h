@@ -547,14 +547,17 @@ class DFAgent : public Device
   string cameraId_;         ///< string which carries the cameraID
 		     
   //custom member function
-  virtual DDPKF::DataElement *dataElementFromElementName_(const string & elementName);///< create DataElement object from the name of the element
-  void sendElement_(string elementRecipeName);  ///< Send the element to DataFactory
+  virtual DDPKF::DataElement *getWithFrameRecipeElement_(const string & elementName);///< create DataElement object from the name of the element
+  virtual DDPKF::DataElement *getBeforeFrameRecipeElement_(const string & elementName);///< create DataElement object from the name of the element  
+  // formerly dataElementFromElementName_
+  void sendElement_(string elementRecipeName, bool withFrame);  ///< Send the element to DataFactory
+  void sendElement_(string elementRecipeName);  ///< Send the element to DataFactory  
   void initDFBranchInstance_();    ///< initilize the DFBranchInstance object, connect to the Branch
   void initDFAgentPartnerInstance_();  ///< Initialize pointer and connect to DFAgentPartner
   void initMonitorManagerInstance_();  ///< Initilize pointer and connect to MonitorManager
   void writeStandardKeywords_(DataDescription& frame);  ///< Write standar keywords in Frame object
   virtual void applyObsModeSettings_(const std::vector<bool> & settings);  ///< Stores settings values in the local variables
-  virtual void writeAdditionalKeywords_(DataDescription& frame);  ///< Write additional keywords in Frame object
+  virtual void writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long, 2>& frameSize);  ///< Write additional keywords in Frame object
   virtual void fetchORInfo_();  ///< Fetch Observation result info, and element names for current observation mode
   bool belongsToRecipe_(const string& elementName);  ///< Indicates if the element name is used in the recipe currently used
   //@epc
