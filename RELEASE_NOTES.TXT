@@ -1,3 +1,13 @@
+          RELEASE NOTES 1.2.2
+Interface
+
+Bugs
+
+Implementation
+                          MonitorManager Automatic Changes by gcsenv
+Known errors
+
+
         RELEASE NOTES 1.2.1
 Interface
 

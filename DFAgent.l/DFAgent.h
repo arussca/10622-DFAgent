@@ -494,13 +494,12 @@ class DFAgent : public Device
   bool flippedImage_                ; ///<State of flipped image flag
   bool testingMode_                ; ///<State of testing Mode flag  
   
-  // MonitorAgent
-  MonitorAgent<DFAgent>* DFAgentMonitorAgent_;
+  // 
   
   // Methods to create, start and stop monitors
   void createMonitors_();
-  void startMonitors_();
-  void stopMonitors_();
+  
+  
   
   // Method to create Devices
   void createDevices_(bool update);

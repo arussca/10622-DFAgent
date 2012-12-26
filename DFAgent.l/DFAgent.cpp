@@ -127,8 +127,8 @@ void DFAgent::connect(string orbname,unsigned threads,long priority,
   try
   {
     trace_.out("creating monitor agent\n");
-    DFAgentMonitorAgent_ = new MonitorAgent<DFAgent>(name_.c_str(),mode_,lowPriorityTimer_,highPriorityTimer_,TimeValue(0,500000));
-    monitorAgent_   = DFAgentMonitorAgent_;
+    
+    monitorAgent_ = new MonitorAgent(name_.c_str());
   }
   catch(GCSException& ex)
   {
@@ -376,36 +376,12 @@ void DFAgent::createMonitors_()
 //----------------------------------------------------------------------
 // Starts the monitors of this Device 
 //----------------------------------------------------------------------
-void DFAgent::startMonitors_()
-{
-  trace_.out("starting monitors\n");
-  try
-  {
-    MagnitudeMonitorBase* monitor = 0;
-  }
-  catch ( GCSException& ex)
-  {
-    ex.addToTrace("DFAgent::startMonitors_()");
-    throw;
-  }
-}
+
 
 //----------------------------------------------------------------------
 // Stops the monitors of this Device 
 //----------------------------------------------------------------------
-void DFAgent::stopMonitors_()
-{
-  trace_.out("stopping monitors\n");
-  try
-  {
-    MagnitudeMonitorBase* monitor = 0;
-  }
-  catch ( GCSException& ex)
-  {
-    ex.addToTrace("DFAgent::stopMonitors_()");
-    throw;
-  }
-}
+
 
 //----------------------------------------------------------------------
 // Create aggregated Devices  
