@@ -185,7 +185,7 @@ void DFAgent::start()
   
   // ## Create other threads required for this Device
   
-  // startMonitors_();
+  // 
   goOn_();
 }
 
@@ -224,7 +224,7 @@ void DFAgent::shutdown()
 {
   trace_.out("shutdown()\n");
   goShuttingDown_();
-  //stopMonitors_(); //if started previously
+  // //if started previously
   
   // ## Shutdown procedure
   
