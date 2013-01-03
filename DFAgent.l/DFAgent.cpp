@@ -12,6 +12,7 @@ static const char rcsid[]="@(#) $Id$";
 #include <DFAgentConfigAgent.h>
 
 //@ipc
+#include <MonitorHubFactory.h>
 #include <algorithm>
 #include <IDL_Adapters_RF.h>
 #include <IDL_Adapters_DPKF.h>
@@ -33,7 +34,6 @@ DFAgent::DFAgent(string name)
   
   // Init some properties with hardcoded default values
   offlineImagesPath_         = "offlineDirectory";
-  monitorManagerInstanceName_  = "MonitorManager";
   dfBranchInstanceName_      = "DF/Manager1/BranchAG";
   dfAgentPartnerInstanceName_  = "DF/SFSNB_DFAgentPartner";
   obsModeKeywordListPath_    = "Path";
@@ -64,7 +64,6 @@ DFAgent::DFAgent(string name)
   //init pointer to devices to null
   dfBranchInstance_ = DF::Branch_ifce::_nil();
   dfAgentPartnerInstance_ = DFAGENT::DFAgent_ifce::_nil();
-  monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
   
   //init some custom variables
   rawFrame_ = NULL;
@@ -127,14 +126,14 @@ void DFAgent::connect(string orbname,unsigned threads,long priority,
   try
   {
     trace_.out("creating monitor agent\n");
-    
-    monitorAgent_ = new MonitorAgent(name_.c_str());
+    MonitorHub* hub = MonitorHubFactory::instance()->defaultMonitorHub();
+    monitorAgent_   = new MonitorAgent(name_.c_str(), hub);
   }
   catch(GCSException& ex)
   {
-    ex.addToTrace("DFAgent::connect()"); 
-    if(ex.isA("CorbaException")) trace_.err("MonitorManager is down or unreachable\n");
-      else trace_.err("unable to create monitor agent\n");
+    ex.addToTrace("InspectorDevice::connect()"); 
+    if(ex.isA("CorbaException")) trace_.out("ERROR! MonitorManager is down or unreachable\n");
+      else trace_.out("ERROR! Unable to create monitor agent\n");
     throw;
   }
   
@@ -261,7 +260,6 @@ void DFAgent::restore()
   { //It is a timeout, try to reconnect
     initDFBranchInstance_();
     initDFAgentPartnerInstance_();
-    initMonitorManagerInstance_();
     goPreviousState_();
     cancelAlarm_("DeviceFault","Device is restored");
   }
@@ -322,7 +320,6 @@ char* DFAgent::report(short level)
   ost << endl << "Device Properties" << endl;   
   ost << "-------------------------------------------------------" << endl;
   ost << "offlineImagesPath   =" << offlineImagesPath() << endl;
-  ost << "monitorManagerInstanceName =" << monitorManagerInstanceName() << endl;
   ost << "dfBranchInstanceName=" << dfBranchInstanceName() << endl;
   ost << "dfAgentPartnerInstanceName=" << dfAgentPartnerInstanceName()  << endl;
   ost << "propagateFrame      =" << propagateFrame()    << endl;
@@ -585,62 +582,6 @@ void DFAgent::initDFBranchInstance_()
 }
 
 //----------------------------------------------------------------------
-// initMonitorManagerInstance_
-//----------------------------------------------------------------------
-void DFAgent::initMonitorManagerInstance_()
-{
-  try
-  {
-    if(!CORBA::is_nil(const_cast<const MONITOR::Manager_ifce_var&>(monitorManagerInstance_)))
-    { //if corba pointer is not null, then try to ping the object to check its status
-      try
-      {//try to make a ping, if it doesn't success, then reconnect with the corba object
-        monitorManagerInstance_->ping();
-      }
-      catch(const CORBA::Exception &ex)
-      {
-        GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-        if (gcsex.isA ("CorbaException"))
-        {  //It is a timeout, set null the corba pointer
-          monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
-        }
-      }
-    }
-
-    if(CORBA::is_nil(const_cast<const MONITOR::Manager_ifce_var&>(monitorManagerInstance_)))
-    {  // Initializing pointer to monitor manager corba object
-      logInfo_ ("Connecting to Monitor Manager");
-      trace_.out ("Connecting to Monitor Manager");
-      CORBARef<MONITOR::Manager_ifce> mm_ref(monitorManagerInstanceName_, 0);
-      mm_ref.roundtripTimeout( TimeValue(60, 0) );
-      monitorManagerInstance_ = mm_ref.typedRef();
-      monitorManagerInstance_->ping();
-      DFAgentAdapter* adapter = dynamic_cast<DFAgentAdapter*>(adapter_);
-      monitorManagerSubscriptionID_ = monitorManagerInstance_->subscribeToDataBlocks(adapter->_this(), false);
-      logInfo_("Connected to Monitor Manager! %d", (int)monitorManagerSubscriptionID_);
-      trace_.out ("Connected to Monitor Manager!");
-    }
-  }
-  catch(const CORBA::Exception &ex)
-  {
-    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-    cout << "ERROR: " << gcsex << endl;
-    if (gcsex.isA ("CorbaException"))
-    {  //It is a timeout, set null the corba pointer
-      monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
-    }
-    throw;
-  }
-  catch (GCSException& ex)
-  {
-    ex.addToTrace ("DFAgent::initMonitorManagerInstance_()");
-    logError_ ("ERROR when connecting to MonitorManager: %s", ex.toString());
-    monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
-    throw;
-  }
-}
-
-//----------------------------------------------------------------------
 // initDFAgentPartnerInstance_
 //----------------------------------------------------------------------
 void DFAgent::initDFAgentPartnerInstance_()
@@ -884,9 +825,8 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
   lock_();
 //  goRunning_();        
   
-  //check dfBranchInstance_, monitorManagerInstance_ aren't null, otherwise reconnect to them.
+  //check dfBranchInstance_, aren't null, otherwise reconnect to them.
   initDFBranchInstance_();
-  initMonitorManagerInstance_();
              
   try
   {
@@ -923,19 +863,9 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 */
     trace_.out ("Gathering monitor keywords values...");
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
-    try
-    { //CORBAException & GCSException are treated inside gatherMonitorKeywords function each time it reads a keyword
-      obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorManagerInstance_, shortFrame.dataDescription());
-    }
-    catch (const CORBA::Exception &ex)
-    {  
-      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-      if (gcsex.isA ("CorbaException"))
-      {  //It is a timeout, was a communications error
-        monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
-      }  
-    }    
-    
+
+    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorAgent_, shortFrame.dataDescription());
+
     writeStandardKeywords_(shortFrame.dataDescription());
     TinyVector<unsigned long, 2> sizeF = shortFrame.sizeOfDimensions();
     writeWCSKeywords_(shortFrame.dataDescription(), sizeF);
@@ -1267,7 +1197,6 @@ void DFAgent::setObsModeLowLevel(short obsMode)
       catch (...) {}	 
     }
     //Subscribe to monitor needed for this obsMode, using .spec keywords. Agent will read from them shortly
-    obsModeKeywordList_[shortObsMode_].subscribeToMonitors(monitorManagerInstance_, monitorManagerSubscriptionID_);   
     dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str() );
     dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
     dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
@@ -1494,27 +1423,27 @@ void DFAgent::commitOR()
 //----------------------------------------------------------------------
 // receiveDataBlocks 
 //----------------------------------------------------------------------
-void DFAgent::receiveDataBlocks(const MONITOR::DataBlockList &msgs)
+void DFAgent::receiveDataBlocks(const MM::DataBlockList &msgs)
 {
-  //do nothing, DFAgent inherits from MONITOR::Consumer_ifce now
+  //do nothing, DFAgent inherits from MM::Consumer_ifce now
   //and these function must be implemented
 }
 
 //----------------------------------------------------------------------
 // receiveStateChanges 
 //----------------------------------------------------------------------
-void DFAgent::receiveStateChanges(const MONITOR::StateChangeList &msgs)
+void DFAgent::receiveStateChanges(const MM::StateChangeList &msgs)
 {
-  //do nothing, DFAgent inherits from MONITOR::Consumer_ifce now
+  //do nothing, DFAgent inherits from MM::Consumer_ifce now
   //and these function must be implemented
 }
 
 //----------------------------------------------------------------------
 // receiveMagnitudeChanges 
 //----------------------------------------------------------------------
-void DFAgent::receiveMagnitudeChanges(const MONITOR::MagnitudeChangeList &msgs)
+void DFAgent::receiveMagnitudeChanges(const MM::MagnitudeChangeList &msgs)
 {
-  //do nothing, DFAgent inherits from MONITOR::Consumer_ifce now
+  //do nothing, DFAgent inherits from MM::Consumer_ifce now
   //and these function must be implemented
 }
 
@@ -1620,32 +1549,6 @@ void DFAgent::offlineImagesPath(const char* new_offlineImagesPath)
   offlineImagesPath_ = new_offlineImagesPath;
   
   propertyChange_("offlineImagesPath");
-}
-
-//----------------------------------------------------------------------
-// Get monitorManagerInstanceName property
-//----------------------------------------------------------------------
-const char* DFAgent::monitorManagerInstanceName()
-{
-  trace_.out("monitorManagerInstanceName()\n");
-  return monitorManagerInstanceName_.in();
-}
-
-//----------------------------------------------------------------------
-// Set monitorManagerInstanceName property
-//----------------------------------------------------------------------
-void DFAgent::monitorManagerInstanceName(const char* new_monitorManagerInstanceName)
-{
-  trace_.out("monitorManagerInstanceName(%s)\n",new_monitorManagerInstanceName);
-  // Change property
-  monitorManagerInstanceName_ = new_monitorManagerInstanceName;
-  if(isIdle())
-  {
-    monitorManagerInstance_ = MONITOR::Manager_ifce::_nil();
-    initMonitorManagerInstance_();
-  }
-
-  propertyChange_("monitorManagerInstanceName");
 }
 
 //----------------------------------------------------------------------
@@ -1895,6 +1798,7 @@ void DFAgent::obsModeKeywordListPath(const char* new_obsModeKeywordListPath)
   //load fits header keywords for each Obs Mode
   std::string fitsHeaderPath;
   std::ifstream inputFile(obsModeKeywordListPath_.c_str());
+  
   if(inputFile)
   {
     while(inputFile >> fitsHeaderPath)

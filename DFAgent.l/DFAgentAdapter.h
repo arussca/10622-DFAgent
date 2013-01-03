@@ -59,9 +59,9 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void   setWriteKeywords        (CORBA::Boolean doesWriteKeywords);  
   void   setReductionRecipe   ();
   void   commitOR             ();
-  void   receiveDataBlocks    (const MONITOR::DataBlockList &msgs);
-  void   receiveStateChanges  (const MONITOR::StateChangeList &msgs);
-  void   receiveMagnitudeChanges (const MONITOR::MagnitudeChangeList &msgs);
+  void   receiveDataBlocks    (const MM::DataBlockList &msgs);
+  void   receiveStateChanges  (const MM::StateChangeList &msgs);
+  void   receiveMagnitudeChanges (const MM::MagnitudeChangeList &msgs);
 
   //----------------------------------------------------------------------
   // Monitorable attributes (device magnitudes) 
@@ -78,8 +78,6 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   //----------------------------------------------------------------------
   char*                offlineImagesPath         ();
   void                 offlineImagesPath         (const char* value); 
-  char*                monitorManagerInstanceName();
-  void                 monitorManagerInstanceName(const char* value); 
   char*                dfBranchInstanceName      ();
   void                 dfBranchInstanceName      (const char* value); 
   char*                dfAgentPartnerInstanceName      ();

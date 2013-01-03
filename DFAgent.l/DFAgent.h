@@ -12,6 +12,7 @@
 #include <ConcreteArrays.h>
 
 //@ipc
+#include <fstream>
 #include <vector>
 #include <map>
 #include <Frame.h>
@@ -19,11 +20,16 @@
 #include <DictionaryMap.h>
 #include <DFBranchC.h>
 #include <FITSHeaderInfo.h>
-#include <MONITORManagerC.h>  // for MONITOR::Consumer_ifce
-#include <MONITORC.h>
+#include <MonitorManagerC.h>
+#include <MMCommonC.h>
+
+//#include <MONITORManagerC.h>  // for MONITOR::Consumer_ifce
+//#include <MONITORC.h>
 #include <DFDataCollectorC.h>
 #include <DFAGENTC.h>
 //@epc
+
+class FITSHeaderInfo;
 
 /**
 * 
@@ -230,19 +236,19 @@ class DFAgent : public Device
   void commitOR();
 
   /**
-  * Receive Data Blocks (from MONITOR::Consumer_ifce)
+  * Receive Data Blocks (from MM::Consumer_ifce)
   */
-  void receiveDataBlocks (const MONITOR::DataBlockList &msgs);
+  void receiveDataBlocks (const MM::DataBlockList &msgs);
 
   /**
-  * Receive State Changes (from MONITOR::Consumer_ifce)
+  * Receive State Changes (from MM::Consumer_ifce)
   */
-  void receiveStateChanges (const MONITOR::StateChangeList &msgs);
+  void receiveStateChanges (const MM::StateChangeList &msgs);
 
   /**
-  * Receive Magnitude Changes (from MONITOR::Consumer_ifce)
+  * Receive Magnitude Changes (from MM::Consumer_ifce)
   */
-  void receiveMagnitudeChanges (const MONITOR::MagnitudeChangeList &msgs);
+  void receiveMagnitudeChanges (const MM::MagnitudeChangeList &msgs);
   
   //####################### MONITORS #####################################
 
@@ -298,15 +304,6 @@ class DFAgent : public Device
   */
   const char* offlineImagesPath();
   void offlineImagesPath(const char* new_value); 
-
-  /**
-  * Instance name of the Monitor Manager
-  * @property:
-  * @description:Instance name of the Monitor Manager
-  * @default:MonitorManager
-  */
-  const char* monitorManagerInstanceName();
-  void monitorManagerInstanceName(const char* new_value); 
 
   /**
   * Instance name of the DF branch
@@ -484,7 +481,6 @@ class DFAgent : public Device
   
   // Configurable attributes (properties)
   String offlineImagesPath_         ; ///<Path to directory where instrument places the image
-  String monitorManagerInstanceName_; ///<Instance name of the Monitor Manager
   String dfBranchInstanceName_      ; ///<Instance name of the DF branch
   String obsModeKeywordListPath_    ; ///<Array with paths to keyword list for each obs mode
   String recipeDictionaryPath_      ; ///<Path to recipe dictionary
@@ -494,7 +490,8 @@ class DFAgent : public Device
   bool flippedImage_                ; ///<State of flipped image flag
   bool testingMode_                ; ///<State of testing Mode flag  
   
-  // 
+  // MonitorAgent
+  MonitorAgent* monitorAgent_;
   
   // Methods to create, start and stop monitors
   void createMonitors_();
@@ -517,14 +514,12 @@ class DFAgent : public Device
   string esoProgramId_; ///< ESO Program Id  
   ObservationType obsType_; ///< Current Observation Type
   ObservationClass obsClass_; ///< Current Observation Class  
-  unsigned char monitorManagerSubscriptionID_;  ///< identifier for monitor manager subscription session
   TinyVector<double,2> referencePixel_;    ///< Reference Pixel for WCS params
     
   short shortObsMode_;   ///< Short variable with the running obs mode, 
   Frame<double,2> *rawFrame_;   ///< raw frame acquired by the instrument
   DF::Branch_ifce_var dfBranchInstance_;     ///< Pointer to data factory branch instance in corba
   DFAGENT::DFAgent_ifce_var dfAgentPartnerInstance_;  ///< Pointer to an auxiliar agent, which helps in coxplex tasks
-  MONITOR::Manager_ifce_var monitorManagerInstance_;   ///< Pointer to Obs engine instance in corba  
   map<short, std::string> obsModeName_; ///< Map with string associated with each obsMode
   map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [OBJECTS|FLAT]
   map<short, std::string> obsClassName_; ///< Map with string associated with each obsClass [SCIENCE|CALIB]  
@@ -553,7 +548,6 @@ class DFAgent : public Device
   void sendElement_(string elementRecipeName);  ///< Send the element to DataFactory  
   void initDFBranchInstance_();    ///< initilize the DFBranchInstance object, connect to the Branch
   void initDFAgentPartnerInstance_();  ///< Initialize pointer and connect to DFAgentPartner
-  void initMonitorManagerInstance_();  ///< Initilize pointer and connect to MonitorManager
   void writeStandardKeywords_(DataDescription& frame);  ///< Write standar keywords in Frame object
   virtual void applyObsModeSettings_(const std::vector<bool> & settings);  ///< Stores settings values in the local variables
   virtual void writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long, 2>& frameSize);  ///< Write additional keywords in Frame object

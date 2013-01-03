@@ -39,28 +39,28 @@ double FITSHeaderInfo::formatRadianToDeg_(double rad)
 template<class ListType, typename ValueType>
 void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, DataDescription& frame)
 {
-   cout << "@@##is in addSampled:@@## " << keyword.keyName << "; value: " << (ValueType) list[0] << endl;
+   cout << "@@##is in addSampled:@@## " << keyword.keyName << "; value: " << (ValueType) list[0].value << endl;
    if (list.length() < 1)
       throw NotFound ("addSampledMonitorKeyword_()", "Data length is 0");
    std::string unitComment;
    if (keyword.keyFormat == "RAD_TO_HMS")
    {
      unitComment = ", h:m:s";
-     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0]), (keyword.keyComment + unitComment).c_str() )); 
+     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() )); 
    }
    else if (keyword.keyFormat == "RAD_TO_DMS")
    {
      unitComment = ", d:m:s";
-     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0]), (keyword.keyComment + unitComment).c_str() ));
+     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else if (keyword.keyFormat == "RAD_TO_DEG")
    {
      unitComment = ", degrees";
-     frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0]), (keyword.keyComment + unitComment).c_str() ));
+     frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else
    {
-     frame.addKeyword (Keyword<ValueType>(keyword.keyName, (ValueType) list[0], keyword.keyComment));
+     frame.addKeyword (Keyword<ValueType>(keyword.keyName, (ValueType) list[0].value, keyword.keyComment));
    }
 }
 
@@ -68,7 +68,7 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListT
 void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
 {
   ifstream f(fileName.c_str());
-  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, specLine, cell;
+  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition, specLine, cell;
   if (f.is_open())
   {
     while(!f.eof())
@@ -107,81 +107,97 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
             keyComment = cell.substr(cell.find_first_of("=") + 1);
             keyComment = keyComment.substr(keyComment.find_first_of("[") + 1, keyComment.find_first_of("]") - 1);
           }
+          else if(tag == "condition")
+          {
+            condition = cell.substr(cell.find_first_of("=") + 1);
+            condition = condition.substr(condition.find_first_of("[") + 1, condition.find_first_of("]") - 1);
+          }
+          else if(tag == "if_condition")
+          {
+            if_condition = cell.substr(cell.find_first_of("=") + 1);
+            if_condition = if_condition.substr(if_condition.find_first_of("[") + 1, if_condition.find_first_of("]") - 1);
+          }
           else
           {
             cout << "ERROR: No valid field tag have been found." << endl;
           }
         }
-      }      
+      }
 
-      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment));
+      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition));
     }
     f.close();
   }
 }
 
-void FITSHeaderInfo::subscribeToMonitors(MONITOR::Manager_ifce_var &manager, unsigned char monitorManagerSubscriptionID)
+void FITSHeaderInfo::forceSampleData(MonitorAgent* dfMonitorAgent)
 {
   vector<KeywordInfo>::const_iterator it, endIt;
 
   it = monList_.begin();
   endIt = monList_.end();
-
   while (it != endIt)
   {
     try
-    { 
-      DCF::Device_ifce_var deviceInstance;
-      CORBARef<DCF::Device_ifce> dev_ref((it->deviceName).c_str(), 0);
-      dev_ref.roundtripTimeout( TimeValue(1, 0) );
-      deviceInstance = dev_ref.typedRef();
-     
-      MONITOR::MagnitudeMonitor_ifce_var magnitudeMonitorInstance = deviceInstance->magnitudeMonitor((it->monitorName).c_str());
-      magnitudeMonitorInstance->start(monitorManagerSubscriptionID);        
+    {
+      if(monList_.size() == 0)
+      {
+        throw InvalidValue("Monitor List","No keywords configuration found.");
+      }
+      
+      dfMonitorAgent->forceSampleData(it->deviceName, it->monitorName);
     }
     catch (GCSException& ex)
     {
-/*    
-      cerr << "ERROR subscribing to monitor: " << it->keyName << endl;
-      ex.addToTrace("subscribeToMonitors()");      
-//      logError_ ("Error subscribing to monitors: %s", ex.toString());
-      cerr << ex << endl;   
-*/      
+      cerr<<"ERROR forcing sample data: "<<it->keyName<<endl;
+      ex.addToTrace ("forceSampleData()");   
+      cerr<<ex<<endl;      
     }
     catch (const CORBA::Exception &ex)
     {
-/*    
-      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-      cerr << "CORBA ERROR subscribing to monitors" << it->keyName << endl;
-//      logError_ ("CORBA Error subscribing to monitors: %s", gcsex.toString());
-      cerr << gcsex << endl;   
-*/      
+      cerr << "CORBA ERROR forcing sample data" << endl;
+      cerr<<ex<<endl;
     }   
     //increment position
     ++it;
   }
-  
 }
 
-
-void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MONITOR::Manager_ifce_var &manager, DataDescription& frame)
+void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
   vector<KeywordInfo>::const_iterator it, endIt;
-  MONITOR::MagnitudeChangeRepo_ifce_var changeRepo = manager->magnitudeChangeRepo();
 
   it = monList_.begin();
   endIt = monList_.end();
+  conditionList_.clear();
+  
   while (it != endIt)
   {
     try
     {
+      if(it->if_condition != "")
+      { //some keywords values are used as conditions to show some others values in the header
+        map<string,bool>::iterator conditionListIt = conditionList_.find(it->if_condition);
+        if(conditionListIt != conditionList_.end())
+        {
+          if(conditionListIt->second == false)
+          {
+            throw InvalidValue("FITSHeaderInfo::gatherMonitorKeywords", "This keyword doesn't apply for this observation");
+          }
+        }
+        else
+        {
+          throw NotFound("FITSHeaderInfo::gatherMonitorKeywords", "Wrong condition configuration in spec file.");
+        }
+      }
+      
       if (it->monitorType == "SAMPLED")
       {
-        gatherSampledMonitor_(*it, time, manager, frame);
+        gatherSampledMonitor_(*it, time, dfMonitorAgent, frame);
       }
       else if (it->monitorType == "DISCRETE")
       {
-        gatherDiscreteMonitor_(*it, time, changeRepo, frame);
+        gatherDiscreteMonitor_(*it, time, dfMonitorAgent, frame);
       }
       else
       {
@@ -251,7 +267,7 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   std::pair<unsigned int, unsigned int> range;
   if(sRange == "")
   { //no specified range means the whole range is applied
-    range = make_pair(0, (unsigned int)(arrayIn.dimension.width - 1));
+    range = make_pair(0, (unsigned int)(arrayIn.value.dimension.width - 1));
   }
   else
   {
@@ -259,8 +275,9 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   }
   
   C arrayOut;
-  arrayOut.dimension.width = (range.second - range.first) + 1;
-  if( arrayIn.dimension.height != 1 )
+  arrayOut.time_stamp = arrayIn.time_stamp;
+  arrayOut.value.dimension.width = (range.second - range.first) + 1;
+  if( arrayIn.value.dimension.height != 1 )
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Only one dimentional array supported");
   }
@@ -268,18 +285,18 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Last index lower than first");
   }
-  if( range.first > (unsigned int)(arrayIn.dimension.width - 1) || range.second > (unsigned int)(arrayIn.dimension.width - 1) )
+  if( range.first > (unsigned int)(arrayIn.value.dimension.width - 1) || range.second > (unsigned int)(arrayIn.value.dimension.width - 1) )
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Range out of bounds");
   }
   
-  arrayOut.dimension.height = 1;
-  arrayOut.data.length(arrayOut.dimension.width);
+  arrayOut.value.dimension.height = 1;
+  arrayOut.value.data.length(arrayOut.value.dimension.width);
   
   unsigned int i(0);
   for(unsigned int j=range.first; j<=range.second; ++j)
   {
-    arrayOut.data[i] = arrayIn.data[j];
+    arrayOut.value.data[i] = arrayIn.value.data[j];
     ++i;
   }
   
@@ -287,70 +304,75 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
 }
 
 
-void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::Manager_ifce_var &manager, DataDescription& frame)
+void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-   DGT::TimeInterval ti;
-   TimeValue startTime = requestedTime - TimeValue(1,0);
+//   DGT::TimeInterval ti;
+//   TimeValue startTime = requestedTime - TimeValue(1,0);
    try
    {  
-      ti.begin = toIDL(startTime);
-      ti.end = toIDL(requestedTime);
-      MONITOR::DataBlockList_var mons = manager->retrieveData (keyword.deviceName.c_str(), keyword.monitorName.c_str(), ti);
+//      ti.begin = toIDL(startTime);
+//      ti.end = toIDL(requestedTime);
+//      DGT::TimeValue tv = toIDL(requestedTime);
+      MM::DataBlock_var mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, requestedTime);
+      //switch from (*mons)[0].samples to mons->samples
+
+/*      
       if (mons->length() < 1)
       {
         string notFoundMessage = "deviceName: " + keyword.deviceName + "; monitorName: " + keyword.monitorName + "; time: " + requestedTime.toString();
         throw NotFound (notFoundMessage.c_str(), "Data not found");
       }
-      
-      switch ( (*mons)[0].samples._d() )
+*/      
+      switch ( mons->samples._d() )
       {
-         case DGT::TYPE_DOUBLE:
-           addSampledMonitorKeyword_<DGT::DoubleList, double>(keyword, (*mons)[0].samples.d(), frame);
+         case MM::TYPE_SAMPLE_DOUBLE_LIST:
+           addSampledMonitorKeyword_<MM::SampleDoubleList, double>(keyword, mons->samples.d(), frame);
            break;
-         case DGT::TYPE_FLOAT:
-           addSampledMonitorKeyword_<DGT::FloatList, double>(keyword, (*mons)[0].samples.f(), frame);
+         case MM::TYPE_SAMPLE_FLOAT_LIST:
+           addSampledMonitorKeyword_<MM::SampleFloatList, double>(keyword, mons->samples.f(), frame);
            break;
-         case DGT::TYPE_LONG:
-           addSampledMonitorKeyword_<DGT::LongList, long>(keyword, (*mons)[0].samples.l(), frame);
+         case MM::TYPE_SAMPLE_LONG_LIST:
+           addSampledMonitorKeyword_<MM::SampleLongList, long>(keyword, mons->samples.l(), frame);
            break;
-         case DGT::TYPE_SHORT:
-           addSampledMonitorKeyword_<DGT::ShortList, long>(keyword, (*mons)[0].samples.s(), frame);
+         case MM::TYPE_SAMPLE_SHORT_LIST:
+           addSampledMonitorKeyword_<MM::SampleShortList, long>(keyword, mons->samples.s(), frame);
            break;
-         case DGT::TYPE_OCTET:
-           addSampledMonitorKeyword_<DGT::OctetList, long>(keyword, (*mons)[0].samples.o(), frame);
+         case MM::TYPE_SAMPLE_OCTET_LIST:
+           addSampledMonitorKeyword_<MM::SampleOctetList, long>(keyword, mons->samples.o(), frame);
            break;
-         case DGT::TYPE_DOUBLE_ARRAY1D:
+         case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_d()[0], keyword.arrayRange), 1);
+	        toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons->samples.array_d()[0], keyword.arrayRange));
+//	        toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
 	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
-         case DGT::TYPE_FLOAT_ARRAY1D:
+         case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_f()[0], keyword.arrayRange), 1);
+	        toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons->samples.array_f()[0], keyword.arrayRange));
 	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;         
-         case DGT::TYPE_LONG_ARRAY1D:
+         case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_l()[0], keyword.arrayRange), 1);
+	        toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons->samples.array_l()[0], keyword.arrayRange));
 	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }
 	      break;
-         case DGT::TYPE_SHORT_ARRAY1D:
+         case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_s()[0], keyword.arrayRange), 1);
+	        toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons->samples.array_s()[0], keyword.arrayRange));
 	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
-         case DGT::TYPE_OCTET_ARRAY1D:
+         case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream(formatbuf, trimmedArray1D_((*mons)[0].samples.array_o()[0], keyword.arrayRange), 1);
+	        toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons->samples.array_o()[0], keyword.arrayRange));
 	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
@@ -376,35 +398,44 @@ void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const Tim
    
 }
 
-void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MONITOR::MagnitudeChangeRepo_ifce_var &manager, DataDescription& frame)
+void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-   DGT::TimeInterval ti;
-   TimeValue startTime = requestedTime - TimeValue(1,0);
+//   DGT::TimeInterval ti;
+//   TimeValue startTime = requestedTime - TimeValue(1,0);
 
    try
    {
-      ti.begin = toIDL(startTime);
-      ti.end = toIDL(requestedTime);
+//      ti.begin = toIDL(startTime);
+//      ti.end = toIDL(requestedTime);
+//      DGT::TimeValue tv = toIDL(requestedTime);
       
-      MONITOR::MagnitudeChangeFilter filter;
+      MM::MagnitudeChange_var mons = dfMonitorAgent->retrieveLastMagnitude (keyword.deviceName, keyword.monitorName, requestedTime);
+/*      
+      MM::MagnitudeChangeFilter filter;
       
       filter.gcs_component = keyword.deviceName.c_str();
       filter.magnitude_name = keyword.monitorName.c_str();
       filter.time_stamp_range = ti;
       filter.value = DGT::NUM_DOESNT_CARE;
       
-      MONITOR::MagnitudeChangeList_var mons = manager->select (filter);
+      MM::MagnitudeChangeList_var mons = manager->select (filter);
+
       
       if (mons->length() < 1)
          throw NotFound ("", "Data not found");
+*/
+      if(keyword.condition != "")
+      {  //This keyword value is used as a condition to show some other's
+        conditionList_.insert(pair<string, bool>(keyword.keyName, (keyword.condition == getLabelFromValue_(keyword.enumLabels, mons->new_value) ) ) );
+      }
       
       if(keyword.enumLabels == "")
       {
-        frame.addKeyword(Keyword<long>(keyword.keyName, mons[0].new_value, keyword.keyComment));
+        frame.addKeyword(Keyword<long>(keyword.keyName, mons->new_value, keyword.keyComment));
       }
       else
       {
-        frame.addKeyword(Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels,mons[0].new_value), keyword.keyComment));        
+        frame.addKeyword(Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels, mons->new_value), keyword.keyComment));        
       }
    }
    catch (GCSException& ex)
@@ -414,11 +445,11 @@ void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const Ti
    }   
 }
 
-void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, MONITOR::Manager_ifce_var &manager, fitsfile* rawFile)
+void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, MonitorAgent* dfMonitorAgent, fitsfile* rawFile)
 {
   //first of all we gather monitor keywrods into the dataDescription object
   DataDescription newKeywords;
-  gatherMonitorKeywords (time, manager, newKeywords);
+  gatherMonitorKeywords (time, dfMonitorAgent, newKeywords);
   
   int status_=0;
   //We replace fits_write_key with fits_update_key funtion
@@ -488,3 +519,29 @@ void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, MONITOR::Manager_
   }    
 
 }
+
+
+template<class ListType>
+ostream& FITSHeaderInfo::toStream_(ostream& ost, const ListType& a)
+{
+  unsigned i,j;
+  ost << "[ ";
+  for(i=0; i< a.value.dimension.height; ++i)
+  {
+    for(j=0; j< a.value.dimension.width; ++j)
+    {
+      ost << a.value.data[ a.value.dimension.width * i + j] << " ";
+    }
+    if (i < (a.value.dimension.height -1))
+    {
+      ost << "; ";
+    }
+    if ( (a.value.dimension.width >= 5) && (i < (a.value.dimension.height -1)) )
+    {
+      ost << "\\" << endl;
+    }
+  }
+  ost << "]";
+  return ost;
+}
+

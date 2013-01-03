@@ -86,7 +86,7 @@ int main(int argc, char** argv)
               break;
 
           case 3: // Report
-              cerr << device->report(0);
+//              cerr << device->report(0);
               break;
 
           case 4: // Enable/disable

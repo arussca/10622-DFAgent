@@ -19,7 +19,6 @@ DFAgentConfigAgent::DFAgentConfigAgent(DFAgent* device, const int mode, TimerEng
 
   // Assign default values to properties so they never contain garbage
   offlineImagesPath_   = "offlineDirectory";
-  monitorManagerInstanceName_  = "MonitorManager";
   dfBranchInstanceName_  = "DF/DFBranch";
   dfAgentPartnerInstanceName_  = "DF/SFSNB_DFAgentPartner";  
   propagateFrame_      = 1;
@@ -53,7 +52,6 @@ void DFAgentConfigAgent::applyProperties()
   {
     // Apply properties one by one
     device_->offlineImagesPath(this->offlineImagesPath_);
-    device_->monitorManagerInstanceName(this->monitorManagerInstanceName_);
     device_->dfBranchInstanceName(this->dfBranchInstanceName_);
     device_->dfAgentPartnerInstanceName(this->dfAgentPartnerInstanceName_);
     device_->propagateFrame(this->propagateFrame_);
@@ -87,7 +85,6 @@ int DFAgentConfigAgent::readProperties()
   {
     // Read properties one by one
     this->offlineImagesPath_   = device_->offlineImagesPath();
-    this->monitorManagerInstanceName_  = device_->monitorManagerInstanceName();
     this->dfBranchInstanceName_  = device_->dfBranchInstanceName();
     this->dfAgentPartnerInstanceName_  = device_->dfAgentPartnerInstanceName();
     this->propagateFrame_      = device_->propagateFrame();
@@ -124,7 +121,6 @@ void DFAgentConfigAgent::toConfiguration(CONFIG::Configuration& c)
     this->ConfigAgent::toConfiguration(c);
 
     addProperty(c, "offlineImagesPath", offlineImagesPath_);
-    addProperty(c, "monitorManagerInstanceName", monitorManagerInstanceName_);
     addProperty(c, "dfBranchInstanceName", dfBranchInstanceName_);
     addProperty(c, "dfAgentPartnerInstanceName", dfAgentPartnerInstanceName_);
     addProperty(c, "propagateFrame", propagateFrame_);
@@ -160,7 +156,6 @@ void DFAgentConfigAgent::fromConfiguration(const CONFIG::Configuration& c)
     this->ConfigAgent::fromConfiguration(c);
 
     extractProperty(c, "offlineImagesPath", offlineImagesPath_);
-    extractProperty(c, "monitorManagerInstanceName", monitorManagerInstanceName_);
     extractProperty(c, "dfBranchInstanceName", dfBranchInstanceName_);
     extractProperty(c, "dfAgentPartnerInstanceName", dfAgentPartnerInstanceName_);
     extractProperty(c, "propagateFrame", propagateFrame_);

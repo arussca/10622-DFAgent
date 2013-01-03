@@ -360,7 +360,7 @@ void DFAgentAdapter::commitOR()
 }
 
 //----------------------------------------------------------------------
-void DFAgentAdapter::receiveDataBlocks(const MONITOR::DataBlockList &msgs)
+void DFAgentAdapter::receiveDataBlocks(const MM::DataBlockList &msgs)
 {
   try
   {
@@ -373,7 +373,7 @@ void DFAgentAdapter::receiveDataBlocks(const MONITOR::DataBlockList &msgs)
 }
 
 //----------------------------------------------------------------------
-void DFAgentAdapter::receiveStateChanges(const MONITOR::StateChangeList &msgs)
+void DFAgentAdapter::receiveStateChanges(const MM::StateChangeList &msgs)
 {
   try
   {
@@ -386,7 +386,7 @@ void DFAgentAdapter::receiveStateChanges(const MONITOR::StateChangeList &msgs)
 }
 
 //----------------------------------------------------------------------
-void DFAgentAdapter::receiveMagnitudeChanges(const MONITOR::MagnitudeChangeList &msgs)
+void DFAgentAdapter::receiveMagnitudeChanges(const MM::MagnitudeChangeList &msgs)
 {
   try
   {
@@ -459,26 +459,6 @@ void DFAgentAdapter::offlineImagesPath(const char* value)
   try
   {
     device_->offlineImagesPath(value);
-  }
-  catch(GCSException& ex)
-  {
-    throw CORBA::BAD_PARAM();
-  }
-}
-
-//----------------------------------------------------------------------
-// get monitorManagerInstanceName
-char* DFAgentAdapter::monitorManagerInstanceName()
-{
-  return (char*) device_->monitorManagerInstanceName();
-}
-//-------------------------------
-// set monitorManagerInstanceName
-void DFAgentAdapter::monitorManagerInstanceName(const char* value)
-{
-  try
-  {
-    device_->monitorManagerInstanceName(value);
   }
   catch(GCSException& ex)
   {

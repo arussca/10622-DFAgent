@@ -1,3 +1,16 @@
+          RELEASE NOTES 1.2.4
+Interface
+  - Reference to monitor manager has been removed.
+  
+Bugs
+
+Implementation
+  - Changes to adapt DFAgent to the new Monitor Manager interface.
+  - Two new fields have been added to the spec file.
+  
+Known errors
+
+
           RELEASE NOTES 1.2.3
 Interface
 

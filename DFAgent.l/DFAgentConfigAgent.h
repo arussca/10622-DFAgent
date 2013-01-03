@@ -58,7 +58,6 @@ class DFAgentConfigAgent : public ConfigAgent
   // Configurable attributes (properties)
   //
   String               offlineImagesPath_  ; 
-  String               monitorManagerInstanceName_ ; 
   String               dfBranchInstanceName_ ; 
   String               dfAgentPartnerInstanceName_ ; 
   short                propagateFrame_     ; 
