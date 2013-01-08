@@ -1,3 +1,14 @@
+          RELEASE NOTES 1.2.5
+Interface
+  - It no longer inherits from Consumer_ifce.
+  
+Bugs
+
+Implementation
+  - Functions receiveDataBlocks, receiveStateChanges, receiveMagnitudeChanges have been removed.
+
+Known errors
+
           RELEASE NOTES 1.2.4
 Interface
   - Reference to monitor manager has been removed.

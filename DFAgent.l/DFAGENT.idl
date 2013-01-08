@@ -26,7 +26,7 @@ module DFAGENT
     SCIENCE, CALIB
   };
   
-  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce, MM::Consumer_ifce
+  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce
   {
     // Specific DFAgent operations
     /*void receiveFrame(in DDPKF::Frame frame, in long currentWindow, in long numWindows,

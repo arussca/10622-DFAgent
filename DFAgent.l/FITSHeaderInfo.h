@@ -7,7 +7,6 @@
 #include <vector>
 #include <MonitorManagerC.h>
 #include <MonitorAgent.h>
-#include <MMCommonC.h>
 #include <DException.h>
 #include <GCSTypes.h>
 #include <Frame.h>

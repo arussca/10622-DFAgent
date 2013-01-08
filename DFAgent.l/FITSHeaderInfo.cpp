@@ -306,23 +306,9 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
 
 void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-//   DGT::TimeInterval ti;
-//   TimeValue startTime = requestedTime - TimeValue(1,0);
    try
    {  
-//      ti.begin = toIDL(startTime);
-//      ti.end = toIDL(requestedTime);
-//      DGT::TimeValue tv = toIDL(requestedTime);
       MM::DataBlock_var mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, requestedTime);
-      //switch from (*mons)[0].samples to mons->samples
-
-/*      
-      if (mons->length() < 1)
-      {
-        string notFoundMessage = "deviceName: " + keyword.deviceName + "; monitorName: " + keyword.monitorName + "; time: " + requestedTime.toString();
-        throw NotFound (notFoundMessage.c_str(), "Data not found");
-      }
-*/      
       switch ( mons->samples._d() )
       {
          case MM::TYPE_SAMPLE_DOUBLE_LIST:
@@ -400,30 +386,9 @@ void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const Tim
 
 void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-//   DGT::TimeInterval ti;
-//   TimeValue startTime = requestedTime - TimeValue(1,0);
-
    try
    {
-//      ti.begin = toIDL(startTime);
-//      ti.end = toIDL(requestedTime);
-//      DGT::TimeValue tv = toIDL(requestedTime);
-      
       MM::MagnitudeChange_var mons = dfMonitorAgent->retrieveLastMagnitude (keyword.deviceName, keyword.monitorName, requestedTime);
-/*      
-      MM::MagnitudeChangeFilter filter;
-      
-      filter.gcs_component = keyword.deviceName.c_str();
-      filter.magnitude_name = keyword.monitorName.c_str();
-      filter.time_stamp_range = ti;
-      filter.value = DGT::NUM_DOESNT_CARE;
-      
-      MM::MagnitudeChangeList_var mons = manager->select (filter);
-
-      
-      if (mons->length() < 1)
-         throw NotFound ("", "Data not found");
-*/
       if(keyword.condition != "")
       {  //This keyword value is used as a condition to show some other's
         conditionList_.insert(pair<string, bool>(keyword.keyName, (keyword.condition == getLabelFromValue_(keyword.enumLabels, mons->new_value) ) ) );

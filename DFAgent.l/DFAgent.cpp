@@ -1420,33 +1420,6 @@ void DFAgent::commitOR()
   unlock_();
 }
 
-//----------------------------------------------------------------------
-// receiveDataBlocks 
-//----------------------------------------------------------------------
-void DFAgent::receiveDataBlocks(const MM::DataBlockList &msgs)
-{
-  //do nothing, DFAgent inherits from MM::Consumer_ifce now
-  //and these function must be implemented
-}
-
-//----------------------------------------------------------------------
-// receiveStateChanges 
-//----------------------------------------------------------------------
-void DFAgent::receiveStateChanges(const MM::StateChangeList &msgs)
-{
-  //do nothing, DFAgent inherits from MM::Consumer_ifce now
-  //and these function must be implemented
-}
-
-//----------------------------------------------------------------------
-// receiveMagnitudeChanges 
-//----------------------------------------------------------------------
-void DFAgent::receiveMagnitudeChanges(const MM::MagnitudeChangeList &msgs)
-{
-  //do nothing, DFAgent inherits from MM::Consumer_ifce now
-  //and these function must be implemented
-}
-
 /************************************************************************
 *************************************************************************
 **                                                                     **

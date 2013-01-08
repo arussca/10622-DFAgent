@@ -21,7 +21,6 @@
 #include <DFBranchC.h>
 #include <FITSHeaderInfo.h>
 #include <MonitorManagerC.h>
-#include <MMCommonC.h>
 
 //#include <MONITORManagerC.h>  // for MONITOR::Consumer_ifce
 //#include <MONITORC.h>
@@ -235,21 +234,6 @@ class DFAgent : public Device
   */
   void commitOR();
 
-  /**
-  * Receive Data Blocks (from MM::Consumer_ifce)
-  */
-  void receiveDataBlocks (const MM::DataBlockList &msgs);
-
-  /**
-  * Receive State Changes (from MM::Consumer_ifce)
-  */
-  void receiveStateChanges (const MM::StateChangeList &msgs);
-
-  /**
-  * Receive Magnitude Changes (from MM::Consumer_ifce)
-  */
-  void receiveMagnitudeChanges (const MM::MagnitudeChangeList &msgs);
-  
   //####################### MONITORS #####################################
 
   /**
@@ -489,10 +473,7 @@ class DFAgent : public Device
   String dfAgentPartnerInstanceName_; ///<Instance name of the agent partner
   bool flippedImage_                ; ///<State of flipped image flag
   bool testingMode_                ; ///<State of testing Mode flag  
-  
-  // MonitorAgent
-  MonitorAgent* monitorAgent_;
-  
+    
   // Methods to create, start and stop monitors
   void createMonitors_();
   
