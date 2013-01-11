@@ -1,3 +1,14 @@
+          RELEASE NOTES 1.2.6
+Interface
+  
+Bugs
+
+Implementation
+  - monitorAgent is now inicialized in every derived class.
+
+Known errors
+
+
           RELEASE NOTES 1.2.5
 Interface
   - It no longer inherits from Consumer_ifce.

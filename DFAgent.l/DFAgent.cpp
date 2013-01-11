@@ -121,22 +121,7 @@ void DFAgent::connect(string orbname,unsigned threads,long priority,
     trace_.err("IDL adapter can't be connected to CORBAContext\n");
     throw;
   }
-  
-  // Create the MonitorAgent for this class
-  try
-  {
-    trace_.out("creating monitor agent\n");
-    MonitorHub* hub = MonitorHubFactory::instance()->defaultMonitorHub();
-    monitorAgent_   = new MonitorAgent(name_.c_str(), hub);
-  }
-  catch(GCSException& ex)
-  {
-    ex.addToTrace("InspectorDevice::connect()"); 
-    if(ex.isA("CorbaException")) trace_.out("ERROR! MonitorManager is down or unreachable\n");
-      else trace_.out("ERROR! Unable to create monitor agent\n");
-    throw;
-  }
-  
+    
   // Create the ConfigAgent for this class
   try
   {
@@ -699,7 +684,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
 //    
     try
     {
-      frame.addKeyword(Keyword<string>("GTCOBID", observationBlockId_.c_str(), "Observation Block", ""));
+      frame.addKeyword(Keyword<string>("GTCOBID", observationBlockId_.c_str(), "Observation Block ID", ""));
     }
     catch(AlreadyExists &ex)
     {
