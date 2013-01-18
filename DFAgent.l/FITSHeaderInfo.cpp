@@ -45,17 +45,17 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListT
    std::string unitComment;
    if (keyword.keyFormat == "RAD_TO_HMS")
    {
-     unitComment = ", h:m:s";
+     unitComment = " (h:m:s)";
      frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() )); 
    }
    else if (keyword.keyFormat == "RAD_TO_DMS")
    {
-     unitComment = ", d:m:s";
+     unitComment = " (d:m:s)";
      frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else if (keyword.keyFormat == "RAD_TO_DEG")
    {
-     unitComment = ", degrees";
+     unitComment = " (degrees)";
      frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else

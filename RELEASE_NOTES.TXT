@@ -1,3 +1,13 @@
+          RELEASE NOTES 1.2.7
+Interface
+  
+Bugs
+  - Compiling problem soved: MonitorHubFactory.h included in DFAgent.h file.
+  
+Implementation
+
+Known errors
+
           RELEASE NOTES 1.2.6
 Interface
   
