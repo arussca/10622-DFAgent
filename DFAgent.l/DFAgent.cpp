@@ -12,6 +12,7 @@ static const char rcsid[]="@(#) $Id$";
 #include <DFAgentConfigAgent.h>
 
 //@ipc
+#include <MonitorHubFactory.h>
 #include <algorithm>
 #include <IDL_Adapters_RF.h>
 #include <IDL_Adapters_DPKF.h>
@@ -614,7 +615,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
   {
     try
     {
-      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "Object name", ""));
+      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "User defined target name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -654,7 +655,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name (SA = support astronomer)", ""));
+      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -691,7 +692,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope id.", ""));
+      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -699,7 +700,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "Observation Mode", ""));
+      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -707,7 +708,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "FITS file originator", ""));
+      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "Organization responsible for creating the FITS file", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -715,7 +716,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Name of observatory (IRAF style)", ""));
+      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Observatory name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -723,7 +724,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (degrees), +28:45:43.2", ""));      
+      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (HH:MM:SS)", ""));      
     }
     catch(AlreadyExists &ex)
     {
@@ -731,7 +732,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (degrees), +17:52:39.5", ""));
+      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (HH:MM:SS)", ""));      
     }
     catch(AlreadyExists &ex)
     {
@@ -806,7 +807,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 {
   trace_.out("receiveFrame()\n");
   //## check if input parameters are valid here
-  lock_();
+//  lock_();
 //  goRunning_();        
   
   //check dfBranchInstance_, aren't null, otherwise reconnect to them.
@@ -912,7 +913,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
        dfBranchInstance_ = DF::Branch_ifce::_nil();
      }  
      goIdle_();
-     unlock_();
+//     unlock_();
      throw;
   }
   catch( GCSException& ex )
@@ -920,11 +921,11 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      ex.addToTrace("DFAgent::receiveFrame()");
      logError_ ("Error while receiveing raw frame: %s", ex.toString());
      goIdle_();
-     unlock_();
+//     unlock_();
      throw;
   }
 //  goIdle_();
-  unlock_();
+//  unlock_();
 }
 
 //----------------------------------------------------------------------

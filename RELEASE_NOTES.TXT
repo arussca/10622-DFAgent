@@ -1,3 +1,13 @@
+          RELEASE NOTES 1.2.8
+Interface
+  
+Bugs
+  
+Implementation
+  - Some tweaks after testing new Monitor Manager at ORM.
+  
+Known errors
+
           RELEASE NOTES 1.2.7
 Interface
   
