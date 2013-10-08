@@ -12,6 +12,7 @@
 #include <ConcreteArrays.h>
 
 //@ipc
+#include <MonitorHubFactory.h>
 #include <fstream>
 #include <vector>
 #include <map>
