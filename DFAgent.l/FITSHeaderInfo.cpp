@@ -2,7 +2,6 @@
 #include <sstream>
 #include <vector>
 #include <cctype>
-#include <iomanip>
 #include <FITSHeaderInfo.h>
 #include <DCFC.h>
 
@@ -15,13 +14,7 @@ string FITSHeaderInfo::formatRadianToHms_(double rad)
    ostringstream strbuf;
    
    slaDr2tf (3, rad, &sign, ihmsf);
-   
-   strbuf << sign << setw (2) << setfill('0') << ihmsf[0] << ":" 
-                  << setw (2) << setfill('0') << ihmsf[1] << ":" 
-                  << setw (2) << setfill('0') << ihmsf[2] << "." 
-                  << setw (3) << setfill('0') << ihmsf[3];
-
-//   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
+   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
    
    return strbuf.str();
 }
@@ -31,14 +24,9 @@ string FITSHeaderInfo::formatRadianToDms_(double rad)
    char sign;
    int ihmsf[4];
    ostringstream strbuf;
-   // no sign
-   slaDr2af (3, rad, &sign, ihmsf);
-   strbuf << setw (2) << setfill('0') << ihmsf[0] << ":" 
-          << setw (2) << setfill('0') << ihmsf[1] << ":" 
-          << setw (2) << setfill('0') << ihmsf[2] << "." 
-          << setw (3) << setfill('0') << ihmsf[3];
    
-//   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
+   slaDr2af (3, rad, &sign, ihmsf);
+   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
    
    return strbuf.str();
 }
@@ -57,17 +45,17 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListT
    std::string unitComment;
    if (keyword.keyFormat == "RAD_TO_HMS")
    {
-     unitComment = " (h:m:s)";
+     unitComment = ", h:m:s";
      frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() )); 
    }
    else if (keyword.keyFormat == "RAD_TO_DMS")
    {
-     unitComment = " (d:m:s)";
+     unitComment = ", d:m:s";
      frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else if (keyword.keyFormat == "RAD_TO_DEG")
    {
-     unitComment = " (degrees)";
+     unitComment = ", degrees";
      frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else
@@ -80,7 +68,7 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListT
 void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
 {
   ifstream f(fileName.c_str());
-  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition, when, specLine, cell;
+  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition, specLine, cell;
   if (f.is_open())
   {
     while(!f.eof())
@@ -129,11 +117,6 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
             if_condition = cell.substr(cell.find_first_of("=") + 1);
             if_condition = if_condition.substr(if_condition.find_first_of("[") + 1, if_condition.find_first_of("]") - 1);
           }
-          else if(tag == "when")
-          {
-            when = cell.substr(cell.find_first_of("=") + 1);
-            when = when.substr(when.find_first_of("[") + 1, when.find_first_of("]") - 1);            
-          }
           else if(tag != "")
           {
             cout << "ERROR: No valid field tag have been found: " << tag << "." << endl;
@@ -141,7 +124,7 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
         }
       }
 
-      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition, when));
+      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition));
     }
     f.close();
   }
@@ -180,9 +163,8 @@ void FITSHeaderInfo::forceSampleData(MonitorAgent* dfMonitorAgent)
   }
 }
 
-void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
+void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-  gatherSpecialMonitorKeywords_(time, expTime, dfMonitorAgent, frame);
   vector<KeywordInfo>::const_iterator it, endIt;
 
   it = monList_.begin();
@@ -211,7 +193,7 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
       
       if (it->monitorType == "SAMPLED")
       {
-        gatherSampledMonitor_(*it, time, expTime, dfMonitorAgent, frame);
+        gatherSampledMonitor_(*it, time, dfMonitorAgent, frame);
       }
       else if (it->monitorType == "DISCRETE")
       {
@@ -239,9 +221,6 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
     //increment position
     ++it;
   }
-  
-//  addSpecialKeywords_
-//  gatherSampledMonitor_();
 }
 
 string FITSHeaderInfo::getLabelFromValue_(const string &sLabels, const long &val)
@@ -324,60 +303,12 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   return arrayOut;
 }
 
-void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
-{
-  try
-  {
-  //  IPA     OE/ObservingEngine      demandedIPA         SAMPLED RAD_TO_DEG	comment=[Instrument position angle]   
-    MM::DataBlock_var monsIPA = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "demandedIPA", time);
-    double ipaAngle_deg = formatRadianToDeg_((double) monsIPA->samples.d()[0].value);
-    frame.addKeyword(Keyword<double>("IPA", ipaAngle_deg, string("Instrument position angle (degrees)").c_str() ));
-  
-    double ipa0Angle_deg = 150.53;
-    frame.addKeyword(Keyword<double>("IPA0", ipa0Angle_deg, string("Instrument position angle on rotator (degrees)").c_str() ));
-  
-    double paAngle_deg = ipaAngle_deg - ipa0Angle_deg;
-    frame.addKeyword(Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
 
-  //  AIRMASS OE/ObservingEngine      airmass             SAMPLED NONE	when=[AVG] comment=[Average airmass for the observation]
-    MM::DataBlock_var monsAirmassStart = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "airmass", time);
-    MM::DataBlock_var monsAirmassEnd = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "airmass", time + expTime);
-    double airmass_avg = double((monsAirmassStart->samples.d()[0].value + monsAirmassEnd->samples.d()[0].value)/2.0);
-    frame.addKeyword(Keyword<double>("AIRMASS", airmass_avg, string("Average airmass for the observation").c_str() ));
-  }
-  catch (GCSException& ex)
-  {
-    cerr << "ERROR gathering header special keyword: " << endl;
-    ex.addToTrace ("gatherSpecialMonitorKeywords_()");   
-//      logError_ ("Error gathering header keyword: %s", ex.toString());
-    cerr << ex << endl;      
-  }
-  catch (const CORBA::Exception &ex)
-  {
-    cerr << "CORBA ERROR gathering header special keyword." << endl;
-//      logError_ ("CORBA Error gathering header keyword: %s", ex.toString());     
-    cerr << ex << endl;
-  }     
-}
-
-void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime, 
-                                            MonitorAgent* dfMonitorAgent, DataDescription& frame )
+void FITSHeaderInfo::gatherSampledMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
    try
    {  
-      MM::DataBlock_var mons;
-      if(keyword.when == "" || keyword.when == "START")
-      {
-        mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, requestedTime);
-      }      
-      else if(keyword.when == "END")
-      {
-        mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, (requestedTime + requestedExpTime));
-      }
-      else
-      {
-        throw InvalidValue("FITSHeaderInfo::gatherSampledMonitor_()","Wrong when label in spec file.");
-      }
+      MM::DataBlock_var mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, requestedTime);
       switch ( mons->samples._d() )
       {
          case MM::TYPE_SAMPLE_DOUBLE_LIST:
@@ -479,11 +410,11 @@ void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const Ti
    }   
 }
 
-void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, fitsfile* rawFile)
+void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, MonitorAgent* dfMonitorAgent, fitsfile* rawFile)
 {
   //first of all we gather monitor keywrods into the dataDescription object
   DataDescription newKeywords;
-  gatherMonitorKeywords (time, expTime, dfMonitorAgent, newKeywords);
+  gatherMonitorKeywords (time, dfMonitorAgent, newKeywords);
   
   int status_=0;
   //We replace fits_write_key with fits_update_key funtion
@@ -559,10 +490,7 @@ template<class ListType>
 ostream& FITSHeaderInfo::toStream_(ostream& ost, const ListType& a)
 {
   unsigned i,j;
-  if (a.value.dimension.height != 1 || a.value.dimension.width != 1)
-  {
-    ost << "[ ";
-  }
+  ost << "[ ";
   for(i=0; i< a.value.dimension.height; ++i)
   {
     for(j=0; j< a.value.dimension.width; ++j)
@@ -578,10 +506,7 @@ ostream& FITSHeaderInfo::toStream_(ostream& ost, const ListType& a)
       ost << "\\" << endl;
     }
   }
-  if (a.value.dimension.height != 1 || a.value.dimension.width != 1)
-  {  
-    ost << "]";
-  }
+  ost << "]";
   return ost;
 }
 

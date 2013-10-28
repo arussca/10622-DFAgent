@@ -1,3 +1,14 @@
+          RELEASE NOTES 1.2.10
+Interface
+  
+Bugs
+  
+Implementation
+  - Undo last changes. Go back to version 1.2.8. 
+  
+Known errors
+
+
           RELEASE NOTES 1.2.9
 Interface
   

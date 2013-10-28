@@ -12,6 +12,7 @@ static const char rcsid[]="@(#) $Id$";
 #include <DFAgentConfigAgent.h>
 
 //@ipc
+#include <MonitorHubFactory.h>
 #include <algorithm>
 #include <IDL_Adapters_RF.h>
 #include <IDL_Adapters_DPKF.h>
@@ -614,7 +615,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
   {
     try
     {
-      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "Object name", ""));
+      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "User defined target name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -638,6 +639,14 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }    
     try
     {
+      frame.addKeyword(Keyword<string>("OBSCLASS", obsClassName_[obsClass_].c_str(), "Observation class", ""));
+    }
+    catch(AlreadyExists &ex)
+    {
+      frame.modifyKeyword("OBSCLASS", obsClassName_[obsClass_].c_str());
+    }        
+    try
+    {
       frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "Principal Investigator", ""));
     }
     catch(AlreadyExists &ex)
@@ -646,7 +655,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name (SA = support astronomer)", ""));
+      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -683,7 +692,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope id.", ""));
+      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -691,7 +700,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "Observation Mode", ""));
+      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -699,7 +708,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "FITS file originator", ""));
+      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "Organization responsible for creating the FITS file", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -707,7 +716,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Name of observatory (IRAF style)", ""));
+      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Observatory name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -715,7 +724,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (degrees), +28:45:43.2", ""));      
+      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (HH:MM:SS)", ""));      
     }
     catch(AlreadyExists &ex)
     {
@@ -723,7 +732,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (degrees), +17:52:39.5", ""));
+      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (HH:MM:SS)", ""));      
     }
     catch(AlreadyExists &ex)
     {
@@ -840,7 +849,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     trace_.out ("Gathering monitor keywords values...");
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
 
-    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, fromIDL(idlExposureTime), monitorAgent_, shortFrame.dataDescription());
+    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorAgent_, shortFrame.dataDescription());
 
     writeStandardKeywords_(shortFrame.dataDescription());
     TinyVector<unsigned long, 2> sizeF = shortFrame.sizeOfDimensions();
@@ -903,7 +912,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      {  //It is a timeout, was a communications error
        dfBranchInstance_ = DF::Branch_ifce::_nil();
      }  
-//     goIdle_();
+     goIdle_();
 //     unlock_();
      throw;
   }
@@ -911,7 +920,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
   {
      ex.addToTrace("DFAgent::receiveFrame()");
      logError_ ("Error while receiveing raw frame: %s", ex.toString());
-//     goIdle_();
+     goIdle_();
 //     unlock_();
      throw;
   }
