@@ -1,3 +1,15 @@
+          RELEASE NOTES 1.2.11
+Interface
+  
+Bugs
+  
+Implementation
+  - New member function writeAdditionalKeywords_, to be defined by derived
+  class.
+  
+Known errors
+
+
           RELEASE NOTES 1.2.10
 Interface
   

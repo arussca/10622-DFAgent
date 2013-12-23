@@ -76,11 +76,23 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
       arrayRange = "";
       enumLabels = "";
       keyComment = "";
+      condition = "";
+      if_condition = "";
+      keyName = "";
+      devName = "";
+      monName = "";
+      keyType = "";
+      keyFormat = "";
       
       getline(f,specLine);
       stringstream ss(specLine);
       
       ss >> keyName;
+      keyName.erase(remove_if(keyName.begin(), keyName.end(), isspace), keyName.end());      
+      if(keyName == "")
+      { //jump to the next line in the spec file if this is empty
+        continue;
+      }
       ss >> devName;
       ss >> monName;
       ss >> keyType;

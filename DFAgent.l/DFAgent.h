@@ -531,7 +531,8 @@ class DFAgent : public Device
   void initDFAgentPartnerInstance_();  ///< Initialize pointer and connect to DFAgentPartner
   void writeStandardKeywords_(DataDescription& frame);  ///< Write standar keywords in Frame object
   virtual void applyObsModeSettings_(const std::vector<bool> & settings);  ///< Stores settings values in the local variables
-  virtual void writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long, 2>& frameSize);  ///< Write additional keywords in Frame object
+  virtual void writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long, 2>& frameSize);  ///< Write WCS keywords in Frame object
+  virtual void writeAdditionalKeywords_(DataDescription& frame);  ///< Write additional keywords in Frame object  
   virtual void fetchORInfo_();  ///< Fetch Observation result info, and element names for current observation mode
   bool belongsToRecipe_(const string& elementName);  ///< Indicates if the element name is used in the recipe currently used
   //@epc

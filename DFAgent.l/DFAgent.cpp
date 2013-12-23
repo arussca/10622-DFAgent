@@ -764,6 +764,15 @@ void DFAgent::writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long
 }
 
 //----------------------------------------------------------------------
+// writeAdditionalKeywords_
+//----------------------------------------------------------------------
+void DFAgent::writeAdditionalKeywords_(DataDescription& frame)
+{
+  trace_.out("writeAdditionalKeywords_()\n");
+  // Implemented if needed by inherited class
+}
+
+//----------------------------------------------------------------------
 // applyObsModeSettings_
 //----------------------------------------------------------------------
 void DFAgent::applyObsModeSettings_(const std::vector<bool> & settings)
@@ -854,7 +863,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     writeStandardKeywords_(shortFrame.dataDescription());
     TinyVector<unsigned long, 2> sizeF = shortFrame.sizeOfDimensions();
     writeWCSKeywords_(shortFrame.dataDescription(), sizeF);
-    
+    writeAdditionalKeywords_(shortFrame.dataDescription());
     
     //####Temporal fix solution#######
     try
