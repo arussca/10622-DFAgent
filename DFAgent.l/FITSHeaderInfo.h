@@ -18,7 +18,7 @@ class DFAgent;
 
 struct KeywordInfo
 {
-   KeywordInfo (string key, string dev, string mon, string type, string format, string range, string labels, string comment, string condition, string if_condition)
+   KeywordInfo (string key, string dev, string mon, string type, string format, string range, string labels, string comment, string condition, string if_condition, string when)
     : keyName(key)
      ,monitorName(mon)
      ,deviceName(dev)
@@ -38,17 +38,19 @@ struct KeywordInfo
    string keyComment;
    string condition;
    string if_condition;
+   string when;
 };
 
 class FITSHeaderInfo
 {
   public:
-    void writeHeaderToFile( const TimeValue& time, MonitorAgent* dfMonitorAgent, fitsfile* rawFile);
+    void writeHeaderToFile( const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, fitsfile* rawFile);
     void parseKeywordsFile(const string& fileName);
-    void gatherMonitorKeywords(const TimeValue& time, MonitorAgent* dfMonitorAgent, DataDescription& frame );
+    void gatherMonitorKeywords(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame );
     void forceSampleData(MonitorAgent* dfMonitorAgent);
     
   private:
+    void gatherSpecialMonitorKeywords_(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame);
     std::string formatRadianToHms_(double rad);
     std::string formatRadianToDms_(double rad);
     double formatRadianToDeg_(double rad);
@@ -64,7 +66,7 @@ class FITSHeaderInfo
     template<typename C>
     C trimmedArray1D_(const C arrayIn, const std::string sRange);
     
-    void gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 
+    void gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime,
                                 MonitorAgent* dfMonitorAgent, DataDescription& frame );
     void gatherDiscreteMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 
                                 MonitorAgent* dfMonitorAgent, DataDescription& frame );

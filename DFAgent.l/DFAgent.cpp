@@ -615,7 +615,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
   {
     try
     {
-      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "User defined target name", ""));
+      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "Object name", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -639,14 +639,6 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }    
     try
     {
-      frame.addKeyword(Keyword<string>("OBSCLASS", obsClassName_[obsClass_].c_str(), "Observation class", ""));
-    }
-    catch(AlreadyExists &ex)
-    {
-      frame.modifyKeyword("OBSCLASS", obsClassName_[obsClass_].c_str());
-    }        
-    try
-    {
       frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "Principal Investigator", ""));
     }
     catch(AlreadyExists &ex)
@@ -655,7 +647,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name", ""));
+      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name (SA = support astronomer)", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -692,7 +684,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope", ""));
+      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope id.", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -700,7 +692,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "", ""));
+      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "Observation Mode", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -708,7 +700,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "Organization responsible for creating the FITS file", ""));
+      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "FITS file originator", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -716,7 +708,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Observatory name", ""));
+      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Name of observatory (IRAF style)", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -724,7 +716,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (HH:MM:SS)", ""));      
+      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (degrees), +28:45:43.2", ""));      
     }
     catch(AlreadyExists &ex)
     {
@@ -732,7 +724,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (HH:MM:SS)", ""));      
+      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (degrees), +17:52:39.5", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -858,7 +850,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     trace_.out ("Gathering monitor keywords values...");
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
 
-    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, monitorAgent_, shortFrame.dataDescription());
+    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, fromIDL(idlExposureTime), monitorAgent_, shortFrame.dataDescription());
 
     writeStandardKeywords_(shortFrame.dataDescription());
     TinyVector<unsigned long, 2> sizeF = shortFrame.sizeOfDimensions();

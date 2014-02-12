@@ -1,3 +1,19 @@
+          RELEASE NOTES 1.2.12
+Interface
+  
+Bugs
+  
+Implementation
+  - Some keyword comments have been changed to comply with GTC Fits standard.
+  - OBJECTCLASS keyword deprecated.
+  - FITSHeaderInfo: New function gatherSpecialMonitorKeywords to include
+  spcial keywords like IPA that needs further calculations.
+  - FITSHeaderInfo: New parameter expTime to be added needed for some
+  keywords.
+  
+Known errors
+
+
           RELEASE NOTES 1.2.11
 Interface
   
