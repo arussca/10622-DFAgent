@@ -1,3 +1,15 @@
+          RELEASE NOTES 1.2.13
+Interface
+  
+Bugs
+  - Either sign '+' or '-' didn't appear after conversion from radian to DMS values.
+  
+Implementation
+  - Plus sign doesn't show up when using HMS or DMS units.
+    
+Known errors
+
+
           RELEASE NOTES 1.2.12
 Interface
   

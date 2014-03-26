@@ -15,8 +15,11 @@ string FITSHeaderInfo::formatRadianToHms_(double rad)
    ostringstream strbuf;
    
    slaDr2tf (3, rad, &sign, ihmsf);
-   
-   strbuf << sign << setw (2) << setfill('0') << ihmsf[0] << ":" 
+   if(sign != '+')
+   { //adds sign when negative
+     strbuf << sign;
+   }
+   strbuf << setw (2) << setfill('0') << ihmsf[0] << ":" 
                   << setw (2) << setfill('0') << ihmsf[1] << ":" 
                   << setw (2) << setfill('0') << ihmsf[2] << "." 
                   << setw (3) << setfill('0') << ihmsf[3];
@@ -31,13 +34,17 @@ string FITSHeaderInfo::formatRadianToDms_(double rad)
    char sign;
    int ihmsf[4];
    ostringstream strbuf;
-   // no sign
-   slaDr2af (3, rad, &sign, ihmsf);
-   strbuf << setw (2) << setfill('0') << ihmsf[0] << ":" 
-          << setw (2) << setfill('0') << ihmsf[1] << ":" 
-          << setw (2) << setfill('0') << ihmsf[2] << "." 
-          << setw (3) << setfill('0') << ihmsf[3];
    
+   slaDr2af (3, rad, &sign, ihmsf);
+   if(sign != '+')
+   { //adds sign when negative
+     strbuf << sign;
+   }
+   strbuf << setw (2) << setfill('0') << ihmsf[0] << ":" 
+                  << setw (2) << setfill('0') << ihmsf[1] << ":" 
+                  << setw (2) << setfill('0') << ihmsf[2] << "." 
+                  << setw (3) << setfill('0') << ihmsf[3];
+
 //   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
    
    return strbuf.str();
@@ -382,7 +389,8 @@ void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const Ti
         mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, requestedTime);
       }      
       else if(keyword.when == "END")
-      {
+      { 
+        cout << "Value at the end of the exposition for keyword: " << keyword.keyName << endl;
         mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, (requestedTime + requestedExpTime));
       }
       else
