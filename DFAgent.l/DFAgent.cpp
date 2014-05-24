@@ -615,124 +615,124 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
   {
     try
     {
-      frame.addKeyword(Keyword<string>("OBJECT", objectName_.c_str(), "Object name", ""));
+      frame.addKeyword(DPKF::Keyword<string>("OBJECT", objectName_.c_str(), "Object name", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("OBJECT", objectName_.c_str());
+      frame.modifyKeyword("OBJECT", objectName_);
     }
     try
     {
-      frame.addKeyword(Keyword<string>("INSMODE", instrumentMode_.c_str(), "Instrument Mode", ""));
+      frame.addKeyword(DPKF::Keyword<string>("INSMODE", instrumentMode_.c_str(), "Instrument Mode", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("INSMODE", instrumentMode_.c_str());
+      frame.modifyKeyword("INSMODE", instrumentMode_);
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSTYPE", obsTypeName_[obsType_].c_str(), "Observation Type", ""));
+      frame.addKeyword(DPKF::Keyword<string>("OBSTYPE", obsTypeName_[obsType_].c_str(), "Observation Type", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("OBSTYPE", obsTypeName_[obsType_].c_str());
+      frame.modifyKeyword("OBSTYPE", obsTypeName_[obsType_]);
     }    
     try
     {
-      frame.addKeyword(Keyword<string>("PI", principalInvestigatorName_.c_str(), "Principal Investigator", ""));
+      frame.addKeyword(DPKF::Keyword<string>("PI", principalInvestigatorName_.c_str(), "Principal Investigator", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("PI", principalInvestigatorName_.c_str());
+      frame.modifyKeyword("PI", principalInvestigatorName_);
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name (SA = support astronomer)", ""));
+      frame.addKeyword(DPKF::Keyword<string>("OBSERVER", observerName_.c_str(), "Observer Name (SA = support astronomer)", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("OBSERVER", observerName_.c_str());
+      frame.modifyKeyword("OBSERVER", observerName_);
     }
     try
     {
-      frame.addKeyword(Keyword<string>("GTCPRGID", programId_.c_str(), "Program Identifier", ""));
+      frame.addKeyword(DPKF::Keyword<string>("GTCPRGID", programId_.c_str(), "Program Identifier", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("GTCPRGID", programId_.c_str());
+      frame.modifyKeyword("GTCPRGID", programId_);
     }
 //   
     if(esoProgramId_ != "")
     {  
       try
       {
-        frame.addKeyword(Keyword<string>("ESOPRGID", esoProgramId_.c_str(), "ESO Program Identifier", ""));
+        frame.addKeyword(DPKF::Keyword<string>("ESOPRGID", esoProgramId_, "ESO Program Identifier", ""));
       }
       catch(AlreadyExists &ex)
       {
-        frame.modifyKeyword("ESOPRGID", esoProgramId_.c_str());
+        frame.modifyKeyword("ESOPRGID", esoProgramId_);
       }    
     }
 //    
     try
     {
-      frame.addKeyword(Keyword<string>("GTCOBID", observationBlockId_.c_str(), "Observation Block ID", ""));
+      frame.addKeyword(DPKF::Keyword<string>("GTCOBID", observationBlockId_, "Observation Block ID", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("GTCOBID", observationBlockId_.c_str());
+      frame.modifyKeyword("GTCOBID", observationBlockId_);
     }
     try
     {
-      frame.addKeyword(Keyword<string>("TELESCOP", "GTC", "Telescope id.", ""));
+      frame.addKeyword(DPKF::Keyword<string>("TELESCOP", "GTC", "Telescope id.", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("TELESCOP", "GTC");
+      frame.modifyKeyword<string>("TELESCOP", "GTC");
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSMODE", obsModeName_[shortObsMode_].c_str(), "Observation Mode", ""));
+      frame.addKeyword(DPKF::Keyword<string>("OBSMODE", obsModeName_[shortObsMode_], "Observation Mode", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("OBSMODE", obsModeName_[shortObsMode_].c_str());
+      frame.modifyKeyword("OBSMODE", obsModeName_[shortObsMode_]);
     }
     try
     {
-      frame.addKeyword(Keyword<string>("ORIGIN", "GRANTECAN", "FITS file originator", ""));
+      frame.addKeyword(DPKF::Keyword<string>("ORIGIN", "GRANTECAN", "FITS file originator", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("ORIGIN", "GRANTECAN");
+      frame.modifyKeyword<string>("ORIGIN", "GRANTECAN");
     }
     try
     {
-      frame.addKeyword(Keyword<string>("OBSERVAT", "ORM", "Name of observatory (IRAF style)", ""));
+      frame.addKeyword(DPKF::Keyword<string>("OBSERVAT", "ORM", "Name of observatory (IRAF style)", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("OBSERVAT", "ORM");
+      frame.modifyKeyword<string>("OBSERVAT", "ORM");
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (degrees), +28:45:43.2", ""));      
+      frame.addKeyword(DPKF::Keyword<string>("LATITUDE", "+28:45:43.2", "Telescope latitude (degrees), +28:45:43.2", ""));      
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("LATITUDE", "+28:45:43.2");
+      frame.modifyKeyword<string>("LATITUDE", "+28:45:43.2");
     }
     try
     {
-      frame.addKeyword(Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (degrees), +17:52:39.5", ""));
+      frame.addKeyword(DPKF::Keyword<string>("LONGITUD", "+17:52:39.5", "Telescope longitude (degrees), +17:52:39.5", ""));
     }
     catch(AlreadyExists &ex)
     {
-      frame.modifyKeyword("LONGITUD", "+17:52:39.5");
+      frame.modifyKeyword<string>("LONGITUD", "+17:52:39.5");
     }
     try
     {
-      frame.addKeyword(Keyword<long>("HEIGHT", 2348, "Telescope height above sea level (m)", ""));
+      frame.addKeyword(DPKF::Keyword<long>("HEIGHT", 2348, "Telescope height above sea level (m)", ""));
     }
     catch(AlreadyExists &ex)
     {
@@ -860,7 +860,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     //####Temporal fix solution#######
     try
     {
-      shortFrame.addKeyword(Keyword<double>("EXPTIME", (fromIDL(idlExposureTime)).toFloat(), "", ""));
+      shortFrame.addKeyword(DPKF::Keyword<double>("EXPTIME", (fromIDL(idlExposureTime)).toFloat(), "", ""));
     }
     catch(AlreadyExists &ex)
     {

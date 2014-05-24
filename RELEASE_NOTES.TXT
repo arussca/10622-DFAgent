@@ -1,3 +1,13 @@
+          RELEASE NOTES 1.2.14
+Interface
+  
+Bugs
+  
+Implementation
+  - Adapted to changes in keyword system in DPKF
+    
+Known errors
+
           RELEASE NOTES 1.2.13
 Interface
   

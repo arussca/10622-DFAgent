@@ -65,21 +65,21 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListT
    if (keyword.keyFormat == "RAD_TO_HMS")
    {
      unitComment = " (h:m:s)";
-     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() )); 
+     frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() )); 
    }
    else if (keyword.keyFormat == "RAD_TO_DMS")
    {
      unitComment = " (d:m:s)";
-     frame.addKeyword(Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
+     frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else if (keyword.keyFormat == "RAD_TO_DEG")
    {
      unitComment = " (degrees)";
-     frame.addKeyword(Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
+     frame.addKeyword(DPKF::Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
    }
    else
    {
-     frame.addKeyword (Keyword<ValueType>(keyword.keyName, (ValueType) list[0].value, keyword.keyComment));
+     frame.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName, (ValueType) list[0].value, keyword.keyComment));
    }
 }
 
@@ -347,13 +347,13 @@ void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const TimeValue& time, const 
   //  IPA     OE/ObservingEngine      demandedIPA         SAMPLED RAD_TO_DEG	comment=[Instrument position angle]   
     MM::DataBlock_var monsIPA = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "demandedIPA", time);
     double ipaAngle_deg = formatRadianToDeg_((double) monsIPA->samples.d()[0].value);
-    frame.addKeyword(Keyword<double>("IPA", ipaAngle_deg, string("Instrument position angle (degrees)").c_str() ));
+    frame.addKeyword(DPKF::Keyword<double>("IPA", ipaAngle_deg, string("Instrument position angle (degrees)").c_str() ));
   
     double ipa0Angle_deg = 150.53;
-    frame.addKeyword(Keyword<double>("IPA0", ipa0Angle_deg, string("Instrument position angle on rotator (degrees)").c_str() ));
+    frame.addKeyword(DPKF::Keyword<double>("IPA0", ipa0Angle_deg, string("Instrument position angle on rotator (degrees)").c_str() ));
   
     double paAngle_deg = ipaAngle_deg - ipa0Angle_deg;
-    frame.addKeyword(Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
+    frame.addKeyword(DPKF::Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
 
   //  AIRMASS OE/ObservingEngine      airmass             SAMPLED NONE	when=[AVG] comment=[Average airmass for the observation]
     MM::DataBlock_var monsAirmassStart = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "airmass", time);
@@ -361,7 +361,7 @@ void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const TimeValue& time, const 
     cout << "Airmass at start: " << monsAirmassStart->samples.d()[0].value << endl;
     cout << "Airmass at end: " << monsAirmassEnd->samples.d()[0].value << endl;
     double airmass_avg = double((monsAirmassStart->samples.d()[0].value + monsAirmassEnd->samples.d()[0].value)/2.0);
-    frame.addKeyword(Keyword<double>("AIRMASS", airmass_avg, string("Average airmass for the observation").c_str() ));
+    frame.addKeyword(DPKF::Keyword<double>("AIRMASS", airmass_avg, string("Average airmass for the observation").c_str() ));
   }
   catch (GCSException& ex)
   {
@@ -419,35 +419,35 @@ void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const Ti
 	        ostringstream formatbuf;
 	        toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons->samples.array_d()[0], keyword.arrayRange));
 //	        toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
          case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
 	        toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons->samples.array_f()[0], keyword.arrayRange));
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;         
          case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
 	        toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons->samples.array_l()[0], keyword.arrayRange));
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }
 	      break;
          case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
 	        toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons->samples.array_s()[0], keyword.arrayRange));
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
          case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
 	        toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons->samples.array_o()[0], keyword.arrayRange));
-	        frame.addKeyword (Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
           
@@ -484,11 +484,11 @@ void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const Ti
       
       if(keyword.enumLabels == "")
       {
-        frame.addKeyword(Keyword<long>(keyword.keyName, mons->new_value, keyword.keyComment));
+        frame.addKeyword(DPKF::Keyword<long>(keyword.keyName, mons->new_value, keyword.keyComment));
       }
       else
       {
-        frame.addKeyword(Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels, mons->new_value), keyword.keyComment));        
+        frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels, mons->new_value), keyword.keyComment));        
       }
    }
    catch (GCSException& ex)
@@ -510,59 +510,15 @@ void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, const TimeValue& 
   //for our needs, but nearly
   try
   {
-    typedef std::map<string, Keyword<string> >::const_iterator MIS;
-    for(MIS it = newKeywords.stringBegin();it!= newKeywords.stringEnd();++it)
+    
+    for (DataDescription::RecordConstIterator it = newKeywords.begin(); it != newKeywords.end(); it++)
     {
-      if(!FITS::initialKeyword((*it).first))
-      {
-        fits_update_key(rawFile, TSTRING, const_cast<char *>((*it).first.c_str()),
-		     const_cast<char *>((*it).second.value().c_str()),
-		     const_cast<char *>((*it).second.comment().c_str()), &status_);
-        fits_write_key_unit(rawFile,const_cast<char *>((*it).first.c_str()),
-           const_cast<char *>((*it).second.unit().c_str()),&status_);
-      }
+       status_ = 0;
+       if (!FITS::initialKeyword((*it)->name()))
+       {
+          (*it)->toFits (rawFile, &status_);
+       }
     }
-    typedef std::map<string, Keyword<double> >::const_iterator MID;
-    for(MID it = newKeywords.doubleBegin();it!= newKeywords.doubleEnd();++it)
-    {
-      if(!FITS::initialKeyword((*it).first))
-      {
-        fits_update_key(rawFile, TDOUBLE, const_cast<char *>((*it).first.c_str()),
-		     const_cast<double *>(&((*it).second.value())),
-		     const_cast<char *>((*it).second.comment().c_str()), &status_);
-        fits_write_key_unit(rawFile,const_cast<char *>((*it).first.c_str()),
-           const_cast<char *>((*it).second.unit().c_str()),&status_);
-      }
-    }
-    typedef std::map<string, Keyword<long> >::const_iterator MIL;
-    for(MIL it = newKeywords.longBegin();it!= newKeywords.longEnd();++it)
-    {
-      if(!FITS::initialKeyword((*it).first))
-      {
-    	  fits_update_key(rawFile, TLONG, const_cast<char *>((*it).first.c_str()),
-          const_cast<long *>(&((*it).second.value())),
-          const_cast<char *>((*it).second.comment().c_str()), &status_);
-        fits_write_key_unit(rawFile,const_cast<char *>((*it).first.c_str()),
-          const_cast<char *>((*it).second.unit().c_str()),&status_);
-      }
-    }
-    typedef std::map<string, Keyword<bool> >::const_iterator MIB;
-    for(MIB it = newKeywords.boolBegin();it!= newKeywords.boolEnd();++it)
-    {
-      if(!FITS::initialKeyword((*it).first))
-      {
-        fits_update_key(rawFile, TLOGICAL, const_cast<char *>((*it).first.c_str()),
-		    const_cast<bool *>(&((*it).second.value())),
-		    const_cast<char *>((*it).second.comment().c_str()), &status_);
-        fits_write_key_unit(rawFile,const_cast<char *>((*it).first.c_str()),
-          const_cast<char *>((*it).second.unit().c_str()),&status_);
-      }
-    }
-    typedef std::vector<string>::const_iterator VI;
-    for(VI  it = newKeywords.history().begin(); it != newKeywords.history().end(); ++it)
-      fits_write_history(rawFile, const_cast<char *>((*it).c_str()), &status_);
-    for(VI  it = newKeywords.comments().begin(); it != newKeywords.comments().end(); ++it)
-      fits_write_comment(rawFile, const_cast<char *>((*it).c_str()), &status_);
   }
   catch(GCSException &ex)
   {
