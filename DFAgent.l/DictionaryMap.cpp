@@ -1,6 +1,6 @@
 #include "DictionaryMap.h"
 
-inline DictionaryMap::DictionaryMap() :
+DictionaryMap::DictionaryMap() :
        PersistentHashMap< WordSet >(std::string("ASGRecipeDictionary")) {}
 
 
@@ -63,7 +63,7 @@ void DictionaryMap::fromPortableObject( const PortableObject& object,
 
 }
 
-inline std::string DictionaryMap::fetchTranslation(const std::string& word, const std::string& wordSetID)
+std::string DictionaryMap::fetchTranslation(const std::string& word, const std::string& wordSetID)
 {
   try
   { 
@@ -92,7 +92,7 @@ inline std::string DictionaryMap::fetchTranslation(const std::string& word, cons
   }
 }
 
-inline std::string DictionaryMap::fetchOriginal(const std::string& word, const std::string& wordSetID)
+std::string DictionaryMap::fetchOriginal(const std::string& word, const std::string& wordSetID)
 {
   try
   { 
@@ -121,7 +121,7 @@ inline std::string DictionaryMap::fetchOriginal(const std::string& word, const s
   }
 }
 
-inline size_t DictionaryMap::size() const
+size_t DictionaryMap::size() const
 {
   return PersistentHashMap< WordSet >::size();
 }

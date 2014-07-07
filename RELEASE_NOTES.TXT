@@ -1,4 +1,14 @@
-          RELEASE NOTES 1.2.14
+         
+            RELEASE NOTES 1.2.15
+Interface
+  
+Bugs
+  
+Implementation
+     - Compile linux platform
+Known errors
+
+            RELEASE NOTES 1.2.14
 Interface
   
 Bugs

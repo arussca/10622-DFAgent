@@ -246,7 +246,7 @@ void DFAgent::restore()
     initDFBranchInstance_();
     initDFAgentPartnerInstance_();
     goPreviousState_();
-    cancelAlarm_("DeviceFault","Device is restored");
+    cancelAlarm_(const_cast<char*>("DeviceFault"),const_cast<char*>("Device is restored"));
   }
   catch (GCSException& ex)
   {

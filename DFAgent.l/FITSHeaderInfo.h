@@ -1,7 +1,7 @@
 #ifndef _FITSHeaderInfo_h_
 #define _FITSHeaderInfo_h_
 
-#include <iostream.h>
+#include <iostream>
 
 #include <IDL_Adapters_DGT.h>
 #include <vector>

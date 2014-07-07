@@ -107,7 +107,7 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
       stringstream ss(specLine);
       
       ss >> keyName;
-      keyName.erase(remove_if(keyName.begin(), keyName.end(), isspace), keyName.end());      
+      keyName.erase(remove_if(keyName.begin(), keyName.end(), (int(*)(int)) isspace), keyName.end());      
       if(keyName == "")
       { //jump to the next line in the spec file if this is empty
         continue;
@@ -124,7 +124,7 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
         if(cell != "")
         { 
           string tag = cell.substr(0,cell.find_first_of("="));
-          tag.erase(remove_if(tag.begin(), tag.end(), isspace), tag.end());
+          tag.erase(remove_if(tag.begin(), tag.end(), (int(*)(int)) isspace), tag.end());
           if(tag == "range")
           {
             arrayRange = cell.substr(cell.find_first_of("[") + 1);

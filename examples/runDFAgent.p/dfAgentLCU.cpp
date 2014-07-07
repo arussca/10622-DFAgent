@@ -72,7 +72,7 @@ int dfAgentLCU::start(int update)
   printf("-------------------------------------------------------------\n");
   try
   {
-    dfAgentApp_ = new dfAgentApp("dfAgentApp");
+    dfAgentApp_ = new dfAgentApp(const_cast<char*>("dfAgentApp"));
   }
   catch(GCSException& ex)
   {
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
   CommandLine::current(argc, argv);
   CommandLine cl(argc, argv);
   update = cl.getFlag("-update");
-  _dfAgentLCU_ = new dfAgentLCU("dfAgentLCU");
+  _dfAgentLCU_ = new dfAgentLCU(const_cast<char*>("dfAgentLCU"));
   _dfAgentLCU_->start(update); 
   // Leave the program running
   while(true)

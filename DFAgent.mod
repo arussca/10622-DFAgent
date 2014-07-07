@@ -8,7 +8,7 @@ NAME=DFAgent
 TYPE=device
 
 # Module content definition:
-l:DFAgent.l:vx solgnu:y
-t:testDFAgent.p:vx solgnu:y
-e:runDFAgent.p:vx solgnu:y
-e:useDFAgent.p:vx solgnu:y
+l:DFAgent.l:vx solgnu linux:y
+t:testDFAgent.p:vx solgnu linux:y
+e:runDFAgent.p:vx solgnu linux:y
+e:useDFAgent.p:vx solgnu linux:y

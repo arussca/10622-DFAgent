@@ -15,9 +15,9 @@ struct WordSet
 class DictionaryMap : public PersistentHashMap< WordSet >
 {
   public:
-    inline DictionaryMap();
-    inline std::string fetchTranslation(const std::string& word, const std::string& wordSetID);
-    inline std::string fetchOriginal(const std::string& word, const std::string& wordSetID);
+    DictionaryMap();
+    std::string fetchTranslation(const std::string& word, const std::string& wordSetID);
+    std::string fetchOriginal(const std::string& word, const std::string& wordSetID);
     inline size_t size() const;
     
   private:
