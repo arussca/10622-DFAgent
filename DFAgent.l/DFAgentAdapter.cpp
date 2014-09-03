@@ -411,7 +411,7 @@ CORBA::Boolean DFAgentAdapter::doesWriteKeywords()
 // get offlineImagesPath
 char* DFAgentAdapter::offlineImagesPath()
 {
-  return (char*) device_->offlineImagesPath();
+  return CORBA::string_dup(device_->offlineImagesPath());
 }
 //-------------------------------
 // set offlineImagesPath
@@ -431,7 +431,7 @@ void DFAgentAdapter::offlineImagesPath(const char* value)
 // get dfBranchInstanceName
 char* DFAgentAdapter::dfBranchInstanceName()
 {
-  return (char*) device_->dfBranchInstanceName();
+  return CORBA::string_dup(device_->dfBranchInstanceName());
 }
 //-------------------------------
 // set dfBranchInstanceName
@@ -451,7 +451,7 @@ void DFAgentAdapter::dfBranchInstanceName(const char* value)
 // get dfAgentPartnerInstanceName
 char* DFAgentAdapter::dfAgentPartnerInstanceName()
 {
-  return (char*) device_->dfAgentPartnerInstanceName();
+  return CORBA::string_dup(device_->dfAgentPartnerInstanceName());
 }
 //-------------------------------
 // set dfAgentPartnerInstanceName
@@ -631,7 +631,7 @@ void DFAgentAdapter::testingMode(CORBA::Short value)
 // get obsModeKeywordListPath
 char* DFAgentAdapter::obsModeKeywordListPath()
 {
-  return (char*) device_->obsModeKeywordListPath();
+  return CORBA::string_dup(device_->obsModeKeywordListPath());
 }
 //-------------------------------
 // set obsModeKeywordListPath
@@ -651,7 +651,7 @@ void DFAgentAdapter::obsModeKeywordListPath(const char* value)
 // get recipeDictionaryPath
 char* DFAgentAdapter::recipeDictionaryPath()
 {
-  return (char*) device_->recipeDictionaryPath();
+  return CORBA::string_dup(device_->recipeDictionaryPath());
 }
 //-------------------------------
 // set recipeDictionaryPath
@@ -671,7 +671,7 @@ void DFAgentAdapter::recipeDictionaryPath(const char* value)
 // get gcsComponent
 char* DFAgentAdapter::gcsComponent()
 {
-  return (char*) device_->gcsComponent();
+  return CORBA::string_dup(device_->gcsComponent());
 }
 //-------------------------------
 // set gcsComponent
@@ -691,7 +691,7 @@ void DFAgentAdapter::gcsComponent(const char* value)
 // get cameraName
 char* DFAgentAdapter::cameraName()
 {
-  return (char*) device_->cameraName();
+  return CORBA::string_dup(device_->cameraName());
 }
 //-------------------------------
 // set cameraName
