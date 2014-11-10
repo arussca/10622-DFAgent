@@ -452,7 +452,7 @@ void DFAgent::sendElement_(string elementRecipeName, bool hasFrameArrived)
       if( pDataElement != NULL)
       {
         dfBranchInstance_->receiveORParam( *pDataElement, dfBranchInstanceName_, dfSessionId_);
-        cout << elementName << " sent!!" << endl;
+        //cout << elementName << " sent!!" << endl;
         delete pDataElement;
       }
     }
@@ -502,7 +502,7 @@ void DFAgent::sendElement_(string elementRecipeName)
       if( pDataElement != NULL)
       {
         dfBranchInstance_->receiveORParam( *pDataElement, dfBranchInstanceName_, dfSessionId_);
-        cout << elementName << " sent!!" << endl;
+        //cout << elementName << " sent!!" << endl;
         delete pDataElement;
       }
     }
@@ -829,7 +829,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     //short frames are not supported by now
     Frame<short,2> shortFrame;
     fromIDL(idlNoKeywordsFrame, shortFrame);
-    cout << "Received a Frame of " << shortFrame.sizeOfDimensions() << endl;
+    //cout << "Received a Frame of " << shortFrame.sizeOfDimensions() << endl;
 /*    
     rawFrame_ = new Frame<double,2>(NoErrors);    
     rawFrame_->resize (shortFrame.sizeOfDimensions());
