@@ -1,3 +1,14 @@
+           RELEASE NOTES 1.2.19
+Interface
+  
+Bugs
+     - Array monitors defined via "range" keyword in spec file are not processed correctly.
+     
+Implementation
+     - Monitors are now requested to Monitor Manager by batches instead of one by one.
+     
+Known errors
+
            RELEASE NOTES 1.2.18
 Interface
   

@@ -5,6 +5,8 @@
 #include <iomanip>
 #include <FITSHeaderInfo.h>
 #include <DCFC.h>
+#include "MMCommonC.h"
+#include "MonitorManagerC.h"
 
 using namespace std;
 
@@ -56,11 +58,13 @@ double FITSHeaderInfo::formatRadianToDeg_(double rad)
 }
 
 template<class ListType, typename ValueType>
-void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, DataDescription& frame)
+void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, const ListType& list, DataDescription& frame)
 {
-   cout << "@@##is in addSampled:@@## " << keyword.keyName << "; value: " << (ValueType) list[0].value << endl;
    if (list.length() < 1)
+   {
       throw NotFound ("addSampledMonitorKeyword_()", "Data length is 0");
+   }
+
    std::string unitComment;
    if (keyword.keyFormat == "RAD_TO_HMS")
    {
@@ -155,7 +159,8 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
           }
           else if(tag != "")
           {
-            cout << "ERROR: No valid field tag have been found: " << tag << "." << endl;
+            std::cout << "ERROR: No valid field tag have been found: " << tag << std::endl;
+
           }
         }
       }
@@ -199,15 +204,55 @@ void FITSHeaderInfo::forceSampleData(MonitorAgent* dfMonitorAgent)
   }
 }
 
+//Helper function to match monitorName returned by monitorManager and associated kewordInfo from spec.txt file
+KeywordInfo FITSHeaderInfo::findKeywordInfo_(const string& devName, const string& monName, const std::vector<KeywordInfo>& monList)
+{
+  std::vector<KeywordInfo>::const_iterator itBegin = monList.begin();
+  std::vector<KeywordInfo>::const_iterator itEnd   = monList.end();
+  std::vector<KeywordInfo>::const_iterator it;
+  for(it = itBegin; it != itEnd; ++it)
+  {
+    if(it->monitorName == monName && it->deviceName == devName)
+    {
+      return *it;
+    }
+  }
+  throw InvalidValue("FITSHeaderInfo::findKeywordInfo_", "No keywordInfo match has been found for this monitor name.");
+}
+
+
 void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-  gatherSpecialMonitorKeywords_(time, expTime, dfMonitorAgent, frame);
   vector<KeywordInfo>::const_iterator it, endIt;
 
   it = monList_.begin();
   endIt = monList_.end();
   conditionList_.clear();
+
+  std::vector<MM::MonitorQuery> mSampledQueryVector;
+  std::vector<MM::MonitorQuery> mDiscreteQueryVector;
   
+  //Add spacial keywords to the query list
+  MM::MonitorQuery monsIPA;;
+  monsIPA.gcs_component = CORBA::string_dup("OE/ObservingEngine");
+  monsIPA.magnitude = CORBA::string_dup("demandedIPA");
+  monsIPA.time_stamp = toIDL(time);
+  mSampledQueryVector.push_back(monsIPA);
+
+  MM::MonitorQuery monsAirmassStart;
+  monsAirmassStart.gcs_component = CORBA::string_dup("OE/ObservingEngine");
+  monsAirmassStart.magnitude = CORBA::string_dup("airmass");
+  monsAirmassStart.time_stamp = toIDL(time);
+  mSampledQueryVector.push_back(monsAirmassStart);
+  
+  MM::MonitorQuery monsAirmassEnd;
+  monsAirmassEnd.gcs_component = CORBA::string_dup("OE/ObservingEngine");
+  monsAirmassEnd.magnitude = CORBA::string_dup("airmass");
+  monsAirmassEnd.time_stamp = toIDL(time + expTime);
+  mSampledQueryVector.push_back(monsAirmassEnd); 
+ 
+  
+  //First loop to collect all the keywords needed by the agent and request them to the monitor manager
   while (it != endIt)
   {
     try
@@ -230,16 +275,47 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
       
       if (it->monitorType == "SAMPLED")
       {
-        gatherSampledMonitor_(*it, time, expTime, dfMonitorAgent, frame);
+        //gatherSampledMonitor_(*it, time, expTime, dfMonitorAgent, frame) : 
+        //KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime, MonitorAgent* dfMonitorAgent, DataDescription& frame
+        MM::MonitorQuery monsSampledQuery;
+        monsSampledQuery.gcs_component = CORBA::string_dup(it->deviceName.c_str());
+        monsSampledQuery.magnitude = CORBA::string_dup(it->monitorName.c_str());
+        
+        if(it->when == "" || it->when == "START")
+        {
+          monsSampledQuery.time_stamp = toIDL(time);
+        }      
+        else if(it->when == "END")
+        { 
+          monsSampledQuery.time_stamp = toIDL(time + expTime);
+        }
+        else
+        {
+          throw InvalidValue("FITSHeaderInfo::gatherMonitorKeywords()","Wrong when label in spec file.");
+        }
+        
+        mSampledQueryVector.push_back(monsSampledQuery);
+	string a = it->monitorName;
+
+        //printf("SAMPLED Keyword : %s\n",a.c_str());
+        std::cout << "SAMPLED Keyword : " << it->monitorName << std::endl;
+        
       }
       else if (it->monitorType == "DISCRETE")
       {
-        gatherDiscreteMonitor_(*it, time, dfMonitorAgent, frame);
+//        gatherDiscreteMonitor_(*it, time, dfMonitorAgent, frame) : 
+//        KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame
+        MM::MonitorQuery monsDiscreteQuery;     
+        monsDiscreteQuery.gcs_component = CORBA::string_dup(it->deviceName.c_str());
+        monsDiscreteQuery.magnitude = CORBA::string_dup(it->monitorName.c_str());
+        monsDiscreteQuery.time_stamp = toIDL(time);
+        mDiscreteQueryVector.push_back(monsDiscreteQuery);
       }
       else
       {
-        cout << "ERROR: invalid key format : " << it->keyName << " " << it->keyFormat << endl;
+        std::cout << "ERROR: invalid key format : " << it->keyName << " " << it->keyFormat << std::endl;
       }
+      
         
     }
     catch (GCSException& ex)
@@ -257,6 +333,55 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
     }   
     //increment position
     ++it;
+  }
+
+  MM::MonitorQueryList mSampledQueryList;
+  mSampledQueryList.length(mSampledQueryVector.size() );
+  std::vector<MM::MonitorQuery>::const_iterator itS, itSEnd;
+  itS = mSampledQueryVector.begin();
+  itSEnd = mSampledQueryVector.end();
+  unsigned int ii = 0;
+  while(itS != itSEnd)
+  {
+    mSampledQueryList[ii] = *itS;
+    ++ii; ++itS;
+  }
+  MM::DataBlockList dataBlockL = dfMonitorAgent->retrieveLastDataSet(mSampledQueryList);
+  //Then loop again through the vector returned by monitor manager with all the keyword values and write them into fits file  
+  for(unsigned int i = 0; i<dataBlockL.length(); ++i)
+  {
+    std::string magName = dataBlockL[i].magnitude.in();
+    if(magName == "demandedIPA" || magName == "airmass") 
+    {
+      gatherSpecialMonitorKeywords_(dataBlockL[i], time, expTime, dfMonitorAgent, frame);
+    }
+    else
+    {
+      KeywordInfo sKeyword = findKeywordInfo_(std::string(dataBlockL[i].gcs_component), std::string(dataBlockL[i].magnitude), monList_);
+      gatherSampledMonitor_(sKeyword, dataBlockL[i], time, expTime, dfMonitorAgent, frame);
+    }
+  }
+
+  if(mDiscreteQueryVector.size() != 0)
+  {
+    MM::MonitorQueryList mDiscreteQueryList;
+    mDiscreteQueryList.length(mDiscreteQueryVector.size() );
+    std::vector<MM::MonitorQuery>::const_iterator itD, itDEnd;
+    itD = mDiscreteQueryVector.begin();
+    itDEnd = mDiscreteQueryVector.end();
+    unsigned int jj = 0;
+    while(itD != itDEnd)
+    {
+      mDiscreteQueryList[jj] = *itD;
+      ++jj; ++itD;
+    }
+    MM::MagnitudeChangeList magnitudeChangeL = dfMonitorAgent->retrieveLastMagnitudeSet(mDiscreteQueryList);
+  
+    for(unsigned int i = 0; i<magnitudeChangeL.length(); ++i)
+    {
+      KeywordInfo dKeyword = findKeywordInfo_(std::string(magnitudeChangeL[i].gcs_component), std::string(magnitudeChangeL[i].magnitude), monList_);
+      gatherDiscreteMonitor_(dKeyword, magnitudeChangeL[i], time, dfMonitorAgent, frame);
+    }
   }
 }
 
@@ -304,17 +429,19 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   std::pair<unsigned int, unsigned int> range;
   if(sRange == "")
   { //no specified range means the whole range is applied
-    range = make_pair(0, (unsigned int)(arrayIn.value.dimension.width - 1));
+    range = make_pair(0, (unsigned int)(arrayIn.value.dimension.height - 1));
   }
   else
   {
     range = rangeFromString_(sRange);
   }
-  
+
+    
+
   C arrayOut;
   arrayOut.time_stamp = arrayIn.time_stamp;
-  arrayOut.value.dimension.width = (range.second - range.first) + 1;
-  if( arrayIn.value.dimension.height != 1 )
+  arrayOut.value.dimension.height = (range.second - range.first) + 1;
+  if( arrayIn.value.dimension.width != 1 ) 
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Only one dimentional array supported");
   }
@@ -322,16 +449,16 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Last index lower than first");
   }
-  if( range.first > (unsigned int)(arrayIn.value.dimension.width - 1) || range.second > (unsigned int)(arrayIn.value.dimension.width - 1) )
+  if( range.first > (unsigned int)(arrayIn.value.dimension.height - 1) || range.second > (unsigned int)(arrayIn.value.dimension.height - 1) )
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Range out of bounds");
   }
   
-  arrayOut.value.dimension.height = 1;
-  arrayOut.value.data.length(arrayOut.value.dimension.width);
-  
+  arrayOut.value.dimension.width = 1; 
+  arrayOut.value.data.length(arrayOut.value.dimension.height);
+
   unsigned int i(0);
-  for(unsigned int j=range.first; j<=range.second; ++j)
+  for(unsigned int j=range.first; j<arrayIn.value.dimension.height; ++j) 
   {
     arrayOut.value.data[i] = arrayIn.value.data[j];
     ++i;
@@ -340,34 +467,43 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   return arrayOut;
 }
 
-void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
+void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const MM::DataBlock& mons, const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
   try
   {
-  //  IPA     OE/ObservingEngine      demandedIPA         SAMPLED RAD_TO_DEG	comment=[Instrument position angle]   
-    MM::DataBlock_var monsIPA = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "demandedIPA", time);
-    double ipaAngle_deg = formatRadianToDeg_((double) monsIPA->samples.d()[0].value);
-    frame.addKeyword(DPKF::Keyword<double>("IPA", ipaAngle_deg, string("Instrument position angle (degrees)").c_str() ));
+    std::string magName = mons.magnitude.in();
+    if(mons.magnitude.in() == "demandedIPA")
+    {
+    //  IPA     OE/ObservingEngine      demandedIPA         SAMPLED RAD_TO_DEG	comment=[Instrument position angle]   
+    //  MM::DataBlock_var monsIPA = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "demandedIPA", time);
+    
+      double ipaAngle_deg = formatRadianToDeg_((double) mons.samples.d()[0].value);
+      frame.addKeyword(DPKF::Keyword<double>("IPA", ipaAngle_deg, string("Instrument position angle (degrees)").c_str() ));
   
-    double ipa0Angle_deg = 150.53;
-    frame.addKeyword(DPKF::Keyword<double>("IPA0", ipa0Angle_deg, string("Instrument position angle on rotator (degrees)").c_str() ));
+      double ipa0Angle_deg = 150.53;
+      frame.addKeyword(DPKF::Keyword<double>("IPA0", ipa0Angle_deg, string("Instrument position angle on rotator (degrees)").c_str() ));
   
-    double paAngle_deg = ipaAngle_deg - ipa0Angle_deg;
-    frame.addKeyword(DPKF::Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
-
-  //  AIRMASS OE/ObservingEngine      airmass             SAMPLED NONE	when=[AVG] comment=[Average airmass for the observation]
-    MM::DataBlock_var monsAirmassStart = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "airmass", time);
-    MM::DataBlock_var monsAirmassEnd = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "airmass", time + expTime);
-    cout << "Airmass at start: " << monsAirmassStart->samples.d()[0].value << endl;
-    cout << "Airmass at end: " << monsAirmassEnd->samples.d()[0].value << endl;
-    double airmass_avg = double((monsAirmassStart->samples.d()[0].value + monsAirmassEnd->samples.d()[0].value)/2.0);
-    frame.addKeyword(DPKF::Keyword<double>("AIRMASS", airmass_avg, string("Average airmass for the observation").c_str() ));
+      double paAngle_deg = ipaAngle_deg - ipa0Angle_deg;
+      frame.addKeyword(DPKF::Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
+    }
+    
+    if(mons.magnitude.in() == "airmass")
+    {
+    //  AIRMASS OE/ObservingEngine      airmass             SAMPLED NONE	when=[AVG] comment=[Average airmass for the obs
+      static std::vector<double> airmass;
+      airmass.push_back(double(mons.samples.d()[0].value));
+      if(airmass.size() == 2)
+      {
+        frame.addKeyword(DPKF::Keyword<double>("AIRMASS", (airmass.front()+airmass.back())/2.0, string("Average airmass for the observation").c_str() ));
+        airmass.clear();
+      }
+    }
   }
   catch (GCSException& ex)
   {
     cerr << "ERROR gathering header special keyword: " << endl;
     ex.addToTrace ("gatherSpecialMonitorKeywords_()");   
-//      logError_ ("Error gathering header keyword: %s", ex.toString());
+//      logError_ ("Error gathering header keyword: %s", ex.toString());const KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime, MonitorAgent* dfMonitorAgent, DataDescription& frame
     cerr << ex << endl;      
   }
   catch (const CORBA::Exception &ex)
@@ -378,46 +514,32 @@ void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const TimeValue& time, const 
   }     
 }
 
-void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime, 
+void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const MM::DataBlock& mons, const TimeValue& requestedTime, const TimeValue& requestedExpTime, 
                                             MonitorAgent* dfMonitorAgent, DataDescription& frame )
 {
    try
    {  
-      MM::DataBlock_var mons;
-      if(keyword.when == "" || keyword.when == "START")
-      {
-        mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, requestedTime);
-      }      
-      else if(keyword.when == "END")
-      { 
-        cout << "Value at the end of the exposition for keyword: " << keyword.keyName << endl;
-        mons = dfMonitorAgent->retrieveLastData (keyword.deviceName, keyword.monitorName, (requestedTime + requestedExpTime));
-      }
-      else
-      {
-        throw InvalidValue("FITSHeaderInfo::gatherSampledMonitor_()","Wrong when label in spec file.");
-      }
-      switch ( mons->samples._d() )
+      switch ( mons.samples._d() )
       {
          case MM::TYPE_SAMPLE_DOUBLE_LIST:
-           addSampledMonitorKeyword_<MM::SampleDoubleList, double>(keyword, mons->samples.d(), frame);
+           addSampledMonitorKeyword_<MM::SampleDoubleList, double>(keyword, mons.samples.d(), frame);
            break;
          case MM::TYPE_SAMPLE_FLOAT_LIST:
-           addSampledMonitorKeyword_<MM::SampleFloatList, double>(keyword, mons->samples.f(), frame);
+           addSampledMonitorKeyword_<MM::SampleFloatList, double>(keyword, mons.samples.f(), frame);
            break;
          case MM::TYPE_SAMPLE_LONG_LIST:
-           addSampledMonitorKeyword_<MM::SampleLongList, long>(keyword, mons->samples.l(), frame);
+           addSampledMonitorKeyword_<MM::SampleLongList, long>(keyword, mons.samples.l(), frame);
            break;
          case MM::TYPE_SAMPLE_SHORT_LIST:
-           addSampledMonitorKeyword_<MM::SampleShortList, long>(keyword, mons->samples.s(), frame);
+           addSampledMonitorKeyword_<MM::SampleShortList, long>(keyword, mons.samples.s(), frame);
            break;
          case MM::TYPE_SAMPLE_OCTET_LIST:
-           addSampledMonitorKeyword_<MM::SampleOctetList, long>(keyword, mons->samples.o(), frame);
+           addSampledMonitorKeyword_<MM::SampleOctetList, long>(keyword, mons.samples.o(), frame);
            break;
          case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons->samples.array_d()[0], keyword.arrayRange));
+	        toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons.samples.array_d()[0], keyword.arrayRange));
 //	        toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
 	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
@@ -425,28 +547,28 @@ void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const Ti
          case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons->samples.array_f()[0], keyword.arrayRange));
+	        toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons.samples.array_f()[0], keyword.arrayRange));
 	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;         
          case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons->samples.array_l()[0], keyword.arrayRange));
+	        toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons.samples.array_l()[0], keyword.arrayRange));
 	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }
 	      break;
          case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons->samples.array_s()[0], keyword.arrayRange));
+	        toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons.samples.array_s()[0], keyword.arrayRange));
 	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
          case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
          {
 	        ostringstream formatbuf;
-	        toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons->samples.array_o()[0], keyword.arrayRange));
+	        toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons.samples.array_o()[0], keyword.arrayRange));
 	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
          }   
 	      break;
@@ -465,30 +587,28 @@ void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const Ti
    catch (const CORBA::Exception &ex)
    {
       GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-      cout << "##Error@@: " << gcsex << endl;      
       gcsex.addToTrace ("gatherSampledMonitor()");
       throw gcsex;
    }   
    
 }
 
-void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
+void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const MM::MagnitudeChange& mons, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
    try
    {
-      MM::MagnitudeChange_var mons = dfMonitorAgent->retrieveLastMagnitude (keyword.deviceName, keyword.monitorName, requestedTime);
       if(keyword.condition != "")
       {  //This keyword value is used as a condition to show some other's
-        conditionList_.insert(pair<string, bool>(keyword.keyName, (keyword.condition == getLabelFromValue_(keyword.enumLabels, mons->new_value) ) ) );
+        conditionList_.insert(pair<string, bool>(keyword.keyName, (keyword.condition == getLabelFromValue_(keyword.enumLabels, mons.new_value) ) ) );
       }
       
       if(keyword.enumLabels == "")
       {
-        frame.addKeyword(DPKF::Keyword<long>(keyword.keyName, mons->new_value, keyword.keyComment));
+        frame.addKeyword(DPKF::Keyword<long>(keyword.keyName, mons.new_value, keyword.keyComment));
       }
       else
       {
-        frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels, mons->new_value), keyword.keyComment));        
+        frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels, mons.new_value), keyword.keyComment));        
       }
    }
    catch (GCSException& ex)

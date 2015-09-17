@@ -13,6 +13,8 @@
 #include <CORBARef.h>
 #include <slalib.h>
 #include <slamac.h>
+#include "Trace.h"
+
 
 class DFAgent;
 
@@ -49,8 +51,12 @@ class FITSHeaderInfo
     void gatherMonitorKeywords(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame );
     void forceSampleData(MonitorAgent* dfMonitorAgent);
     
+    //Default contructor and destructor
+    FITSHeaderInfo(){};
+    virtual ~FITSHeaderInfo(){};
+  
   private:
-    void gatherSpecialMonitorKeywords_(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame);
+    void gatherSpecialMonitorKeywords_(const MM::DataBlock& mons, const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame);
     std::string formatRadianToHms_(double rad);
     std::string formatRadianToDms_(double rad);
     double formatRadianToDeg_(double rad);
@@ -61,18 +67,19 @@ class FITSHeaderInfo
     ostream& toStream_(ostream& ost, const ListType& a);
     
     template<class ListType, typename ValueType> 
-    void addSampledMonitorKeyword_(const KeywordInfo& keyword, ListType& list, DataDescription& frame);
+    void addSampledMonitorKeyword_(const KeywordInfo& keyword, const ListType& list, DataDescription& frame);
+    
+    KeywordInfo findKeywordInfo_(const string& devName, const string& monName, const std::vector<KeywordInfo>& monList);
     
     template<typename C>
     C trimmedArray1D_(const C arrayIn, const std::string sRange);
     
-    void gatherSampledMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime,
+    void gatherSampledMonitor_( const KeywordInfo& keyword, const MM::DataBlock& mons, const TimeValue& requestedTime, const TimeValue& requestedExpTime,
                                 MonitorAgent* dfMonitorAgent, DataDescription& frame );
-    void gatherDiscreteMonitor_( const KeywordInfo& keyword, const TimeValue& requestedTime, 
+    void gatherDiscreteMonitor_( const KeywordInfo& keyword, const MM::MagnitudeChange& mons, const TimeValue& requestedTime, 
                                 MonitorAgent* dfMonitorAgent, DataDescription& frame );
     std::vector<KeywordInfo> monList_;
     std::map<string, bool> conditionList_;
-    
 };
 
 #endif // _FITSHeaderInfo_h_
