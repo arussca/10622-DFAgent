@@ -346,9 +346,9 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
     mSampledQueryList[ii] = *itS;
     ++ii; ++itS;
   }
-  MM::DataBlockList dataBlockL = dfMonitorAgent->retrieveLastDataSet(mSampledQueryList);
+  MM::DataBlockList_var dataBlockL = dfMonitorAgent->retrieveLastDataSet(mSampledQueryList);
   //Then loop again through the vector returned by monitor manager with all the keyword values and write them into fits file  
-  for(unsigned int i = 0; i<dataBlockL.length(); ++i)
+  for(unsigned int i = 0; i<dataBlockL->length(); ++i)
   {
     std::string magName = dataBlockL[i].magnitude.in();
     if(magName == "demandedIPA" || magName == "airmass") 

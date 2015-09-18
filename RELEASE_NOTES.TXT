@@ -1,3 +1,13 @@
+           RELEASE NOTES 1.2.20
+Interface
+  
+Bugs
+     
+Implementation
+     - Change CORBA object to type _var in order to avoid warning in solgnu.
+     
+Known errors
+
            RELEASE NOTES 1.2.19
 Interface
   
