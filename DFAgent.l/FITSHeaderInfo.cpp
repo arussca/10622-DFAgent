@@ -204,29 +204,12 @@ void FITSHeaderInfo::forceSampleData(MonitorAgent* dfMonitorAgent)
   }
 }
 
-//Helper function to match monitorName returned by monitorManager and associated kewordInfo from spec.txt file
-KeywordInfo FITSHeaderInfo::findKeywordInfo_(const string& devName, const string& monName, const std::vector<KeywordInfo>& monList)
-{
-  std::vector<KeywordInfo>::const_iterator itBegin = monList.begin();
-  std::vector<KeywordInfo>::const_iterator itEnd   = monList.end();
-  std::vector<KeywordInfo>::const_iterator it;
-  for(it = itBegin; it != itEnd; ++it)
-  {
-    if(it->monitorName == monName && it->deviceName == devName)
-    {
-      return *it;
-    }
-  }
-  throw InvalidValue("FITSHeaderInfo::findKeywordInfo_", "No keywordInfo match has been found for this monitor name.");
-}
-
 
 void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
-  vector<KeywordInfo>::const_iterator it, endIt;
+  vector<KeywordInfo>::const_iterator it = monList_.begin();
+  vector<KeywordInfo>::const_iterator endIt = monList_.end();
 
-  it = monList_.begin();
-  endIt = monList_.end();
   conditionList_.clear();
 
   std::vector<MM::MonitorQuery> mSampledQueryVector;
@@ -295,9 +278,6 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
         }
         
         mSampledQueryVector.push_back(monsSampledQuery);
-	string a = it->monitorName;
-
-        //printf("SAMPLED Keyword : %s\n",a.c_str());
         std::cout << "SAMPLED Keyword : " << it->monitorName << std::endl;
         
       }
@@ -335,33 +315,26 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
     ++it;
   }
 
-  MM::MonitorQueryList mSampledQueryList;
-  mSampledQueryList.length(mSampledQueryVector.size() );
-  std::vector<MM::MonitorQuery>::const_iterator itS, itSEnd;
-  itS = mSampledQueryVector.begin();
-  itSEnd = mSampledQueryVector.end();
-  unsigned int ii = 0;
-  while(itS != itSEnd)
-  {
-    mSampledQueryList[ii] = *itS;
-    ++ii; ++itS;
-  }
-  MM::DataBlockList_var dataBlockL = dfMonitorAgent->retrieveLastDataSet(mSampledQueryList);
-  //Then loop again through the vector returned by monitor manager with all the keyword values and write them into fits file  
-  for(unsigned int i = 0; i<dataBlockL->length(); ++i)
-  {
-    std::string magName = dataBlockL[i].magnitude.in();
-    if(magName == "demandedIPA" || magName == "airmass") 
-    {
-      gatherSpecialMonitorKeywords_(dataBlockL[i], time, expTime, dfMonitorAgent, frame);
-    }
-    else
-    {
-      KeywordInfo sKeyword = findKeywordInfo_(std::string(dataBlockL[i].gcs_component), std::string(dataBlockL[i].magnitude), monList_);
-      gatherSampledMonitor_(sKeyword, dataBlockL[i], time, expTime, dfMonitorAgent, frame);
-    }
-  }
 
+
+  MM::DataBlockList_var dataBlockL;
+  if(mSampledQueryVector.size() != 0)
+  {
+    MM::MonitorQueryList mSampledQueryList;
+    mSampledQueryList.length(mSampledQueryVector.size() );
+    std::vector<MM::MonitorQuery>::const_iterator itS, itSEnd;
+    itS = mSampledQueryVector.begin();
+    itSEnd = mSampledQueryVector.end();
+    unsigned int ii = 0;
+    while(itS != itSEnd)
+    {
+      mSampledQueryList[ii] = *itS;
+      ++ii; ++itS;
+    }
+    dataBlockL = dfMonitorAgent->retrieveLastDataSet(mSampledQueryList);
+  }
+    
+  MM::MagnitudeChangeList magnitudeChangeL;
   if(mDiscreteQueryVector.size() != 0)
   {
     MM::MonitorQueryList mDiscreteQueryList;
@@ -375,12 +348,64 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
       mDiscreteQueryList[jj] = *itD;
       ++jj; ++itD;
     }
-    MM::MagnitudeChangeList magnitudeChangeL = dfMonitorAgent->retrieveLastMagnitudeSet(mDiscreteQueryList);
+    magnitudeChangeL = dfMonitorAgent->retrieveLastMagnitudeSet(mDiscreteQueryList);
+  }
   
-    for(unsigned int i = 0; i<magnitudeChangeL.length(); ++i)
+  
+  for(it = monList_.begin(); it != endIt; ++it)
+  {
+    try
     {
-      KeywordInfo dKeyword = findKeywordInfo_(std::string(magnitudeChangeL[i].gcs_component), std::string(magnitudeChangeL[i].magnitude), monList_);
-      gatherDiscreteMonitor_(dKeyword, magnitudeChangeL[i], time, dfMonitorAgent, frame);
+      if(it->monitorType == "SAMPLED")
+      {
+        //Search dataBlock that matches the keyword info within DataBlockList
+        for(unsigned int i = 0; i<dataBlockL->length(); ++i)
+        {
+          std::string magName = dataBlockL[i].magnitude.in();
+          std::string devName = dataBlockL[i].gcs_component.in();
+          if(it->monitorName == magName && it->deviceName == devName)
+          {
+            if(magName == "demandedIPA" || magName == "airmass") 
+            {
+              gatherSpecialMonitorKeywords_(dataBlockL[i], time, expTime, dfMonitorAgent, frame);
+              break;
+            }
+            else
+            {
+              gatherSampledMonitor_(*it, dataBlockL[i], time, expTime, dfMonitorAgent, frame);
+              break;
+            }
+          }
+        }
+      }
+      else if(it->monitorType == "DISCRETE")
+      {
+        //Search magnitudeChange that matches the keyword info within MagnitudChangeList
+        for(unsigned int i = 0; i<magnitudeChangeL.length(); ++i)
+        {
+          std::string magName = magnitudeChangeL[i].magnitude.in();
+          std::string devName = magnitudeChangeL[i].gcs_component.in();
+          if(it->monitorName == magName && it->deviceName == devName)
+          {
+            gatherDiscreteMonitor_(*it, magnitudeChangeL[i], time, dfMonitorAgent, frame);
+            break;
+          }
+        }
+      }
+    }
+
+    catch (GCSException& ex)
+    {
+      cerr<<"Error writing header keyword: "<<it->keyName<<endl;
+      ex.addToTrace ("gatherMonitorKeywords_()");   
+//      logError_ ("Error writing header keyword: %s", ex.toString());
+      cerr<<ex<<endl;      
+    }
+    catch (const CORBA::Exception &ex)
+    {
+      cerr << "CORBA Error writing header keyword" << endl;
+//      logError_ ("CORBA Error writing header keyword: %s", ex.toString());     
+      cerr<<ex<<endl;
     }
   }
 }
@@ -679,4 +704,3 @@ ostream& FITSHeaderInfo::toStream_(ostream& ost, const ListType& a)
   }
   return ost;
 }
-

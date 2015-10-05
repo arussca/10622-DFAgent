@@ -69,8 +69,6 @@ class FITSHeaderInfo
     template<class ListType, typename ValueType> 
     void addSampledMonitorKeyword_(const KeywordInfo& keyword, const ListType& list, DataDescription& frame);
     
-    KeywordInfo findKeywordInfo_(const string& devName, const string& monName, const std::vector<KeywordInfo>& monList);
-    
     template<typename C>
     C trimmedArray1D_(const C arrayIn, const std::string sRange);
     

@@ -1,3 +1,14 @@
+           RELEASE NOTES 1.2.21
+Interface
+  
+Bugs
+    - There was an error when dealing with same monitor with different keyword name.
+    
+Implementation
+     
+Known errors
+
+
            RELEASE NOTES 1.2.20
 Interface
   
