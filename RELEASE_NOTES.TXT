@@ -1,4 +1,15 @@
-           RELEASE NOTES 1.2.21
+           RELEASE NOTES 1.2.23
+Interface
+  
+Bugs
+    - Correct a bug extracting the value for an array to be include in the header of the image.
+    
+Implementation
+     
+Known errors
+
+
+           RELEASE NOTES 1.2.22
 Interface
   
 Bugs

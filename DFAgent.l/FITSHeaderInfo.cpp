@@ -478,14 +478,18 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Range out of bounds");
   }
-  
+ 
+
   arrayOut.value.dimension.width = 1; 
   arrayOut.value.data.length(arrayOut.value.dimension.height);
 
+
   unsigned int i(0);
-  for(unsigned int j=range.first; j<arrayIn.value.dimension.height; ++j) 
+  for(unsigned int j=range.first; j<range.first+arrayOut.value.dimension.height; ++j) 
   {
-    arrayOut.value.data[i] = arrayIn.value.data[j];
+ 
+
+   arrayOut.value.data[i] = arrayIn.value.data[j];
     ++i;
   }
   
