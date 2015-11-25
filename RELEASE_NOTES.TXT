@@ -1,3 +1,17 @@
+           RELEASE NOTES 1.2.24
+Interface
+  
+Bugs
+	- Airmass and IPA Keywords were not correctly treated, two actions:
+        1. FITSHeaderInfo::gatherMonitorKeywords: Airmass is now obtained only once in middle of 
+            exposure, no average value. This seems to be the right science requirement.
+	    2. FITSHeaderInfo::gatherSpecialMonitorKeywords_: Bug with string comparison corrected.
+   
+Implementation
+     
+Known errors
+
+
            RELEASE NOTES 1.2.23
 Interface
   

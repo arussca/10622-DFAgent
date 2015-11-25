@@ -222,17 +222,13 @@ void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValu
   monsIPA.time_stamp = toIDL(time);
   mSampledQueryVector.push_back(monsIPA);
 
-  MM::MonitorQuery monsAirmassStart;
-  monsAirmassStart.gcs_component = CORBA::string_dup("OE/ObservingEngine");
-  monsAirmassStart.magnitude = CORBA::string_dup("airmass");
-  monsAirmassStart.time_stamp = toIDL(time);
-  mSampledQueryVector.push_back(monsAirmassStart);
+  MM::MonitorQuery monsAirmass;
+  monsAirmass.gcs_component = CORBA::string_dup("OE/ObservingEngine");
+  monsAirmass.magnitude = CORBA::string_dup("airmass");
+  monsAirmass.time_stamp = toIDL(time + expTime/2.0);
+  mSampledQueryVector.push_back(monsAirmass);
   
-  MM::MonitorQuery monsAirmassEnd;
-  monsAirmassEnd.gcs_component = CORBA::string_dup("OE/ObservingEngine");
-  monsAirmassEnd.magnitude = CORBA::string_dup("airmass");
-  monsAirmassEnd.time_stamp = toIDL(time + expTime);
-  mSampledQueryVector.push_back(monsAirmassEnd); 
+ 
  
   
   //First loop to collect all the keywords needed by the agent and request them to the monitor manager
@@ -501,7 +497,8 @@ void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const MM::DataBlock& mons, co
   try
   {
     std::string magName = mons.magnitude.in();
-    if(mons.magnitude.in() == "demandedIPA")
+
+    if(magName == "demandedIPA")
     {
     //  IPA     OE/ObservingEngine      demandedIPA         SAMPLED RAD_TO_DEG	comment=[Instrument position angle]   
     //  MM::DataBlock_var monsIPA = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "demandedIPA", time);
@@ -516,16 +513,11 @@ void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const MM::DataBlock& mons, co
       frame.addKeyword(DPKF::Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
     }
     
-    if(mons.magnitude.in() == "airmass")
+    if(magName == "airmass")
     {
     //  AIRMASS OE/ObservingEngine      airmass             SAMPLED NONE	when=[AVG] comment=[Average airmass for the obs
-      static std::vector<double> airmass;
-      airmass.push_back(double(mons.samples.d()[0].value));
-      if(airmass.size() == 2)
-      {
-        frame.addKeyword(DPKF::Keyword<double>("AIRMASS", (airmass.front()+airmass.back())/2.0, string("Average airmass for the observation").c_str() ));
-        airmass.clear();
-      }
+      double airmass = mons.samples.d()[0].value;
+      frame.addKeyword(DPKF::Keyword<double>("AIRMASS", airmass, string("Airmass in the middle of the observation").c_str() ));
     }
   }
   catch (GCSException& ex)
