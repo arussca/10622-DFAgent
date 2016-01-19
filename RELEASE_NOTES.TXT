@@ -1,3 +1,16 @@
+           RELEASE NOTES 1.2.25
+Interface
+  
+Bugs
+   
+Implementation
+ 
+  . Added some features in the keyword gathering process needed by EMIR: gather keywords
+    from a bidimiensional array monitor, ability to transpose an array monitor and
+    support co create a list of scalar keywords from an array monitor
+         
+Known errors
+
            RELEASE NOTES 1.2.24
 Interface
   

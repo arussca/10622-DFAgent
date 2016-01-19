@@ -91,7 +91,8 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, const
 void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
 {
   ifstream f(fileName.c_str());
-  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition, when, specLine, cell;
+  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, keyIndexStart, condition, if_condition, when, specLine, cell;
+  bool keyTransposed = false;
   if (f.is_open())
   {
     while(!f.eof())
@@ -106,6 +107,8 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
       monName = "";
       keyType = "";
       keyFormat = "";
+      keyIndexStart="";
+      keyTransposed = false;
       
       getline(f,specLine);
       stringstream ss(specLine);
@@ -132,6 +135,16 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
           if(tag == "range")
           {
             arrayRange = cell.substr(cell.find_first_of("[") + 1);
+          }
+          else if (tag == "indexstart")
+          {
+             keyIndexStart = cell.substr(cell.find_first_of("=") + 1);
+             keyIndexStart=keyIndexStart.substr(keyIndexStart.find_first_of("[") + 1, keyIndexStart.find_first_of("]") - 1);
+
+          }
+          else if (tag =="transpose")
+          {
+             keyTransposed = true;
           }
           else if(tag == "labels")
           {
@@ -165,7 +178,7 @@ void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
         }
       }
 
-      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment, condition, if_condition, when));
+      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment, keyIndexStart, keyTransposed, condition, if_condition, when));
     }
     f.close();
   }
@@ -450,47 +463,113 @@ C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
   std::pair<unsigned int, unsigned int> range;
   if(sRange == "")
   { //no specified range means the whole range is applied
-    range = make_pair(0, (unsigned int)(arrayIn.value.dimension.height - 1));
+    range = make_pair(0, (unsigned int)( (arrayIn.value.dimension.height * arrayIn.value.dimension.width) - 1 ));
   }
   else
   {
     range = rangeFromString_(sRange);
   }
 
-    
-
+   
   C arrayOut;
   arrayOut.time_stamp = arrayIn.time_stamp;
   arrayOut.value.dimension.height = (range.second - range.first) + 1;
-  if( arrayIn.value.dimension.width != 1 ) 
-  {
-    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Only one dimentional array supported");
-  }
+//  if( arrayIn.value.dimension.width != 1 ) 
+//  {
+//    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Only one dimentional array supported");
+//  }
   if( range.second < range.first )
   {
     throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Last index lower than first");
   }
-  if( range.first > (unsigned int)(arrayIn.value.dimension.height - 1) || range.second > (unsigned int)(arrayIn.value.dimension.height - 1) )
-  {
-    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Range out of bounds");
-  }
- 
-
+//  if( range.first > (unsigned int)(arrayIn.value.dimension.height - 1) || range.second > (unsigned int)(arrayIn.value.dimension.height - 1) )
+//  {
+//    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Range out of bounds");
+//  }
+  
   arrayOut.value.dimension.width = 1; 
-  arrayOut.value.data.length(arrayOut.value.dimension.height);
-
+  arrayOut.value.data.length((range.second - range.first) + 1);
 
   unsigned int i(0);
-  for(unsigned int j=range.first; j<range.first+arrayOut.value.dimension.height; ++j) 
+  for(unsigned int j=range.first; j<range.second; ++j) 
   {
- 
-
-   arrayOut.value.data[i] = arrayIn.value.data[j];
+    arrayOut.value.data[i] = arrayIn.value.data[j];
     ++i;
   }
   
   return arrayOut;
 }
+
+
+template<class C, typename ValueType>
+void FITSHeaderInfo::addArrayToScalarKeywords_(const KeywordInfo& keyword, C arrayIn, const std::string& sRange, DataDescription& frame)
+{
+  std::pair<unsigned int, unsigned int> range;
+  int keySufix;
+  if(sRange == "")
+  { //no specified range means the whole range is applied
+    range = make_pair(0, (unsigned int)( (arrayIn[0].value.dimension.height * arrayIn[0].value.dimension.width)  ));
+  }
+  else
+  {
+    range = rangeFromString_(sRange);
+  }
+
+  if( range.second < range.first )
+  {
+    throw InvalidValue("FITSHeaderInfo::addArrayToScalarKeywords_()","Last index lower than first");
+  }
+  
+    if (keyword.keyIndexStart == "")
+     keySufix = range.first;
+  else
+  {
+     istringstream ss(keyword.keyIndexStart);     
+     ss >> keySufix;
+
+  }
+  
+  if (!keyword.transposed)
+  {
+    for(unsigned int j=range.first; j<range.second; ++j) 
+    {
+      std::ostringstream j_convert;
+      j_convert << keySufix;
+      frame.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName + j_convert.str(), (ValueType) arrayIn[0].value.data[j],   keyword.keyComment));
+      keySufix++;
+    }
+ }
+ else
+ {
+    //int begin_i = range.first / arrayIn[0].value.dimension.width;
+    //int begin_j = range.first % arrayIn[0].value.dimension.width;
+    //int end_i = range.second / arrayIn[0].value.dimension.width;
+    //int end_j = range.second % arrayIn[0].value.dimension.width;
+    int begin_i = 0;
+    int begin_j = 0;
+    int end_i = arrayIn[0].value.dimension.width;
+    int end_j = arrayIn[0].value.dimension.height;
+
+
+    for (int j=begin_j; j<end_j; j++)
+    {
+       for (int i=begin_i; i<end_i; i++)
+       {
+      
+      int index = i*arrayIn[0].value.dimension.height + j;
+      if (index >= range.first && index < range.second)
+      {
+      std::ostringstream j_convert;
+      j_convert << keySufix;
+      frame.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName + j_convert.str(), (ValueType) arrayIn[0].value.data[index],   keyword.keyComment));
+      keySufix++;          
+      }
+     }
+    }
+ }   
+}
+
+
 
 void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const MM::DataBlock& mons, const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
 {
@@ -559,38 +638,74 @@ void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const MM
            break;
          case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
          {
-	        ostringstream formatbuf;
-	        toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons.samples.array_d()[0], keyword.arrayRange));
-//	        toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
-	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
+            {
+              addArrayToScalarKeywords_<MM::SampleDoubleArrayList, double>(keyword, mons.samples.array_d(), keyword.arrayRange, frame);
+            }
+            else
+            {            
+              ostringstream formatbuf;            
+	          toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons.samples.array_d()[0], keyword.arrayRange));
+//	          toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
+	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            }
          }   
 	      break;
          case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
          {
-	        ostringstream formatbuf;
-	        toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons.samples.array_f()[0], keyword.arrayRange));
-	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
+            {
+
+              addArrayToScalarKeywords_<MM::SampleFloatArrayList, double>(keyword, mons.samples.array_f(), keyword.arrayRange, frame);
+            }
+            else
+            {
+              ostringstream formatbuf;            
+	          toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons.samples.array_f()[0], keyword.arrayRange));
+	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            }
          }   
 	      break;         
          case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
          {
-	        ostringstream formatbuf;
-	        toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons.samples.array_l()[0], keyword.arrayRange));
-	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
+            {
+              addArrayToScalarKeywords_<MM::SampleLongArrayList, long>(keyword, mons.samples.array_l(), keyword.arrayRange, frame);
+            }
+            else
+            {
+              ostringstream formatbuf;
+	          toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons.samples.array_l()[0], keyword.arrayRange));
+	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            }
          }
 	      break;
          case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
          {
-	        ostringstream formatbuf;
-	        toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons.samples.array_s()[0], keyword.arrayRange));
-	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
+            {
+              addArrayToScalarKeywords_<MM::SampleShortArrayList, long>(keyword, mons.samples.array_s(), keyword.arrayRange, frame);
+            }
+            else
+            {
+              ostringstream formatbuf;
+	          toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons.samples.array_s()[0], keyword.arrayRange));
+	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            }
          }   
 	      break;
          case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
          {
-	        ostringstream formatbuf;
-	        toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons.samples.array_o()[0], keyword.arrayRange));
-	        frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
+            {
+              addArrayToScalarKeywords_<MM::SampleOctetArrayList, long>(keyword, mons.samples.array_o(), keyword.arrayRange, frame);
+            }
+            else
+            {        
+	          ostringstream formatbuf;
+	          toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons.samples.array_o()[0], keyword.arrayRange));
+	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
+            }
          }   
 	      break;
           
@@ -700,3 +815,4 @@ ostream& FITSHeaderInfo::toStream_(ostream& ost, const ListType& a)
   }
   return ost;
 }
+

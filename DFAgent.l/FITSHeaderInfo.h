@@ -20,7 +20,7 @@ class DFAgent;
 
 struct KeywordInfo
 {
-   KeywordInfo (string key, string dev, string mon, string type, string format, string range, string labels, string comment, string condition, string if_condition, string when)
+   KeywordInfo (string key, string dev, string mon, string type, string format, string range, string labels, string comment, string startIndex, bool transposed, string condition, string if_condition, string when)
     : keyName(key)
      ,monitorName(mon)
      ,deviceName(dev)
@@ -28,7 +28,10 @@ struct KeywordInfo
      ,keyFormat(format)
      ,arrayRange(range)
      ,enumLabels(labels)
-     ,keyComment(comment) {} 
+     ,keyComment(comment)
+     ,transposed(transposed)
+     ,keyIndexStart(startIndex)
+   {} 
    
    string keyName;
    string deviceName;
@@ -41,6 +44,8 @@ struct KeywordInfo
    string condition;
    string if_condition;
    string when;
+   string keyIndexStart;
+   bool transposed;
 };
 
 class FITSHeaderInfo
@@ -69,6 +74,9 @@ class FITSHeaderInfo
     template<class ListType, typename ValueType> 
     void addSampledMonitorKeyword_(const KeywordInfo& keyword, const ListType& list, DataDescription& frame);
     
+    template<class C, typename ValueType>
+    void addArrayToScalarKeywords_(const KeywordInfo& keyword, C arrayIn, const std::string& sRange, DataDescription& frame);
+
     template<typename C>
     C trimmedArray1D_(const C arrayIn, const std::string sRange);
     
