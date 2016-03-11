@@ -1,3 +1,16 @@
+           RELEASE NOTES 1.2.26
+Interface
+  
+Bugs
+   
+Implementation
+ 
+  . Changed the receiveFrame method to avoid converting the idl Frame to a
+    C++ concrete object. 
+         
+Known errors
+
+
            RELEASE NOTES 1.2.25
 Interface
   

@@ -807,9 +807,6 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
                             const DGT::TimeValue& idlExposureTime, const char* cameraId )
 {
   trace_.out("receiveFrame()\n");
-  //## check if input parameters are valid here
-//  lock_();
-//  goRunning_();        
   
   //check dfBranchInstance_, aren't null, otherwise reconnect to them.
   initDFBranchInstance_();
@@ -825,46 +822,28 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
     exposureTime_ = idlExposureTime;
     cameraId_ = string(cameraId);
 
-    //create new frame by using double instead of short values
-    //short frames are not supported by now
-    Frame<short,2> shortFrame;
-    fromIDL(idlNoKeywordsFrame, shortFrame);
-    //cout << "Received a Frame of " << shortFrame.sizeOfDimensions() << endl;
-/*    
-    rawFrame_ = new Frame<double,2>(NoErrors);    
-    rawFrame_->resize (shortFrame.sizeOfDimensions());
-    DPKArray<double,2>::iterator itDest;
-    DPKArray<short,2>::const_iterator itOrig, itEnd;   
-    itOrig = shortFrame.data().begin();
-    itDest = rawFrame_->data().begin();
-    itEnd = shortFrame.data().end();
-    while (itOrig != itEnd)
-    {
-      *itDest = (double) *itOrig;
-      ++itDest;
-      ++itOrig;
-    }
-    rawFrame_->dataDescription() = shortFrame.dataDescription();
-    cout << "Sending a frame of " << rawFrame_->sizeOfDimensions() << endl;
-*/
+    //extract the header
+    DataDescription header;
+    fromIDL(idlNoKeywordsFrame.dataDesc, header);
     trace_.out ("Gathering monitor keywords values...");
     TimeValue expStartTime ( fromIDL(idlTimestamp) );
 
-    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, fromIDL(idlExposureTime), monitorAgent_, shortFrame.dataDescription());
+    obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, fromIDL(idlExposureTime), monitorAgent_, header);
 
-    writeStandardKeywords_(shortFrame.dataDescription());
-    TinyVector<unsigned long, 2> sizeF = shortFrame.sizeOfDimensions();
-    writeWCSKeywords_(shortFrame.dataDescription(), sizeF);
-    writeAdditionalKeywords_(shortFrame.dataDescription());
-    
+    writeStandardKeywords_(header);
+    TinyVector<unsigned long, 2> sizeF;
+    fromIDL (idlNoKeywordsFrame.dataArray.size_of_dimensions, sizeF);
+    writeWCSKeywords_(header, sizeF);
+    writeAdditionalKeywords_(header);
+   
     //####Temporal fix solution#######
     try
     {
-      shortFrame.addKeyword(DPKF::Keyword<double>("EXPTIME", (fromIDL(idlExposureTime)).toFloat(), "", ""));
+      header.addKeyword(DPKF::Keyword<double>("EXPTIME", (fromIDL(idlExposureTime)).toFloat(), "", ""));
     }
     catch(AlreadyExists &ex)
     {
-      shortFrame.modifyKeyword("EXPTIME", (fromIDL(idlExposureTime)).toFloat());
+      header.modifyKeyword("EXPTIME", (fromIDL(idlExposureTime)).toFloat());
     }
     catch( GCSException& ex )
     {
@@ -873,11 +852,31 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
       cerr << ex << endl;
     }
     //################################
-    
-            
-    DDPKF::Frame idlFrame;
-    toIDL(shortFrame, idlFrame);
 
+    //construct an idl frame with the new header
+    
+    DDPKF::Frame idlFrame;    
+    toIDL(header, idlFrame.dataDesc);
+    idlFrame.errorFlag = idlNoKeywordsFrame.errorFlag;
+    idlFrame.dataArray.size_of_dimensions = idlNoKeywordsFrame.dataArray.size_of_dimensions;
+    idlFrame.dataArray.memoryRep = idlNoKeywordsFrame.dataArray.memoryRep;
+    idlFrame.dataArray.data.replace (idlNoKeywordsFrame.dataArray.data.maximum(), 
+                                     idlNoKeywordsFrame.dataArray.data.length(),
+                                     const_cast<CORBA::Octet*>(idlNoKeywordsFrame.dataArray.data.get_buffer()),
+                                     false);
+    idlFrame.errorArray.size_of_dimensions = idlNoKeywordsFrame.errorArray.size_of_dimensions;
+    idlFrame.errorArray.memoryRep = idlNoKeywordsFrame.errorArray.memoryRep;
+    idlFrame.errorArray.data.replace (idlNoKeywordsFrame.errorArray.data.maximum(), 
+                                     idlNoKeywordsFrame.errorArray.data.length(),
+                                     const_cast<CORBA::Octet*>(idlNoKeywordsFrame.errorArray.data.get_buffer()),
+                                     false);
+    idlFrame.extensions.replace     (idlNoKeywordsFrame.extensions.maximum(), 
+                                     idlNoKeywordsFrame.extensions.length(),
+                                     const_cast<DDPKF::Frame&>(idlNoKeywordsFrame).extensions.get_buffer(0),
+                                     false);    
+
+    
+    
     if (!CORBA::is_nil(const_cast<const DF::Branch_ifce_var&>(dfBranchInstance_)))
     {
       vector<string>::iterator it, itBegin = recipeElementNames_.begin(), itEnd = recipeElementNames_.end();
@@ -885,7 +884,6 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
       {//hasFrameArrived = true
         sendElement_(*it, true);
       }
-//      for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind2nd( mem_fun( &DFAgent::sendElement_ ), this ));
       
       if(multiFrameRecipe_)
       {
@@ -914,7 +912,6 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
        dfBranchInstance_ = DF::Branch_ifce::_nil();
      }  
      goIdle_();
-//     unlock_();
      throw;
   }
   catch( GCSException& ex )
@@ -922,11 +919,8 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
      ex.addToTrace("DFAgent::receiveFrame()");
      logError_ ("Error while receiveing raw frame: %s", ex.toString());
      goIdle_();
-//     unlock_();
      throw;
-  }
-//  goIdle_();
-//  unlock_();
+  }    
 }
 
 //----------------------------------------------------------------------
