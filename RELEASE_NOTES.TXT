@@ -1,3 +1,15 @@
+           RELEASE NOTES 1.2.27
+Interface
+  
+Bugs
+   
+Implementation
+ 
+	correct bug format keywords in arrays
+ 
+Known errors
+
+
            RELEASE NOTES 1.2.26
 Interface
   
