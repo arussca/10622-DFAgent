@@ -45,7 +45,7 @@ class DFAgent : public Device
    */
   enum ObservationType
   {
-    OBJECTS, FLAT
+    BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS
   };
 
   /**
@@ -119,7 +119,7 @@ class DFAgent : public Device
   void setPrincipalInvestigatorName(const char* piName);
 
   /**
-  * Sets Observation Type [OBJECTS|FLAT]
+  * Sets Observation Type [BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS]
   */
   void setObservationType(ObservationType obsType);
 
@@ -502,7 +502,7 @@ class DFAgent : public Device
   DF::Branch_ifce_var dfBranchInstance_;     ///< Pointer to data factory branch instance in corba
   DFAGENT::DFAgent_ifce_var dfAgentPartnerInstance_;  ///< Pointer to an auxiliar agent, which helps in coxplex tasks
   map<short, std::string> obsModeName_; ///< Map with string associated with each obsMode
-  map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [OBJECTS|FLAT]
+  map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS]
   map<short, std::string> obsClassName_; ///< Map with string associated with each obsClass [SCIENCE|CALIB]  
   map<short, std::vector<bool> > obsModeSettings_; ///< Map with settings for each obsMode
   long dfSessionId_; ///< Long number with the session id currently opened.

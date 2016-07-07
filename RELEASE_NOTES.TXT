@@ -1,3 +1,15 @@
+           RELEASE NOTES 1.2.28
+Interface
+  
+Bugs
+   
+Implementation
+
+   New enum choices for ObservationType: BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS
+ 
+Known errors
+
+
            RELEASE NOTES 1.2.27
 Interface
   

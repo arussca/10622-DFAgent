@@ -18,7 +18,7 @@ module DFAGENT
 {
   enum ObservationType
   {
-    OBJECTS, FLAT
+    BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS
   };
 
   enum ObservationClass
