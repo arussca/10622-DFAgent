@@ -52,14 +52,14 @@ DFAgent::DFAgent(string name)
   obsType_ = OBJECTS;
   //initialize map with ObservationType and string names..
 
-  obsTypeName_[BIAS] = "Bias";
-  obsTypeName_[DARK] = "Dark";
-  obsTypeName_[SKY_FLAT] = "Sky Flat";
-  obsTypeName_[DOME_FLAT] = "Dome Flat";
-  obsTypeName_[SPECTRAL_FLAT] = "Spectral Flat";
-  obsTypeName_[ARC] = "Arc";
-  obsTypeName_[SKY] = "Sky";
-  obsTypeName_[OBJECTS] = "Obejct";
+  obsTypeName_[BIAS] = "BIAS";
+  obsTypeName_[DARK] = "DARK";
+  obsTypeName_[SKY_FLAT] = "SKY_FLAT";
+  obsTypeName_[DOME_FLAT] = "DOME_FLAT";
+  obsTypeName_[SPECTRAL_FLAT] = "SPECTRAL_FLAT";
+  obsTypeName_[ARC] = "ARC";
+  obsTypeName_[SKY] = "SKY";
+  obsTypeName_[OBJECTS] = "OBJECT";
 
   //Initialize ObsClass variable to default value
   obsClass_ = SCIENCE;

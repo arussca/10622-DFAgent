@@ -1,3 +1,15 @@
+           RELEASE NOTES 1.2.29
+Interface
+  
+Bugs
+   
+Implementation
+
+   Added support for array monitors to be gathered as a list of scalar keywords
+ 
+Known errors
+
+
            RELEASE NOTES 1.2.28
 Interface
   
