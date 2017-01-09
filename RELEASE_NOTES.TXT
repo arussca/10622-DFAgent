@@ -1,3 +1,15 @@
+           RELEASE NOTES 1.2.30
+Interface
+  
+Bugs
+   
+Implementation
+
+   Don't call writeWCSKeywords_ function is frame is not 2D (so allows the frame to be 3D)
+ 
+Known errors
+
+
            RELEASE NOTES 1.2.29
 Interface
   

@@ -839,8 +839,11 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 
     writeStandardKeywords_(header);
     TinyVector<unsigned long, 2> sizeF;
-    fromIDL (idlNoKeywordsFrame.dataArray.size_of_dimensions, sizeF);
-    writeWCSKeywords_(header, sizeF);
+    if(idlNoKeywordsFrame.dataArray.size_of_dimensions.N == 2)
+    {  //frame data array has more than two dimensions don't even try to call writeWCSKeywords_
+      fromIDL (idlNoKeywordsFrame.dataArray.size_of_dimensions, sizeF);
+      writeWCSKeywords_(header, sizeF);
+    }
     writeAdditionalKeywords_(header);
    
     //####Temporal fix solution#######
