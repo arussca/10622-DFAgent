@@ -1,3 +1,16 @@
+            RELEASE NOTES 1.2.31
+Interface
+  
+Bugs
+   
+Implementation
+
+	Fix a bug switch block gather monitores. Added a break
+
+ 
+Known errors
+
+
            RELEASE NOTES 1.2.30
 Interface
   

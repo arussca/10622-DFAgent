@@ -632,6 +632,7 @@ void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const MM
 //	          toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
 	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
             }
+	    break;
          }   
          case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
          {
