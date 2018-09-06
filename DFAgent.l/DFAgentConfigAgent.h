@@ -59,7 +59,8 @@ class DFAgentConfigAgent : public ConfigAgent
   //
   String               offlineImagesPath_  ; 
   String               dfBranchInstanceName_ ; 
-  String               dfAgentPartnerInstanceName_ ; 
+  String               dfAgentPartnerInstanceName_ ;
+  String 	       dfManagerInstanceName_; 
   short                propagateFrame_     ; 
   short                saveFrame_          ; 
   short                propagateFITS_      ; 

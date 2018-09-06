@@ -20,7 +20,8 @@ DFAgentConfigAgent::DFAgentConfigAgent(DFAgent* device, const int mode, TimerEng
   // Assign default values to properties so they never contain garbage
   offlineImagesPath_   = "offlineDirectory";
   dfBranchInstanceName_  = "DF/DFBranch";
-  dfAgentPartnerInstanceName_  = "DF/SFSNB_DFAgentPartner";  
+  dfAgentPartnerInstanceName_  = "DF/SFSNB_DFAgentPartner"; 
+  dfManagerInstanceName_  = "DF/Manager1";
   propagateFrame_      = 1;
   saveFrame_           = 1;
   propagateFITS_       = 1;
@@ -54,6 +55,7 @@ void DFAgentConfigAgent::applyProperties()
     device_->offlineImagesPath(this->offlineImagesPath_);
     device_->dfBranchInstanceName(this->dfBranchInstanceName_);
     device_->dfAgentPartnerInstanceName(this->dfAgentPartnerInstanceName_);
+    device_->dfManagerInstanceName(this->dfManagerInstanceName_);
     device_->propagateFrame(this->propagateFrame_);
     device_->saveFrame(this->saveFrame_);
     device_->propagateFITS(this->propagateFITS_);
@@ -87,6 +89,7 @@ int DFAgentConfigAgent::readProperties()
     this->offlineImagesPath_   = device_->offlineImagesPath();
     this->dfBranchInstanceName_  = device_->dfBranchInstanceName();
     this->dfAgentPartnerInstanceName_  = device_->dfAgentPartnerInstanceName();
+    this->dfManagerInstanceName_ = device_->dfManagerInstanceName();
     this->propagateFrame_      = device_->propagateFrame();
     this->saveFrame_           = device_->saveFrame();
     this->propagateFITS_       = device_->propagateFITS();
@@ -123,6 +126,7 @@ void DFAgentConfigAgent::toConfiguration(CONFIG::Configuration& c)
     addProperty(c, "offlineImagesPath", offlineImagesPath_);
     addProperty(c, "dfBranchInstanceName", dfBranchInstanceName_);
     addProperty(c, "dfAgentPartnerInstanceName", dfAgentPartnerInstanceName_);
+    addProperty(c, "dfManagerInstanceName", dfManagerInstanceName_);
     addProperty(c, "propagateFrame", propagateFrame_);
     addProperty(c, "saveFrame", saveFrame_);
     addProperty(c, "propagateFITS", propagateFITS_);
@@ -158,6 +162,7 @@ void DFAgentConfigAgent::fromConfiguration(const CONFIG::Configuration& c)
     extractProperty(c, "offlineImagesPath", offlineImagesPath_);
     extractProperty(c, "dfBranchInstanceName", dfBranchInstanceName_);
     extractProperty(c, "dfAgentPartnerInstanceName", dfAgentPartnerInstanceName_);
+    extractProperty(c, "dfManagerInstanceName", dfManagerInstanceName_);
     extractProperty(c, "propagateFrame", propagateFrame_);
     extractProperty(c, "saveFrame", saveFrame_);
     extractProperty(c, "propagateFITS", propagateFITS_);

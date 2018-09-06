@@ -14,6 +14,9 @@
 #include "MMCommon.idl"
 #pragma prefix "gtc"
 
+#include "DASManager.idl"
+
+
 module DFAGENT
 {
   enum ObservationType
@@ -26,14 +29,8 @@ module DFAGENT
     SCIENCE, CALIB
   };
   
-  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce
+  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce, DF::RecipeResultConsumer_ifce 
   {
-    // Specific DFAgent operations
-    /*void receiveFrame(in DDPKF::Frame frame, in long currentWindow, in long numWindows,
-                      in DGT::TinyVector topLeft, in DGT::TinyVector bottomRight, 
-                      in DGT::TimeValue timestamp, in DGT::TimeValue exposureTime,
-                      in string cameraId) 
-			raises (DGT::GCSException); */
 
     void setPrincipalInvestigatorName(in string piName) 
 			raises (DGT::GCSException); 
@@ -72,6 +69,9 @@ module DFAGENT
 			raises (DGT::GCSException); 
 
     void setObsModeLowLevel(in short obsMode) 
+			raises (DGT::GCSException); 
+
+    void setObservationMode(in string obsMode) 
 			raises (DGT::GCSException); 
 
     void setPropagateFrame(in boolean doesPropagate) 
@@ -118,6 +118,7 @@ module DFAGENT
     // Configurable attributes (device properties)
     attribute string               offlineImagesPath;
     attribute string               dfBranchInstanceName;
+    attribute string               dfManagerInstanceName;
     attribute string               dfAgentPartnerInstanceName;
     attribute short                propagateFrame;
     attribute short                saveFrame;

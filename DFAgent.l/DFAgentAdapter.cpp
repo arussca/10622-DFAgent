@@ -46,6 +46,20 @@ void DFAgentAdapter::receiveFrame(const DDPKF::Frame& idlNoKeywordsFrame, int cu
   }
 }
 
+void  DFAgentAdapter::receiveRecipeResult (const DDPKF::RecipeResult& result)
+{
+       std::string observingMode(result.obsMode);
+       try
+       {
+               device_->receiveRecipeResult(observingMode, result.id, result.obsResultId, result.qc, result);
+       }
+       catch(GCSException& ex)
+       {
+               throw CORBA::BAD_PARAM();
+       }
+}
+
+
 //----------------------------------------------------------------------
 void DFAgentAdapter::setPrincipalInvestigatorName(const char* piName)
 {
@@ -214,6 +228,20 @@ void DFAgentAdapter::setObsModeLowLevel(CORBA::Short obsMode)
   {
     throw toIDL(ex);
   }
+}
+
+//----------------------------------------------------------------------
+void DFAgentAdapter::setObservationMode(const char * obsMode) 
+{
+  try
+  {
+    device_->setObservationMode(obsMode);
+  }
+  catch(GCSException& ex)
+  {
+    throw toIDL(ex);
+  }
+
 }
 
 //----------------------------------------------------------------------
@@ -446,6 +474,29 @@ void DFAgentAdapter::dfBranchInstanceName(const char* value)
     throw CORBA::BAD_PARAM();
   }
 }
+
+//NEW
+// get dfManagerInstanceName
+char* DFAgentAdapter::dfManagerInstanceName()
+{
+  //return CORBA::string_dup(device_->dfManagerInstanceName());
+  return CORBA::string_dup("");
+}
+//-------------------------------
+// set dfManagerInstanceName
+void DFAgentAdapter::dfManagerInstanceName(const char* value)
+{
+  try
+  { 
+    device_->dfManagerInstanceName(value);
+  }
+  catch(GCSException& ex)
+  {
+    throw CORBA::BAD_PARAM();
+  }
+}
+//NEW
+
 
 //----------------------------------------------------------------------
 // get dfAgentPartnerInstanceName

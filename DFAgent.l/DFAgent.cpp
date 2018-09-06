@@ -189,7 +189,8 @@ void DFAgent::init()
   goInitialising_();
   
   // ## Initialization procedure
-  
+ 
+ 
   // Init aggregated Devices
   goIdle_();  // or goRunning_();
 }
@@ -551,7 +552,9 @@ void DFAgent::initDFBranchInstance_()
       logInfo_("Connected to DF Branch!");
       trace_.out ("Connected to DF Branch!");
       logInfo_("Opening session with default mode");
-      setObsModeLowLevel (shortObsMode_);
+
+      //TODO REVIEW WHERE TO PUT THIS	
+      //setObsModeLowLevel (shortObsMode_);
     }
   }
   catch(const CORBA::Exception &ex)
@@ -572,6 +575,52 @@ void DFAgent::initDFBranchInstance_()
     throw;
   }        
 }
+
+//----------------------------------------------------------------------
+// initDFManagerInstance
+//----------------------------------------------------------------------
+void DFAgent::initDFManagerInstance_()
+{  
+  try
+  {
+    if(CORBA::is_nil(const_cast<const DF::DataAcquisitionManager_ifce_var&>(dfManagerInstance_)))
+    { // Initializing pointer to data factory corba object
+      logInfo_ ("Connecting to Data Factory Manager");
+      trace_.out ("Connecting to Data Factory Manager");
+
+      std::cout << "dfManagerInstanceName_:" << dfManagerInstanceName_ << std::endl;
+
+
+      CORBARef<DF::DataAcquisitionManager_ifce> dfmanager_ref(dfManagerInstanceName_, 0);
+      dfmanager_ref.roundtripTimeout( TimeValue(60, 0) );
+      dfManagerInstance_ = dfmanager_ref.typedRef();
+      //dfManagerInstance_->ping();
+      logInfo_("Connected to DF Manager!");
+      trace_.out ("Connected to DF Manager!");
+
+      //Pointer to adapter	
+      consumerId_ = dynamic_cast<DFAgentAdapter*>(adapter_)->_this();
+    }
+  }
+  catch(const CORBA::Exception &ex)
+  {
+    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+    cout << "ERROR: " << gcsex << endl;
+    if (gcsex.isA ("CorbaException"))
+    {  //It is a timeout, set null the corba pointer
+      dfManagerInstance_ = DF::DataAcquisitionManager_ifce::_nil();
+    }
+    throw;
+  }
+  catch (GCSException& ex)
+  {
+    ex.addToTrace ("DFAgent::initDFManagerInstance_()");
+    logError_ ("ERROR when connecting to DFManager: %s", ex.toString());
+    dfManagerInstance_ = DF::DataAcquisitionManager_ifce::_nil();
+    throw;
+  }        
+}
+
 
 //----------------------------------------------------------------------
 // initDFAgentPartnerInstance_
@@ -805,6 +854,68 @@ void DFAgent::applyObsModeSettings_(const std::vector<bool> & settings)
    propertyChange_("writeKeywords");
 }
 
+void DFAgent::receiveRecipeResult(std::string observingMode,
+					unsigned long id,
+					unsigned long obsResultId,
+					DF::RecipeQualityControlType qc,
+					const DDPKF::RecipeResult& result)
+{
+	trace_.out("receiveRecipeResult %s %lu\n",observingMode.c_str() ,id);
+
+	DFObservationStrategy_.debug();
+	DFObservationStrategy_.pop();
+
+	if (DFObservationStrategy_.isComplete())
+		return;
+
+	DFObservationStrategy_.increaseElementCounter();
+	DFObservationStrategy_.storeId(id);
+
+   	if (DFObservationStrategy_.isFilledUp())
+    	{
+    		DFObservationStrategy_.debug();
+    	
+    		try {
+    			dfManagerInstance_->unsubscribeFromRecipeResults(gcsComponent_,
+    				   						cameraName_,
+    				   						DFObservationStrategy_.getObservationModeName().c_str(),
+    				   						DFObservationStrategy_.getObservationModeName().c_str(),
+    				   						consumerId_);
+	    	} catch(...) {
+    		}
+
+    		dfManagerInstance_->subscribeToRecipeResults(gcsComponent_,
+								cameraName_,
+    								DFObservationStrategy_.getObservationModeName().c_str(),
+    								DFObservationStrategy_.getObservationModeName().c_str(),
+    								consumerId_);
+
+		initDFBranchInstance_();
+		dfSessionId_ = dfBranchInstance_->configureObsMode( DFObservationStrategy_.getObservationModeName().c_str(),dfStrategySessionId_ );
+		dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
+		dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
+
+    		DDPKF::DataElement dataElement;
+    		dataElement.name = CORBA::string_dup("resultIds");
+    		dataElement.type = DF::TYPE_LONG_LIST;
+    		dataElement.value.lList(DGT::LongList());
+
+    		toIDL(DFObservationStrategy_.getStoreIds(), dataElement.value.lList());
+    		dfBranchInstance_->receiveORParam(dataElement, dfBranchInstanceName_, dfSessionId_);
+    		dfBranchInstance_->commitOR(true, true, dfBranchInstanceName_, dfSessionId_);
+    	}
+    	else
+    	{
+    		DFObservationStrategy_.update();
+    		DFObservationStrategy_.debug();
+
+		initDFBranchInstance_();
+		dfSessionId_ = dfBranchInstance_->configureObsMode( DFObservationStrategy_.getObservationModeName().c_str(),dfStrategySessionId_ );
+		dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
+		dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
+    	}
+
+}
 //----------------------------------------------------------------------
 // receiveFrame 
 //----------------------------------------------------------------------
@@ -1161,6 +1272,54 @@ void DFAgent::fetchORInfo_()
   }
 }
 
+void DFAgent::setObservationMode(const char * obsMode)
+{
+	trace_.out("setObservationMode(%s)\n",obsMode);
+
+	initDFBranchInstance_();
+
+	//Get the availabes observation modes
+	DGT::StringList_var idl_string_list = dfBranchInstance_->getAvailableObsMode();
+	std::vector<std::string> string_list;
+	fromIDL(idl_string_list,string_list);
+	//Check the request observation mode exits.
+	//TODO
+
+	//Get the details of the observation mode: tree structure
+	std::string strategy = dfBranchInstance_->getObsStrategyDetailts(obsMode);
+
+	//Create the Observation Strategy from the description
+	DFObservationStrategy_.build(strategy);
+	DFObservationStrategy_.update();
+
+	initDFManagerInstance_();
+	
+	//Subscribe to recipe results
+	try 
+	{
+		dfManagerInstance_->unsubscribeFromRecipeResults(gcsComponent_,
+				   					cameraName_,
+									DFObservationStrategy_.getObservationModeName().c_str(),
+				   					DFObservationStrategy_.getObservationModeName().c_str(),
+				   					consumerId_);
+	} catch(...) {
+	}
+	
+	dfManagerInstance_->subscribeToRecipeResults(gcsComponent_,
+				   			cameraName_,
+							DFObservationStrategy_.getObservationModeName().c_str(),
+							DFObservationStrategy_.getObservationModeName().c_str(),
+							consumerId_);
+
+	//Configure the observation strategy 
+	dfStrategySessionId_ = dfBranchInstance_->configureObsStrategy(obsMode);
+	//Configure the observation mode for the strategy
+	dfSessionId_ = dfBranchInstance_->configureObsMode( DFObservationStrategy_.getObservationModeName().c_str(),dfStrategySessionId_ );
+	//Setup session information
+    	dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
+	dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
+}
+
 //----------------------------------------------------------------------
 // setObsModeLowLevel 
 //----------------------------------------------------------------------
@@ -1171,7 +1330,7 @@ void DFAgent::setObsModeLowLevel(short obsMode)
   {
     //check dfBranchInstance_ isn't null, otherwise reconnect to it.
     initDFBranchInstance_();
-    
+   
     //Checked already that the same obs mode isn't running
     if(shortObsMode_ != obsMode)
     {
@@ -1184,10 +1343,10 @@ void DFAgent::setObsModeLowLevel(short obsMode)
       {
          dfBranchInstance_->closeObsMode(dfSessionId_);
       }
-      catch (...) {}	 
+      catch (...) {}     
     }
     //Subscribe to monitor needed for this obsMode, using .spec keywords. Agent will read from them shortly
-    dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str() );
+    dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str() ,0 );
     dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
     dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
     isSessionRunning_ = true;
@@ -1199,9 +1358,6 @@ void DFAgent::setObsModeLowLevel(short obsMode)
     {  //hasFrameArrived = false
       sendElement_(*it, false);
     }    
-    
-//    for_each(recipeElementNames_.begin(),recipeElementNames_.end(),bind2nd( mem_fun( &DFAgent::sendElement_ ), this ));
-
   }
   catch(const CORBA::Exception &ex)
   {
@@ -1410,6 +1566,60 @@ void DFAgent::commitOR()
   unlock_();
 }
 
+
+void DFAgent::sendDetectorRawFrame(const DDPKF::Frame& idlFrame, 
+					int currentWindow, 
+                             		int numWindows, 
+					const DGT::TinyVector& idlTopLeft, 
+                             		const DGT::TinyVector& idlBottomRight, 
+					const DGT::TimeValue& timestamp, 
+                             		const DGT::TimeValue& exposureTime)
+{
+	dfBranchInstance_->receiveFrame(idlFrame,
+						currentWindow,
+						numWindows,
+						idlTopLeft,
+						idlBottomRight,
+						timestamp,
+						exposureTime,
+						doesPropagateFrame_,
+						doesSaveFrame_,
+						dfSessionId_ );
+
+}
+
+void DFAgent::sendRawFrame(const DDPKF::Frame& idlFrame, 
+					int currentWindow, 
+                             		int numWindows, 
+					const DGT::TinyVector& idlTopLeft, 
+                             		const DGT::TinyVector& idlBottomRight, 
+					const DGT::TimeValue& timestamp, 
+                             		const DGT::TimeValue& exposureTime)
+{
+	dfBranchInstance_->receiveORParamAcquiredFrame(
+			"rawFrame",
+			idlFrame,
+			currentWindow,
+			numWindows,
+			idlTopLeft,
+			idlBottomRight,
+			timestamp,
+			exposureTime,
+			doesPropagateFrame_,
+			doesSaveFrame_,
+			dfBranchInstanceName_,
+			dfSessionId_ );
+
+
+	DFObservationStrategy_.increaseElementCounter();
+	if(DFObservationStrategy_.isFilledUp())
+	{
+		trace_.out("Commit Observation Result\n");
+		dfBranchInstance_->commitOR(true, true, dfBranchInstanceName_, dfSessionId_);
+	}
+
+}
+
 /************************************************************************
 *************************************************************************
 **                                                                     **
@@ -1538,6 +1748,34 @@ void DFAgent::dfBranchInstanceName(const char* new_dfBranchInstanceName)
   }
 
   propertyChange_("dfBranchInstanceName");
+}
+
+
+//----------------------------------------------------------------------
+// Get dfBranchInstanceName property
+//----------------------------------------------------------------------
+const char* DFAgent::dfManagerInstanceName()
+{
+  trace_.out("dfManagerInstanceName()\n");
+  return dfManagerInstanceName_.in();
+}
+
+//----------------------------------------------------------------------
+// Set dfBranchInstanceName property
+//----------------------------------------------------------------------
+void DFAgent::dfManagerInstanceName(const char* new_dfManagerInstanceName)
+{
+  trace_.out("dfManagerInstanceName(%s)\n",new_dfManagerInstanceName);
+  // Change property
+  dfManagerInstanceName_ = new_dfManagerInstanceName;
+  if(isIdle())
+  {
+
+    dfManagerInstance_ = DF::DataAcquisitionManager_ifce::_nil();
+    //TODO
+    initDFManagerInstance_();
+  }
+  propertyChange_("dfManagerInstanceName");
 }
 
 //----------------------------------------------------------------------

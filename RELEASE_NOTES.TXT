@@ -1,3 +1,36 @@
+            RELEASE NOTES 1.3.0
+Interface
+
+	#151 -  Observation Strategies
+
+
+		-- Changed the DFAgent interface: subscribe to recipe result, to coordinate the observation strategy; added a method
+		to set Observation Mode, using the observation mode name; added a property for the DF Manager instance name.
+
+		-- A new class DFObservationStrategy to manage the observation strategy information.
+
+		-- Added two methods to receive detector raw frames and raw frames.
+
+		-- The branch, after receiving the observation strategy, coordinate the execution of the recipes.
+  
+Bugs
+   
+Implementation
+ 
+Known errors
+
+
+
+            RELEASE NOTES 1.2.4
+Interface
+  
+Bugs
+   
+Implementation
+ 
+Known errors
+
+
             RELEASE NOTES 1.2.31
 Interface
   

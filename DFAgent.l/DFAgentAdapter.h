@@ -14,8 +14,15 @@
 
 class DFAgent;
 
+
+                               	   	   	   	   		   
+									
+
+
 //This class implements the IDL interface DFAgent_ifce
-class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceAdapter
+class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,
+									public virtual POA_DF::RecipeResultConsumer_ifce,
+									public DeviceAdapter
 {
   //--------------------------------------------------
   // public section 
@@ -35,6 +42,8 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void   receiveFrame         (const DDPKF::Frame &, int, int, 
                                const DGT::TinyVector &, const DGT::TinyVector &, 
 	                       const DGT::TimeValue &, const DGT::TimeValue &, const char * );
+  void   receiveRecipeResult (const DDPKF::RecipeResult& result);
+
   void   setPrincipalInvestigatorName            (const char* piName);
   void   setInstrumentMode    (const char* insMode);
   void   setObservationType   (DFAGENT::ObservationType obsType);
@@ -48,6 +57,7 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   void   setImageTitle        (const char* imageTitle);
   void   setObservationComment(const char* observationComment);
   void   setObsModeLowLevel   (CORBA::Short obsMode);
+  void 	 setObservationMode   (const char * obsMode);
   void   setPropagateFrame    (CORBA::Boolean doesPropagate);
   void   setSaveFrame         (CORBA::Boolean doesSave);
   void   setPropagateFITS     (CORBA::Boolean doesPropagate);
@@ -75,8 +85,11 @@ class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,  public DeviceA
   //----------------------------------------------------------------------
   char*                offlineImagesPath         ();
   void                 offlineImagesPath         (const char* value); 
+
   char*                dfBranchInstanceName      ();
   void                 dfBranchInstanceName      (const char* value); 
+  char*		       dfManagerInstanceName	 ();
+  void                 dfManagerInstanceName     (const char* value); 
   char*                dfAgentPartnerInstanceName      ();
   void                 dfAgentPartnerInstanceName      (const char* value);   
   CORBA::Short         propagateFrame            ();

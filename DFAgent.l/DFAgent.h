@@ -26,6 +26,9 @@
 //#include <MONITORC.h>
 #include <DFDataCollectorC.h>
 #include <DFAGENTC.h>
+
+#include "DFObservationStrategy.h"
+
 //@epc
 
 class FITSHeaderInfo;
@@ -113,6 +116,13 @@ class DFAgent : public Device
                              const DGT::TinyVector& idlBottomRight, const DGT::TimeValue& timestamp, 
                              const DGT::TimeValue& exposureTime, const char* cameraId );
 
+  void receiveRecipeResult(std::string observingMode,
+								unsigned long id,
+								unsigned long obsResultId,
+								DF::RecipeQualityControlType qc,
+								const DDPKF::RecipeResult& result);
+
+
   /**
   * Sets the Principal Investigator name
   */
@@ -178,6 +188,12 @@ class DFAgent : public Device
   * @param:obsMode Short associated with observation mode
   */
   void setObsModeLowLevel(short obsMode);
+
+  /**
+  * Sets up observation mode
+  * @param:obsMode observation mode
+  */
+  void setObservationMode(const char * obsMode);
 
   /**
   * Sets frame propagate flag state
@@ -297,6 +313,15 @@ class DFAgent : public Device
   */
   const char* dfBranchInstanceName();
   void dfBranchInstanceName(const char* new_value); 
+
+  /**
+  * Instance name of the DF Manager
+  * @property:
+  * @description:Instance name of the DF Manager
+  * @default:DF/DFBranch
+  */
+  const char* dfManagerInstanceName();
+  void dfManagerInstanceName(const char* new_value); 
   
   /**
   * dfAgentPartnerInstanceName
@@ -466,6 +491,7 @@ class DFAgent : public Device
   // Configurable attributes (properties)
   String offlineImagesPath_         ; ///<Path to directory where instrument places the image
   String dfBranchInstanceName_      ; ///<Instance name of the DF branch
+  String dfManagerInstanceName_     ; ///<Instance name of the DF Manager
   String obsModeKeywordListPath_    ; ///<Array with paths to keyword list for each obs mode
   String recipeDictionaryPath_      ; ///<Path to recipe dictionary
   String gcsComponent_              ; ///<GCS Component name
@@ -501,6 +527,9 @@ class DFAgent : public Device
   Frame<double,2> *rawFrame_;   ///< raw frame acquired by the instrument
   DF::Branch_ifce_var dfBranchInstance_;     ///< Pointer to data factory branch instance in corba
   DFAGENT::DFAgent_ifce_var dfAgentPartnerInstance_;  ///< Pointer to an auxiliar agent, which helps in coxplex tasks
+  DF::DataAcquisitionManager_ifce_var dfManagerInstance_;  ///< Pointer to data factory manager instance in corba
+  DFAGENT::DFAgent_ifce* consumerId_;
+
   map<short, std::string> obsModeName_; ///< Map with string associated with each obsMode
   map<short, std::string> obsTypeName_; ///< Map with string associated with each obsType [BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS]
   map<short, std::string> obsClassName_; ///< Map with string associated with each obsClass [SCIENCE|CALIB]  
@@ -528,6 +557,7 @@ class DFAgent : public Device
   void sendElement_(string elementRecipeName, bool withFrame);  ///< Send the element to DataFactory
   void sendElement_(string elementRecipeName);  ///< Send the element to DataFactory  
   void initDFBranchInstance_();    ///< initilize the DFBranchInstance object, connect to the Branch
+  void initDFManagerInstance_();    ///< initilize the DFManagerInstance object, connect to the DFManager
   void initDFAgentPartnerInstance_();  ///< Initialize pointer and connect to DFAgentPartner
   void writeStandardKeywords_(DataDescription& frame);  ///< Write standar keywords in Frame object
   virtual void applyObsModeSettings_(const std::vector<bool> & settings);  ///< Stores settings values in the local variables
@@ -535,6 +565,22 @@ class DFAgent : public Device
   virtual void writeAdditionalKeywords_(DataDescription& frame);  ///< Write additional keywords in Frame object  
   virtual void fetchORInfo_();  ///< Fetch Observation result info, and element names for current observation mode
   bool belongsToRecipe_(const string& elementName);  ///< Indicates if the element name is used in the recipe currently used
+  void sendDetectorRawFrame(const DDPKF::Frame& idlFrame, 
+					int currentWindow, 
+                             		int numWindows, 
+					const DGT::TinyVector& idlTopLeft, 
+                             		const DGT::TinyVector& idlBottomRight, 
+					const DGT::TimeValue& timestamp, 
+                             		const DGT::TimeValue& exposureTime);
+  void sendRawFrame(const DDPKF::Frame& idlFrame, 
+					int currentWindow, 
+                             		int numWindows, 
+					const DGT::TinyVector& idlTopLeft, 
+                             		const DGT::TinyVector& idlBottomRight, 
+					const DGT::TimeValue& timestamp, 
+                             		const DGT::TimeValue& exposureTime);
+  DFObservationStrategy DFObservationStrategy_;
+  long dfStrategySessionId_;
   //@epc
 };
 
