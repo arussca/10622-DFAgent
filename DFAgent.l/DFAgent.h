@@ -565,22 +565,36 @@ class DFAgent : public Device
   virtual void writeAdditionalKeywords_(DataDescription& frame);  ///< Write additional keywords in Frame object  
   virtual void fetchORInfo_();  ///< Fetch Observation result info, and element names for current observation mode
   bool belongsToRecipe_(const string& elementName);  ///< Indicates if the element name is used in the recipe currently used
+
   void sendDetectorRawFrame(const DDPKF::Frame& idlFrame, 
-					int currentWindow, 
+									int currentWindow,
                              		int numWindows, 
-					const DGT::TinyVector& idlTopLeft, 
+									const DGT::TinyVector& idlTopLeft,
                              		const DGT::TinyVector& idlBottomRight, 
-					const DGT::TimeValue& timestamp, 
-                             		const DGT::TimeValue& exposureTime);
+									const DGT::TimeValue& timestamp,
+                             		const DGT::TimeValue& exposureTime,
+									bool propagate,
+									bool save);
+
   void sendRawFrame(const DDPKF::Frame& idlFrame, 
-					int currentWindow, 
-                             		int numWindows, 
-					const DGT::TinyVector& idlTopLeft, 
-                             		const DGT::TinyVector& idlBottomRight, 
-					const DGT::TimeValue& timestamp, 
-                             		const DGT::TimeValue& exposureTime);
+						int currentWindow,
+                        int numWindows,
+						const DGT::TinyVector& idlTopLeft,
+                        const DGT::TinyVector& idlBottomRight,
+						const DGT::TimeValue& timestamp,
+                        const DGT::TimeValue& exposureTime);
+
   DFObservationStrategy DFObservationStrategy_;
   long dfStrategySessionId_;
+
+
+
+
+  std::vector<std::string> getAvailableObsMode_();
+  void unsubscribeToReductionResult_(const char * recipe_name);
+  void subscribeToReductionResult_(const char * recipe_name);
+  void configureObsMode_(const char * obsMode);
+
   //@epc
 };
 

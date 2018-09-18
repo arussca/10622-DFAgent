@@ -16,6 +16,8 @@
 
 #include <json/json.h>
 
+#include <GCSException.h>
+
 
 class DFObservationStrategy {
 public:
@@ -24,13 +26,13 @@ public:
 
 	void 				build(std::string strategy);
 	int 				getObservationMode();
-	std::string 			getObservationModeName();
+	std::string 		getObservationModeName();
 	void 				increaseElementCounter();
 	bool 				isFilledUp();
 	void 				storeId(int id);
-	std::vector<long> 		getStoreIds();
+	std::vector<long> 	getStoreIds();
 	void 				update();
-	void 				pop();
+	void 				removeElement();
 	void 				debug();
 	bool 				isComplete();
 

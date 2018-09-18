@@ -1,3 +1,20 @@
+            RELEASE NOTES 1.3.1
+Interface
+
+	#151 -  Observation Strategies
+
+		-- Close the observation strategy session.
+		-- Unsubscribe from the previous reduction resutl.
+		-- Add methods to the send detector raw frame method the propagate and save parameters.
+		-- Refactoring to clean up the code.
+		  
+Bugs
+   
+Implementation
+ 
+Known errors
+
+
             RELEASE NOTES 1.3.0
 Interface
 

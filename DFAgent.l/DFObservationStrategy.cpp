@@ -29,23 +29,19 @@ DFObservationStrategy::ObservationStrategy DFObservationStrategy::unserializeStr
 	}
 
 	return observation_strategy;
-
 }
 
 void DFObservationStrategy::build(std::string strategy) {
-	//std::cout << "DFObservationStrategy:" << strategy << std::endl;
-
 	Json::Value root;
 	Json::Reader reader;
 	bool parsingSuccessful = reader.parse(strategy,root);
 
-	if ( !parsingSuccessful )
+	if ( parsingSuccessful )
 	{
-		std::cout << "Error parsing the string" << std::endl;
+		observation_strategy = unserializeStrategy_(root);
 	} else {
-		std::cout << "Parsing OK" << std::endl;
+		throw InvalidValue("DFObservationStrategy::build", "Error parsing the strategy.");
 	}
-	observation_strategy = unserializeStrategy_(root);
 }
 
 int DFObservationStrategy::getObservationMode() {
@@ -76,33 +72,7 @@ std::vector<long> DFObservationStrategy::getStoreIds() {
 	return observation_strategy_stack.top().recipes_identifiers;
 }
 
-void DFObservationStrategy::debug() {
-	debug_1(observation_strategy,observation_strategy_stack);
-}
-
-void DFObservationStrategy::debug_1(const ObservationStrategy & ob,std::stack<ObservationStrategy> observation_strategy_stack) {
-	/*
-	for (int i = 0; i< ob.clindrens.size();i++) {
-		debug_1(ob.clindrens[i]);
-		std::cout << "-------------------------------------------------------" << std::endl;
-		std::cout << "observation_mode:" << ob.observation_mode << std::endl;
-		std::cout << "element_counter:" << ob.element_counter << std::endl;
-		std::cout << "number_element_to_collect:" << ob.number_element_to_collect << std::endl;
-		std::cout << "-------------------------------------------------------" << std::endl;
-	}*/
-
-	std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-	while (!observation_strategy_stack.empty()) {
-		ObservationStrategy  observation_strategy_current = observation_strategy_stack.top();
-		std::cout << "observation_mode:" << observation_strategy_stack.top().observation_mode << std::endl;
-		std::cout << "element_counter:" << observation_strategy_stack.top().element_counter << std::endl;
-		std::cout << "number_element_to_collect:" << observation_strategy_stack.top().number_element_to_collect << std::endl;
-		std::cout << "-------------------------------------------------------" << std::endl;
-		observation_strategy_stack.pop();
-	 }
-}
 void DFObservationStrategy::update() {
-	//Init the stack
 	ObservationStrategy observation_strategy_current = observation_strategy;
 	if (!observation_strategy_stack.empty()) {
 		observation_strategy_current = observation_strategy_stack.top();
@@ -122,10 +92,26 @@ void DFObservationStrategy::update() {
 	} while (!end);
 }
 
-void DFObservationStrategy::pop() {
+void DFObservationStrategy::removeElement() {
 	observation_strategy_stack.pop();
 }
 
 bool DFObservationStrategy::isComplete() {
 	return observation_strategy_stack.empty();
+}
+
+void DFObservationStrategy::debug() {
+	debug_1(observation_strategy,observation_strategy_stack);
+}
+
+void DFObservationStrategy::debug_1(const ObservationStrategy & ob,std::stack<ObservationStrategy> observation_strategy_stack) {
+	std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
+	while (!observation_strategy_stack.empty()) {
+		ObservationStrategy  observation_strategy_current = observation_strategy_stack.top();
+		std::cout << "observation_mode:" << observation_strategy_stack.top().observation_mode << std::endl;
+		std::cout << "element_counter:" << observation_strategy_stack.top().element_counter << std::endl;
+		std::cout << "number_element_to_collect:" << observation_strategy_stack.top().number_element_to_collect << std::endl;
+		std::cout << "-------------------------------------------------------" << std::endl;
+		observation_strategy_stack.pop();
+	 }
 }
