@@ -875,7 +875,6 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
     		//DFObservationStrategy_.debug();
 
     		subscribeToReductionResult_(DFObservationStrategy_.getObservationModeName().c_str());
-
 			configureObsMode_(DFObservationStrategy_.getObservationModeName().c_str());
 
     		DDPKF::DataElement dataElement;
@@ -894,6 +893,7 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
     		DFObservationStrategy_.update();
     		//DFObservationStrategy_.debug();
 
+    		subscribeToReductionResult_(DFObservationStrategy_.getObservationModeName().c_str());
     		configureObsMode_(DFObservationStrategy_.getObservationModeName().c_str());
     	}
 
