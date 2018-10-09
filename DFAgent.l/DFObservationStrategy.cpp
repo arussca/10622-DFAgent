@@ -14,23 +14,6 @@ DFObservationStrategy::~DFObservationStrategy() {
 }
 
 
-DFObservationStrategy::ObservationStrategy DFObservationStrategy::unserializeStrategy_(Json::Value element)
-{
-	ObservationStrategy observation_strategy;
-	observation_strategy.observation_mode=element["observation_mode"].asCString();
-	observation_strategy.number_element_to_collect=element["number_element_to_collect"].asInt();
-	observation_strategy.element_counter=0;
-
-	Json::Value  clindrens = element["clindrens"];
-	for (int i = 0; i<clindrens.size() ; i++ )
-	{
-		ObservationStrategy observation_strategy_children = unserializeStrategy_(clindrens[i]);
-		observation_strategy.clindrens.push_back(observation_strategy_children);
-	}
-
-	return observation_strategy;
-}
-
 void DFObservationStrategy::build(std::string strategy) {
 	Json::Value root;
 	Json::Reader reader;
@@ -38,80 +21,98 @@ void DFObservationStrategy::build(std::string strategy) {
 
 	if ( parsingSuccessful )
 	{
-		observation_strategy = unserializeStrategy_(root);
+		unserializeStrategy_(root);
 	} else {
 		throw InvalidValue("DFObservationStrategy::build", "Error parsing the strategy.");
 	}
 }
 
-int DFObservationStrategy::getObservationMode() {
-	return observation_strategy_stack.top().observation_mode_id;
-}
-
-std::string DFObservationStrategy::getObservationModeName() {
-	return observation_strategy_stack.top().observation_mode;
-}
-
-void DFObservationStrategy::increaseElementCounter() {
-	observation_strategy_stack.top().element_counter++;
-}
-
-bool DFObservationStrategy::isFilledUp() {
-    if ( observation_strategy_stack.top().element_counter ==
-    		observation_strategy_stack.top().number_element_to_collect )  {
-    	return true;
-    }
-    return false;
-}
-
-void DFObservationStrategy::storeId(int id) {
-	observation_strategy_stack.top().recipes_identifiers.push_back(id);
-}
-
-std::vector<long> DFObservationStrategy::getStoreIds() {
-	return observation_strategy_stack.top().recipes_identifiers;
-}
-
-void DFObservationStrategy::update() {
-	ObservationStrategy observation_strategy_current = observation_strategy;
-	if (!observation_strategy_stack.empty()) {
-		observation_strategy_current = observation_strategy_stack.top();
-		observation_strategy_stack.pop();
-	}
-
-	bool end = false;
-	do {
-		if (observation_strategy_current.element_counter < observation_strategy_current.number_element_to_collect) {
-			observation_strategy_stack.push(observation_strategy_current);
-			if (observation_strategy_current.clindrens.size() == 0  )  {
-				end = true;
-			} else {
-				observation_strategy_current = observation_strategy_current.clindrens[observation_strategy_current.element_counter];
-			}
+DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::next() {
+	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
+			iter != observation_strategy_map_.end(); ++iter) {
+		if (iter->second.element_counter<iter->second.number_element_to_collect &&
+				iter->second.is_leaf ) {
+			return &(iter->second);
 		}
-	} while (!end);
+	}
+	throw NoEntries("Not more Observation Strategy nodes");
 }
 
-void DFObservationStrategy::removeElement() {
-	observation_strategy_stack.pop();
+DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromObservationResultId(unsigned long observation_result_id) {
+	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
+			iter != observation_strategy_map_.end(); ++iter) {
+		if (iter->second.observation_result_id==observation_result_id) {
+			return &(iter->second);
+		}
+	}
+	throw NotFound("Observation Strategy not found");
+}
+
+
+DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromId(unsigned long id) {
+	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
+			iter != observation_strategy_map_.end(); ++iter) {
+		if (iter->second.id==id) {
+			return &(iter->second);
+		}
+	}
+	throw NotFound("Observation Strategy not found");
 }
 
 bool DFObservationStrategy::isComplete() {
-	return observation_strategy_stack.empty();
+	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
+			iter != observation_strategy_map_.end(); ++iter) {
+		if (iter->second.element_counter<iter->second.number_element_to_collect) {
+			return false;
+		}
+	}
+	return true;
 }
 
 void DFObservationStrategy::debug() {
-	debug_1(observation_strategy,observation_strategy_stack);
+	std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " << std::endl;
+	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
+			iter != observation_strategy_map_.end(); ++iter) {
+
+		std::cout << "id: " << iter->second.id;
+		std::cout << " is_leaf: " << iter->second.is_leaf;
+		std::cout << " observation_mode: " << iter->second.observation_mode;
+		std::cout << " number_element_to_collect: " << iter->second.number_element_to_collect;
+		std::cout << " element_counter: " << iter->second.element_counter;
+		std::cout << " session_id: " << iter->second.session_id;
+		std::cout << " observation_result_id: " << iter->second.observation_result_id;
+		std::cout << " recipes_identifiers: [";
+		for (int i=0;i<iter->second.recipes_identifiers.size();i++) {
+			std::cout << iter->second.recipes_identifiers[i] << ",";
+		}
+		std::cout << " ]";
+
+		std::cout << " next: [";
+		for (int i=0;i<iter->second.next.size();i++) {
+			std::cout << iter->second.next[i] << ",";
+		}
+		std::cout << " ]" << std::endl;
+
+	}
+	std::cout << "----------------------------------------------------------- " << std::endl;
 }
 
-void DFObservationStrategy::debug_1(const ObservationStrategy & ob,std::stack<ObservationStrategy> observation_strategy_stack) {
-	std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++" << std::endl;
-	while (!observation_strategy_stack.empty()) {
-		ObservationStrategy  observation_strategy_current = observation_strategy_stack.top();
-		std::cout << "observation_mode:" << observation_strategy_stack.top().observation_mode << std::endl;
-		std::cout << "element_counter:" << observation_strategy_stack.top().element_counter << std::endl;
-		std::cout << "number_element_to_collect:" << observation_strategy_stack.top().number_element_to_collect << std::endl;
-		std::cout << "-------------------------------------------------------" << std::endl;
-		observation_strategy_stack.pop();
-	 }
+void DFObservationStrategy::unserializeStrategy_(Json::Value element) {
+	Json::Value  strategies = element["strategy"];
+	for (int i = 0; i<strategies.size() ; i++ ) {
+		int id = strategies[i]["id"].asInt();
+		ObservationStrategy  observation_strategy;
+		observation_strategy.observation_mode=strategies[i]["observation_mode"].asCString();
+		observation_strategy.is_leaf=strategies[i]["is_leaf"].asBool();
+		observation_strategy.id=id;
+		observation_strategy.number_element_to_collect=strategies[i]["number_element_to_collect"].asInt();
+		observation_strategy.element_counter=0;
+		observation_strategy.observation_result_id=0;
+		observation_strategy.session_id=0;
+		observation_strategy_map_[id] = observation_strategy;
+		Json::Value  next = strategies[i]["next"];
+		for (int j=0;j<next.size();j++) {
+			observation_strategy_map_[id].next.push_back(next[j].asInt());
+		}
+	}
 }

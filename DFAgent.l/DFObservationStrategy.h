@@ -8,52 +8,62 @@
 #ifndef DFAGENT_L_DFOBSERVATIONSTRATEGY_H_
 #define DFAGENT_L_DFOBSERVATIONSTRATEGY_H_
 
-#include <stack>
+#include <map>
 #include <string>
 #include <vector>
 #include <iostream>
 #include <string>
+#include <memory>
 
 #include <json/json.h>
-
 #include <GCSException.h>
 
-
 class DFObservationStrategy {
+
 public:
-	DFObservationStrategy();
-	virtual ~DFObservationStrategy();
 
-	void 				build(std::string strategy);
-	int 				getObservationMode();
-	std::string 		getObservationModeName();
-	void 				increaseElementCounter();
-	bool 				isFilledUp();
-	void 				storeId(int id);
-	std::vector<long> 	getStoreIds();
-	void 				update();
-	void 				removeElement();
-	void 				debug();
-	bool 				isComplete();
-
+	//observation strategy
 	struct ObservationStrategy
 	{
+	   int id;
+	   bool is_leaf;
 	   int observation_mode_id;
+	   unsigned long observation_result_id;
+	   unsigned int session_id;
 	   std::string observation_mode;
 	   int number_element_to_collect;
 	   int element_counter;
 	   std::vector<long> recipes_identifiers;
-	   std::vector<ObservationStrategy> clindrens;
+	   std::vector<int> next;
 	};
-	ObservationStrategy observation_strategy;
+	typedef struct  ObservationStrategy * ObservationStrategyPtr;
 
-	std::stack<ObservationStrategy> observation_strategy_stack;
+	DFObservationStrategy();
+	virtual ~DFObservationStrategy();
+
+	//build
+	void 				build(std::string strategy);
+	//next
+	ObservationStrategyPtr next();
+	//from observation result id
+	ObservationStrategyPtr fromObservationResultId(unsigned long observation_result_id);
+	//from  id
+	ObservationStrategyPtr fromId(unsigned long id);
+	//it is completed
+	bool 				isComplete();
+	//debug
+	void 				debug();
+
+
 private:
 
-	ObservationStrategy unserializeStrategy_(Json::Value element);
-	void 				debug_1(const  ObservationStrategy &ob,std::stack<ObservationStrategy> observation_strategy_stack);
+	std::map<int,ObservationStrategy> observation_strategy_map_;
+
+	//unserializeStrategy_
+	void unserializeStrategy_(Json::Value element);
+	//debug_1
+	void 				debug_1();
 
 };
 
 #endif /* DFAGENT_L_DFOBSERVATIONSTRATEGY_H_ */
-

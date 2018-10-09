@@ -86,25 +86,10 @@ module DFAGENT
     void setSaveFITS(in boolean doesSave) 
 			raises (DGT::GCSException); 
 
-    void createArchiveFits() 
-			raises (DGT::GCSException); 
-
-    void importFitsFile() 
-			raises (DGT::GCSException); 
-
-    void commitArchiveFits() 
-			raises (DGT::GCSException); 
-
     void setAutoReduce(in boolean doesAutoReduce) 
 			raises (DGT::GCSException); 
 
     void setWriteKeywords(in boolean doesWriteKeywords) 
-			raises (DGT::GCSException); 
-
-    void setReductionRecipe() 
-			raises (DGT::GCSException); 
-
-    void commitOR() 
 			raises (DGT::GCSException); 
          
     // Monitorable attributes (device magnitudes)

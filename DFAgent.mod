@@ -12,3 +12,4 @@ l:DFAgent.l:vx solgnu linux:y
 t:testDFAgent.p:vx solgnu linux:y
 e:runDFAgent.p:vx solgnu linux:y
 e:useDFAgent.p:vx solgnu linux:y
+e:runObservationStrategy.p:linux:y
