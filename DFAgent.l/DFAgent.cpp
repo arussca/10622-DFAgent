@@ -404,58 +404,71 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
 			id,
 			obsResultId);
 
-	DFObservationStrategy_.debug();
-
+	DFObservationStrategy::ObservationStrategyPtr observation_strategy_node;
 	//Get the observation strategy node from the observation result id.
-	DFObservationStrategy::ObservationStrategyPtr observation_strategy =
-			DFObservationStrategy_.fromObservationResultId(obsResultId);
-	//Unsubscibe to reduction results
-	unsubscribeToReductionResult_(observation_strategy->observation_mode.c_str());
-	//Close observation mode session
-	dfBranchInstance_->closeObsMode(observation_strategy->session_id);
-	trace_.out("Close observation mode session [id=%lu]\n",observation_strategy->session_id);
-	//If the strategy session is complete, close observation strategy session
-	if (DFObservationStrategy_.isComplete())
+	std::vector<DFObservationStrategy *>::iterator observation_strategies_iter = observation_strategies_.begin();
+	for(;observation_strategies_iter!=observation_strategies_.end();++observation_strategies_iter) {
+		try {
+			observation_strategy_node = (*observation_strategies_iter)->fromObservationResultId(obsResultId);
+			break;
+		} catch (NotFound &exp) {
+			trace_.out("Not observation strategy node found in this strategy");
+		}
+	}
+	//Check if we found the element, we should.
+	if ( observation_strategies_iter == observation_strategies_.end() )
 	{
-		trace_.out("Close observation strategy session [id=%lu]\n",dfStrategySessionId_);
-		dfBranchInstance_->closeObsStrategy(dfStrategySessionId_);
+		trace_.out("Not observation strategy node found in ANY strategy");
 		return;
 	}
-	//Get the observation strategy parent
-	DFObservationStrategy::ObservationStrategyPtr observation_strategy_next =
-			DFObservationStrategy_.fromId(observation_strategy->next[0]);
-	//Increase element counter
-	observation_strategy_next->element_counter++;
-	//Store recipe id
-	observation_strategy_next->recipes_identifiers.push_back(id);
-	//If the observation strategy parent is completed
-	if (observation_strategy_next->element_counter ==
-			observation_strategy_next->number_element_to_collect)
+	//Print debug info
+	(*observation_strategies_iter)->debug();
+	//Unsubscribe to reduction results
+	unsubscribeToReductionResult_(observation_strategy_node->observation_mode.c_str());
+	//Close observation mode session
+	trace_.out("Close observation mode session [id=%lu]\n",observation_strategy_node->session_id);
+	dfBranchInstance_->closeObsMode(observation_strategy_node->session_id);
+	//If the strategy session is complete, close observation strategy session
+	if ((*observation_strategies_iter)->isComplete())
 	{
+		trace_.out("Close observation strategy session [id=%lu]\n",(*observation_strategies_iter)->strategy_session_id);
+		dfBranchInstance_->closeObsStrategy((*observation_strategies_iter)->strategy_session_id);
+		//Remove from vector
+		observation_strategies_.erase(observation_strategies_iter);
 
-		trace_.out("Commit Observation Result\n");
+	} else {
+		//Get the observation strategy parent
+		DFObservationStrategy::ObservationStrategyPtr observation_strategy_next_node =
+				(*observation_strategies_iter)->fromId(observation_strategy_node->next[0]);
+		//Increase element counter
+		observation_strategy_next_node->element_counter++;
+		//Store recipe id
+		observation_strategy_next_node->recipes_identifiers.push_back(id);
+		//If the observation strategy parent is completed
+		if (observation_strategy_next_node->element_counter ==
+				observation_strategy_next_node->number_element_to_collect)
+		{
+			trace_.out("Commit Observation Result\n");
+			subscribeToReductionResult_(observation_strategy_next_node->observation_mode.c_str());
+			configureObsMode_(observation_strategy_next_node->observation_mode.c_str(),(*observation_strategies_iter)->strategy_session_id);
+			observation_strategy_next_node->session_id=dfSessionId_;
 
-		subscribeToReductionResult_(observation_strategy_next->observation_mode.c_str());
-		configureObsMode_(observation_strategy_next->observation_mode.c_str());
-		observation_strategy_next->session_id=dfSessionId_;
+			DDPKF::DataElement dataElement;
+			dataElement.name = CORBA::string_dup("resultIds");
+			dataElement.type = DF::TYPE_LONG_LIST;
+			dataElement.value.lList(DGT::LongList());
+			toIDL(observation_strategy_next_node->recipes_identifiers, dataElement.value.lList());
 
-		DDPKF::DataElement dataElement;
-		dataElement.name = CORBA::string_dup("resultIds");
-		dataElement.type = DF::TYPE_LONG_LIST;
-		dataElement.value.lList(DGT::LongList());
-		toIDL(observation_strategy_next->recipes_identifiers, dataElement.value.lList());
-
-		initDFBranchInstance_(false);
-
-		dfBranchInstance_->receiveORParam(dataElement, dfBranchInstanceName_, dfSessionId_);
-		unsigned long observation_result_id = dfBranchInstance_->commitOR(true, true,
-				dfBranchInstanceName_,
-				observation_strategy_next->session_id);
-		observation_strategy_next->observation_result_id = observation_result_id;
-		trace_.out("Observation result [id=%ul]\n",observation_result_id );
+			initDFBranchInstance_(false);
+			dfBranchInstance_->receiveORParam(dataElement, dfBranchInstanceName_, dfSessionId_);
+			observation_strategy_next_node->observation_result_id = dfBranchInstance_->commitOR(true, true,
+					dfBranchInstanceName_,
+					observation_strategy_next_node->session_id);
+			trace_.out("Observation result [id=%ul]\n",observation_strategy_next_node->observation_result_id );
+		}
+		//Print debug info
+		(*observation_strategies_iter)->debug();
 	}
-
-	DFObservationStrategy_.debug();
 }
 
 //----------------------------------------------------------------------
@@ -760,7 +773,6 @@ void DFAgent::setObsModeLowLevel(short obsMode)
 			catch (...) {}
 		}
 		//Subscribe to monitor needed for this obsMode, using .spec keywords. Agent will read from them shortly
-		dfStrategySessionId_ = 0;
 		dfSessionId_ = dfBranchInstance_->configureObsMode( obsModeName_[shortObsMode_].c_str(),0L);
 		dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
 		dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
@@ -804,23 +816,26 @@ void DFAgent::setObservationMode(const char * obsMode) {
 
 	trace_.out("setObservationMode(%s)\n",obsMode);
 
-	DFObservationStrategy_.debug();
 	//Get the availables observation modes
 	std::vector<std::string> observation_modes = getAvailableObsMode_();
 	if ( find(observation_modes.begin(), observation_modes.end(), obsMode) != observation_modes.end() ) {
-		//Get the observation strategy
+		//Get the observation strategy description
 		std::string strategy = dfBranchInstance_->getObsStrategyDetailts(obsMode);
-		//Build the configuration strategy.
-		DFObservationStrategy_.build(strategy);
-		//TODO Manager multiples strategies sessions
+		//Create & Build the configuration strategy.
+		DFObservationStrategy * observation_strategy = new DFObservationStrategy();
+		observation_strategy->build(strategy);
+		//Print debug info
+		observation_strategy->debug();
 		//Open strategy session
-		dfStrategySessionId_ = dfBranchInstance_->configureObsStrategy(obsMode);
+		observation_strategy->strategy_session_id = dfBranchInstance_->configureObsStrategy(obsMode);
+		//Store the observation strategy
+		observation_strategies_.push_back(observation_strategy);
+		//Print debug info
+		observation_strategy->debug();
 	} else {
 		throw InvalidValue("DFAgent::setObservationMode", "Observation Mode not defined in the Pipeline.");
 	}
-	DFObservationStrategy_.debug();
 }
-
 
 //----------------------------------------------------------------------
 // setPropagateFrame
@@ -1965,15 +1980,28 @@ void DFAgent::receiveFrameObsStrategy(const DDPKF::Frame& idlFrame,
 
 	trace_.out("receiveFrame\n");
 
-	DFObservationStrategy_.debug();
+	//Get the first observation strategy node with room for new images.
+	std::vector<DFObservationStrategy *>::iterator observation_strategies_iter = observation_strategies_.begin();
+	for(;observation_strategies_iter!=observation_strategies_.end();++observation_strategies_iter) {
+		if ( ! (*observation_strategies_iter)->isAcquisitionComplete() ) {
+			break;
+		}
+	}
+	if ( observation_strategies_iter == observation_strategies_.end() ) {
+		throw NoEntries("Not more Observation Strategy nodes");
+	}
+
+	//Print debug info
+	(*observation_strategies_iter)->debug();
 
 	//Obtain the next Observation Strategy
-	DFObservationStrategy::ObservationStrategyPtr observation_strategy = DFObservationStrategy_.next();
-	//If a reducction setion has not been opened
-	if(observation_strategy->session_id == 0) {
-		subscribeToReductionResult_(observation_strategy->observation_mode.c_str());
-		configureObsMode_(observation_strategy->observation_mode.c_str());
-		observation_strategy->session_id=dfSessionId_;
+	DFObservationStrategy::ObservationStrategyPtr observation_strategy_node = (*observation_strategies_iter)->next();
+
+	//If a reduction session has not been opened
+	if(observation_strategy_node->session_id == 0) {
+		subscribeToReductionResult_(observation_strategy_node->observation_mode.c_str());
+		configureObsMode_(observation_strategy_node->observation_mode.c_str(),(*observation_strategies_iter)->strategy_session_id);
+		observation_strategy_node->session_id=dfSessionId_;
 	}
 
 	//Raw frame, it does not belong to observation result
@@ -1987,8 +2015,7 @@ void DFAgent::receiveFrameObsStrategy(const DDPKF::Frame& idlFrame,
 				exposureTime,
 				propagate,
 				save,
-				observation_strategy->session_id );
-
+				observation_strategy_node->session_id );
 	} else {
 		dfBranchInstance_->receiveORParamAcquiredFrame(
 				"rawFrame",
@@ -2002,25 +2029,23 @@ void DFAgent::receiveFrameObsStrategy(const DDPKF::Frame& idlFrame,
 				doesPropagateFrame_,
 				doesSaveFrame_,
 				dfBranchInstanceName_,
-				observation_strategy->session_id );
-
+				observation_strategy_node->session_id);
 		//Increase element counter
-		observation_strategy->element_counter++;
+		observation_strategy_node->element_counter++;
 		//It is the observation strategy completed?
-		if(observation_strategy->element_counter==observation_strategy->number_element_to_collect) {
+		if(observation_strategy_node->element_counter==observation_strategy_node->number_element_to_collect) {
 			trace_.out("Commit Observation Result\n");
-			unsigned long observation_result_id = dfBranchInstance_->commitOR(true, true,
+			observation_strategy_node->observation_result_id = dfBranchInstance_->commitOR(true, true,
 					dfBranchInstanceName_,
-					observation_strategy->session_id);
-			observation_strategy->observation_result_id = observation_result_id;
-			trace_.out("Observation result [id=%ul]\n",observation_result_id );
+					observation_strategy_node->session_id);
+			trace_.out("Observation result [id=%ul]\n",observation_strategy_node->observation_result_id);
 		}
 	}
-
-	DFObservationStrategy_.debug();
+	//Print debug info
+	(*observation_strategies_iter)->debug();
 }
 
-void DFAgent::configureObsMode_(const char * obsMode)
+void DFAgent::configureObsMode_(const char * obsMode, long observation_strategy_session)
 {
 
 	trace_.out("DFAgent::configureObsMode_ [obs_mode=%s]\n",obsMode);
@@ -2028,7 +2053,7 @@ void DFAgent::configureObsMode_(const char * obsMode)
 	initDFBranchInstance_(false);
 
 	try {
-		dfSessionId_ = dfBranchInstance_->configureObsMode( obsMode,dfStrategySessionId_ );
+		dfSessionId_ = dfBranchInstance_->configureObsMode( obsMode,observation_strategy_session );
 		dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
 		dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
 		//isSessionRunning_ = true;
@@ -2042,6 +2067,8 @@ void DFAgent::unsubscribeToReductionResult_(const char * recipe_name)
 {
 	try
 	{
+		trace_.out("Unsubscribe to Reduction Result [name=%s]\n", recipe_name);
+
 		dfManagerInstance_->unsubscribeFromRecipeResults(gcsComponent_,
 				cameraName_,
 				recipe_name,
@@ -2055,7 +2082,6 @@ void DFAgent::subscribeToReductionResult_(const char * recipe_name)
 {
 	initDFManagerInstance_();
 
-	trace_.out("Unsubscribe to reduction result[id=%s]\n",recipe_name);
 	unsubscribeToReductionResult_(recipe_name);
 	try {
 		trace_.out("Subscribe to reduction result[id=%s]\n",recipe_name);

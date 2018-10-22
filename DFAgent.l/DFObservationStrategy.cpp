@@ -7,7 +7,7 @@
 
 #include "DFObservationStrategy.h"
 
-DFObservationStrategy::DFObservationStrategy() {
+DFObservationStrategy::DFObservationStrategy() : strategy_session_id(0) {
 }
 
 DFObservationStrategy::~DFObservationStrategy() {
@@ -18,7 +18,6 @@ void DFObservationStrategy::build(std::string strategy) {
 	Json::Value root;
 	Json::Reader reader;
 	bool parsingSuccessful = reader.parse(strategy,root);
-
 	if ( parsingSuccessful )
 	{
 		unserializeStrategy_(root);
@@ -48,7 +47,6 @@ DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromObserva
 	throw NotFound("Observation Strategy not found");
 }
 
-
 DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromId(unsigned long id) {
 	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
 			iter != observation_strategy_map_.end(); ++iter) {
@@ -69,15 +67,28 @@ bool DFObservationStrategy::isComplete() {
 	return true;
 }
 
-void DFObservationStrategy::debug() {
-	std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " << std::endl;
+bool DFObservationStrategy::isAcquisitionComplete() {
 	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
 			iter != observation_strategy_map_.end(); ++iter) {
+		if (iter->second.element_counter<iter->second.number_element_to_collect &&
+				iter->second.is_leaf ) {
+			return false;
+		}
+	}
+	return true;
+}
 
+void DFObservationStrategy::debug() {
+
+#ifdef DFObservationStrategy_DEBUG
+	std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++ " << std::endl;
+	std::cout << " strategy_session_id: " << strategy_session_id << std::endl;
+	for (std::map<int,ObservationStrategy>::iterator iter = observation_strategy_map_.begin();
+			iter != observation_strategy_map_.end(); ++iter) {
 		std::cout << "id: " << iter->second.id;
 		std::cout << " is_leaf: " << iter->second.is_leaf;
-		std::cout << " observation_mode: " << iter->second.observation_mode;
-		std::cout << " number_element_to_collect: " << iter->second.number_element_to_collect;
+		std::cout << " obs_mode: " << iter->second.observation_mode;
+		std::cout << " num_element_to_collect: " << iter->second.number_element_to_collect;
 		std::cout << " element_counter: " << iter->second.element_counter;
 		std::cout << " session_id: " << iter->second.session_id;
 		std::cout << " observation_result_id: " << iter->second.observation_result_id;
@@ -86,15 +97,14 @@ void DFObservationStrategy::debug() {
 			std::cout << iter->second.recipes_identifiers[i] << ",";
 		}
 		std::cout << " ]";
-
 		std::cout << " next: [";
 		for (int i=0;i<iter->second.next.size();i++) {
 			std::cout << iter->second.next[i] << ",";
 		}
 		std::cout << " ]" << std::endl;
-
 	}
 	std::cout << "----------------------------------------------------------- " << std::endl;
+#endif
 }
 
 void DFObservationStrategy::unserializeStrategy_(Json::Value element) {

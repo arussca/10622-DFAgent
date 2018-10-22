@@ -18,11 +18,13 @@
 #include <json/json.h>
 #include <GCSException.h>
 
+//#define DFObservationStrategy_DEBUG 1
+
 class DFObservationStrategy {
 
 public:
 
-	//observation strategy
+	//observation strategy node
 	struct ObservationStrategy
 	{
 	   int id;
@@ -38,32 +40,32 @@ public:
 	};
 	typedef struct  ObservationStrategy * ObservationStrategyPtr;
 
+
+
 	DFObservationStrategy();
 	virtual ~DFObservationStrategy();
 
-	//build
+	//build this object from a string representation in JSON.
 	void 				build(std::string strategy);
-	//next
+	//next strategy node
 	ObservationStrategyPtr next();
-	//from observation result id
+	//strategy node from observation result id
 	ObservationStrategyPtr fromObservationResultId(unsigned long observation_result_id);
-	//from  id
+	//strategy node  from  id
 	ObservationStrategyPtr fromId(unsigned long id);
-	//it is completed
+	//is strategy completed?
 	bool 				isComplete();
+	//is the acquisition for the strategy completed?
+	bool 				isAcquisitionComplete();
 	//debug
 	void 				debug();
 
-
+	//Strategy session id
+	long strategy_session_id;
 private:
-
 	std::map<int,ObservationStrategy> observation_strategy_map_;
-
 	//unserializeStrategy_
 	void unserializeStrategy_(Json::Value element);
-	//debug_1
-	void 				debug_1();
-
 };
 
 #endif /* DFAGENT_L_DFOBSERVATIONSTRATEGY_H_ */

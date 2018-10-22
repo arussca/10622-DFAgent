@@ -549,12 +549,11 @@ protected:
 			bool save,
 			bool raw_frame);
 
-	DFObservationStrategy DFObservationStrategy_;
-	long dfStrategySessionId_;
+	std::vector<DFObservationStrategy *> observation_strategies_;
 	std::vector<std::string> getAvailableObsMode_();
 	void unsubscribeToReductionResult_(const char * recipe_name);
 	void subscribeToReductionResult_(const char * recipe_name);
-	void configureObsMode_(const char * obsMode);
+	void configureObsMode_(const char * obsMode, long observation_strategy_session);
 
 	//@epc
 };
