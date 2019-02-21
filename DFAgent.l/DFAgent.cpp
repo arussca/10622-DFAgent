@@ -756,7 +756,7 @@ void DFAgent::setObsModeLowLevel(short obsMode)
 	try
 	{
 		//check dfBranchInstance_ isn't null, otherwise reconnect to it.
-		initDFBranchInstance_();
+		initDFBranchInstance_(false);
 
 		//Checked already that the same obs mode isn't running
 		if(shortObsMode_ != obsMode)
