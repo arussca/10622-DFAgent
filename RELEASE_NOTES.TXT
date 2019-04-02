@@ -1,3 +1,49 @@
+            RELEASE NOTES 1.3.7
+Interface
+- The FITSHeaderInfo class was redefined to improve the parsing of the 
+  keyword file, using both JavaScript Object Notation (JSON) and 
+  GTC notation.
+- The MonitorKeyword class was added to support the analysis tasks and 
+  to check the integrity of the given monitor information, comparing with
+  the information contained in the database for that same monitor.
+
+Bugs
+- Not known.
+   
+Implementation
+- Moved lmk.linux file into DFAgent.l dir.
+- Added a dedicated mutex to protect a critical regions, which are related to 
+  the management of the observation strategies, and thus avoid inter-blocking
+  situations.
+- Some DFAgent methods have been declared as virtual.
+- Added the 'OBSCLASS' keyword into writeStandardKeywords_ method.
+- obsTypeName_ and obsClassName_ protected members marked as deprecated.
+  The reasons are:
+    - These members were only used to get the string representation of
+      ObservationType and ObservationClass enumeration types.
+    - Now, there are to_string methods to do the same.
+- Now the setter method of obsModeKeywordListPath property does not parse
+  the content of the file. To do that the derived DFAgent classes need to
+  inkove parseFITSHeaderKeywordsFromFile_ method when the connection with 
+  the DFAgent will be feasible.
+- The keyword files that use JavaScript Object Notation (JSON):
+  - They have two sections:
+    - keyword-section: section where several sets of keywords to be used by 
+      the observation modes are defined.
+      Each set of keywords can be defined inline or point to an external file
+      also in JSON.
+      The values of keywords can come from a monitor (monitor keywords) or
+      from user (fixed keywords). Both can be defined in the same set of
+      keywords.
+    - observation-modes: section used to create a relationship between each 
+      observation mode and one or more sets of keywords.
+- The keyword files in GTC notation don't support the above sections.
+- Some unit tests were added. The unit tests for FITSHeaderInfo class have to
+  be implemented.
+ 
+Known errors
+- None.
+
             RELEASE NOTES 1.3.6
 Interface
 
