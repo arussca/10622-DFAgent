@@ -1,3 +1,18 @@
+            RELEASE NOTES 1.3.8
+Interface
+
+	#151 -  Observation Strategies
+	
+		- Revert the 1.3.7 changes since they are using C/C++ 11, not 
+		compatible with VxWork. These functionality will be implemented
+		into a new DFAgent, DFAgentPro.
+Bugs
+   
+Implementation
+ 
+Known errors
+
+
             RELEASE NOTES 1.3.7
 Interface
 - The FITSHeaderInfo class was redefined to improve the parsing of the 

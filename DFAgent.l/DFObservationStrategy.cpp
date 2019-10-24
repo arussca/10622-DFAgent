@@ -7,8 +7,6 @@
 
 #include "DFObservationStrategy.h"
 
-namespace DF {
-
 DFObservationStrategy::DFObservationStrategy() : strategy_session_id(0) {
 }
 
@@ -24,7 +22,7 @@ void DFObservationStrategy::build(std::string strategy) {
 	{
 		unserializeStrategy_(root);
 	} else {
-		throw InvalidValue(__PRETTY_FUNCTION__,"Error parsing the strategy.");
+		throw InvalidValue("DFObservationStrategy::build", "Error parsing the strategy.");
 	}
 }
 
@@ -36,7 +34,7 @@ DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::next() {
 			return &(iter->second);
 		}
 	}
-	throw NoEntries(__PRETTY_FUNCTION__,"Not more Observation Strategy nodes");
+	throw NoEntries("Not more Observation Strategy nodes");
 }
 
 DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromObservationResultId(unsigned long observation_result_id) {
@@ -46,7 +44,7 @@ DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromObserva
 			return &(iter->second);
 		}
 	}
-	throw NotFound(__PRETTY_FUNCTION__,"Observation Strategy not found");
+	throw NotFound("Observation Strategy not found");
 }
 
 DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromId(unsigned long id) {
@@ -56,7 +54,7 @@ DFObservationStrategy::ObservationStrategyPtr DFObservationStrategy::fromId(unsi
 			return &(iter->second);
 		}
 	}
-	throw NotFound(__PRETTY_FUNCTION__,"Observation Strategy not found");
+	throw NotFound("Observation Strategy not found");
 }
 
 bool DFObservationStrategy::isComplete() {
@@ -128,121 +126,3 @@ void DFObservationStrategy::unserializeStrategy_(Json::Value element) {
 		}
 	}
 }
-
-//----------------------------------------------------------------------
-// totalNumberOfElementsToCollect
-//----------------------------------------------------------------------
-const std::size_t DFObservationStrategy::totalNumberOfElementsToCollect() const noexcept
-{
-	std::size_t retVal(0);
-	for (const auto &it : observation_strategy_map_)
-	{
-		const ObservationStrategy & item (it.second);
-		retVal += item.number_element_to_collect;
-	}
-	return retVal;
-}
-
-//----------------------------------------------------------------------
-// numberOfCollectedElements
-//----------------------------------------------------------------------
-const size_t DFObservationStrategy::numberOfCollectedElements() const noexcept
-{
-	std::size_t retVal(0);
-	for (const auto &it : observation_strategy_map_)
-	{
-		const ObservationStrategy & item (it.second);
-		retVal += item.element_counter;
-	}
-	return retVal;
-}
-
-//----------------------------------------------------------------------
-// numberOfElementsLeftToCollect
-//----------------------------------------------------------------------
-const size_t DFObservationStrategy::numberOfElementsLeftToCollect() const noexcept
-{
-	std::size_t retVal(0);
-	for (const auto &it : observation_strategy_map_)
-	{
-		const ObservationStrategy & item (it.second);
-		retVal += (item.number_element_to_collect - item.element_counter);
-	}
-	return retVal;
-}
-
-//----------------------------------------------------------------------
-// totalNumberOfElementsToCollectForAcquisition
-//----------------------------------------------------------------------
-const std::size_t DFObservationStrategy::totalNumberOfElementsToCollectForAcquisition() const noexcept
-{
-	std::size_t retVal(0);
-	for (const auto &it : observation_strategy_map_)
-	{
-		const ObservationStrategy & item (it.second);
-		if ( item.is_leaf )
-		{
-			retVal += item.number_element_to_collect;
-		}
-	}
-	return retVal;
-}
-
-//----------------------------------------------------------------------
-// numberOfCollectedElementsForAcquisition
-//----------------------------------------------------------------------
-const std::size_t DFObservationStrategy::numberOfCollectedElementsForAcquisition() const noexcept
-{
-	std::size_t retVal(0);
-	for (const auto &it : observation_strategy_map_)
-	{
-		const ObservationStrategy & item (it.second);
-		if ( item.is_leaf )
-		{
-			retVal += item.element_counter;
-		}
-	}
-	return retVal;
-}
-
-//----------------------------------------------------------------------
-// numberOfElementsLeftToCollectForAcquisition
-//----------------------------------------------------------------------
-const std::size_t DFObservationStrategy::numberOfElementsLeftToCollectForAcquisition() const noexcept
-{
-	std::size_t retVal(0);
-	for (const auto &it : observation_strategy_map_)
-	{
-		const ObservationStrategy & item (it.second);
-		if ( item.is_leaf )
-		{
-			retVal += (item.number_element_to_collect - item.element_counter);
-		}
-	}
-	return retVal;
-}
-
-//----------------------------------------------------------------------
-// find1stObsStrategyNotAcquisitionCompleted
-//----------------------------------------------------------------------
-DFObservationStrategyPtr find1stObsStrategyNotAcquisitionCompleted(DFObservationStrategyList &list) 
-{
-	DFObservationStrategyList::iterator it (list.begin());
-	for (; it not_eq list.end(); ++it)
-	{
-		if ( not (*it)->isAcquisitionComplete() )
-		{
-			break;
-		}
-	}
-
-	if ( it == list.end() )
-	{
-		throw NoEntries(__PRETTY_FUNCTION__,"Observation Strategy not found");
-
-	} 
-
-	return (*it);
-}
-
-};
