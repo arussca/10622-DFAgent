@@ -437,37 +437,42 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
 		observation_strategies_.erase(observation_strategies_iter);
 
 	} else {
-		//Get the observation strategy parent
-		DFObservationStrategy::ObservationStrategyPtr observation_strategy_next_node =
-				(*observation_strategies_iter)->fromId(observation_strategy_node->next[0]);
-		//Increase element counter
-		observation_strategy_next_node->element_counter++;
-		//Store recipe id
-		observation_strategy_next_node->recipes_identifiers.push_back(id);
-		//If the observation strategy parent is completed
-		if (observation_strategy_next_node->element_counter ==
-				observation_strategy_next_node->number_element_to_collect)
-		{
-			trace_.out("Commit Observation Result\n");
-			subscribeToReductionResult_(observation_strategy_next_node->observation_mode.c_str());
-			configureObsMode_(observation_strategy_next_node->observation_mode.c_str(),(*observation_strategies_iter)->strategy_session_id);
-			observation_strategy_next_node->session_id=dfSessionId_;
 
-			DDPKF::DataElement dataElement;
-			dataElement.name = CORBA::string_dup("resultIds");
-			dataElement.type = DF::TYPE_LONG_LIST;
-			dataElement.value.lList(DGT::LongList());
-			toIDL(observation_strategy_next_node->recipes_identifiers, dataElement.value.lList());
+		for (int next_id = 0; next_id < observation_strategy_node->next.size(); next_id++) {
+			//Get the observation strategy parent
+			DFObservationStrategy::ObservationStrategyPtr observation_strategy_next_node =
+				(*observation_strategies_iter)->fromId(observation_strategy_node->next[next_id]);
+			//Increase element counter
+			observation_strategy_next_node->element_counter++;
+			//Store recipe id
+			observation_strategy_next_node->recipes_identifiers.push_back(id);
+			//If the observation strategy parent is completed
+			if (observation_strategy_next_node->element_counter ==
+					observation_strategy_next_node->number_element_to_collect)
+			{
+				trace_.out("Commit Observation Result\n");
+				subscribeToReductionResult_(observation_strategy_next_node->observation_mode.c_str());
+				configureObsMode_(observation_strategy_next_node->observation_mode.c_str(),(*observation_strategies_iter)->strategy_session_id);
+				observation_strategy_next_node->session_id=dfSessionId_;
 
-			initDFBranchInstance_(false);
-			dfBranchInstance_->receiveORParam(dataElement, dfBranchInstanceName_, dfSessionId_);
-			observation_strategy_next_node->observation_result_id = dfBranchInstance_->commitOR(true, true,
-					dfBranchInstanceName_,
-					observation_strategy_next_node->session_id);
-			trace_.out("Observation result [id=%ul]\n",observation_strategy_next_node->observation_result_id );
+				DDPKF::DataElement dataElement;
+				dataElement.name = CORBA::string_dup("resultIds");
+				dataElement.type = DF::TYPE_LONG_LIST;
+				dataElement.value.lList(DGT::LongList());
+				toIDL(observation_strategy_next_node->recipes_identifiers, dataElement.value.lList());
+
+				initDFBranchInstance_(false);
+				dfBranchInstance_->receiveORParam(dataElement, dfBranchInstanceName_, dfSessionId_);
+				observation_strategy_next_node->observation_result_id = dfBranchInstance_->commitOR(true, true,
+						dfBranchInstanceName_,
+						observation_strategy_next_node->session_id);
+				trace_.out("Observation result [id=%ul]\n",observation_strategy_next_node->observation_result_id );
+			}
+			//Print debug info
+			(*observation_strategies_iter)->debug();
 		}
-		//Print debug info
-		(*observation_strategies_iter)->debug();
+
+
 	}
 }
 
