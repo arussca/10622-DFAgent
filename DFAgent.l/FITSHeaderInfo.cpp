@@ -1,801 +1,1958 @@
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <cctype>
-#include <iomanip>
-#include <FITSHeaderInfo.h>
-#include <DCFC.h>
-#include "MMCommonC.h"
-#include "MonitorManagerC.h"
+// Copyright (c) 2018 Gran Telescopio Canarias, S.A. (GRANTECAN)
+// All Rights Reserved
 
-using namespace std;
+// Includes
+#include "FITSHeaderInfo.h"
 
-string FITSHeaderInfo::formatRadianToHms_(double rad)
+#include <fstream>                        // std::ifstream
+#include <sstream>                        // std::ostringstream, std::stringstream
+#include <iomanip>                        // std::setw, std::setfill
+#include <algorithm>                      // std::remove_if
+#include <GCSException.h>                 // GCSException, NotFound
+#include <PropertyParser.h>               // SyntaxError
+#include <MMCommonS.h>                    // MM::MonitorQuery
+#include <ace/Trace.h>                    // ACE_Trace
+#include <json/json.h>                    // Json::Value, Json::ArrayIndex
+//#include <type_traits>                    // static_assert, std::is_same
+#include <cassert>                        // assert
+#include <slalib.h>                       // slaDr2tf, slaDr2af
+#include <slamac.h>                       // DR2D (180/pi:  radians to degrees)
+#include <Wrappers_All.h>                 // endsWith
+
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                               Macros                                **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+//<editor-fold desc="Enable or disable debug trace via source code">
+//#define FITSHeaderInfo_DEBUG // Enable debug trace
+//#undef FITSHeaderInfo_DEBUG  // Disable debug trace
+//</editor-fold>
+//<editor-fold desc="Define FITSHeaderInfo_TRACE">
+#if defined(FITSHeaderInfo_DEBUG)
+#include <ace/Trace.h>                    // ACE_Trace
+#define FITSHeaderInfo_TRACE \
+  ACE_Trace ace_trace(__func__, __LINE__, __FILE__);\
+  ace_trace.start_tracing();\
+  ace_trace.set_nesting_indent(1);
+#else
+#define FITSHeaderInfo_TRACE \
+  //;
+#endif
+//</editor-fold>
+
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                              Constants                              **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+FITSHeaderInfo::AllowedFileNames FITSHeaderInfo::allowedFieldNamesForFixedKeywords;
+
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                 Constructors and destructor methods                 **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+//----------------------------------------------------------------------
+// Default constructor
+//----------------------------------------------------------------------
+FITSHeaderInfo::FITSHeaderInfo()
+    : keywordNamesList_()
+    , fixedKeywordList_()
+    , monitorKeywordList_()
+    , parsedKeywords_()
+    , notParsedNodesID_()
+    , notWrittenKeywords_()
+    , discreteMonitorCounter_(0)
+    , sampledMonitorCounter_(0)
+    , monitorAgent_(NULL)
+    , logAgent_(NULL)
+    , trace_(NULL)
 {
-   char sign;
-   int ihmsf[4];
-   ostringstream strbuf;
-   
-   slaDr2tf (3, rad, &sign, ihmsf);
-   if(sign != '+')
-   { //adds sign when negative
-     strbuf << sign;
-   }
-   strbuf << setw (2) << setfill('0') << ihmsf[0] << ":" 
-                  << setw (2) << setfill('0') << ihmsf[1] << ":" 
-                  << setw (2) << setfill('0') << ihmsf[2] << "." 
-                  << setw (3) << setfill('0') << ihmsf[3];
-
-//   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
-   
-   return strbuf.str();
+  FITSHeaderInfo_TRACE
 }
 
-string FITSHeaderInfo::formatRadianToDms_(double rad)
+//----------------------------------------------------------------------
+// Customized constructor
+//----------------------------------------------------------------------
+FITSHeaderInfo::FITSHeaderInfo(MonitorAgent *&monitorAgent,
+                               LogAgent *&logAgent,
+                               Trace &trace)
+    : keywordNamesList_()
+    , fixedKeywordList_()
+    , monitorKeywordList_()
+    , parsedKeywords_()
+    , notParsedNodesID_()
+    , notWrittenKeywords_()
+    , discreteMonitorCounter_(0)
+    , sampledMonitorCounter_(0)
+    , monitorAgent_(monitorAgent)
+    , logAgent_(logAgent)
+    , trace_(& trace)
 {
-   char sign;
-   int ihmsf[4];
-   ostringstream strbuf;
-   
-   slaDr2af (3, rad, &sign, ihmsf);
-   if(sign != '+')
-   { //adds sign when negative
-     strbuf << sign;
-   }
-   strbuf << setw (2) << setfill('0') << ihmsf[0] << ":" 
-                  << setw (2) << setfill('0') << ihmsf[1] << ":" 
-                  << setw (2) << setfill('0') << ihmsf[2] << "." 
-                  << setw (3) << setfill('0') << ihmsf[3];
-
-//   strbuf<<sign<<ihmsf[0]<<":"<<ihmsf[1]<<":"<<ihmsf[2]<<"."<<ihmsf[3];
-   
-   return strbuf.str();
+  FITSHeaderInfo_TRACE
 }
 
-double FITSHeaderInfo::formatRadianToDeg_(double rad)
+//----------------------------------------------------------------------
+// Copy constructor
+//----------------------------------------------------------------------
+FITSHeaderInfo::FITSHeaderInfo(const FITSHeaderInfo &other)
+    : keywordNamesList_(other.keywordNamesList_)
+    , fixedKeywordList_()
+    , monitorKeywordList_(other.monitorKeywordList_)
+    , parsedKeywords_(other.parsedKeywords_)
+    , notParsedNodesID_(other.notParsedNodesID_)
+    , notWrittenKeywords_(other.notWrittenKeywords_)
+    , discreteMonitorCounter_(other.discreteMonitorCounter_)
+    , sampledMonitorCounter_(other.sampledMonitorCounter_)
+    , monitorAgent_(other.monitorAgent_)
+    , logAgent_(other.logAgent_)
+    , trace_(other.trace_)
 {
-   return rad*DR2D;
-}
-
-template<class ListType, typename ValueType>
-void FITSHeaderInfo::addSampledMonitorKeyword_(const KeywordInfo& keyword, const ListType& list, DataDescription& frame)
-{
-   if (list.length() < 1)
-   {
-      throw NotFound ("addSampledMonitorKeyword_()", "Data length is 0");
-   }
-
-   std::string unitComment;
-   if (keyword.keyFormat == "RAD_TO_HMS")
-   {
-     unitComment = " (h:m:s)";
-     frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, formatRadianToHms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() )); 
-   }
-   else if (keyword.keyFormat == "RAD_TO_DMS")
-   {
-     unitComment = " (d:m:s)";
-     frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, formatRadianToDms_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
-   }
-   else if (keyword.keyFormat == "RAD_TO_DEG")
-   {
-     unitComment = " (degrees)";
-     frame.addKeyword(DPKF::Keyword<double>(keyword.keyName, formatRadianToDeg_((double) list[0].value), (keyword.keyComment + unitComment).c_str() ));
-   }
-   else
-   {
-     frame.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName, (ValueType) list[0].value, keyword.keyComment));
-   }
-}
-
-
-void FITSHeaderInfo::parseKeywordsFile(const string& fileName)
-{
-  ifstream f(fileName.c_str());
-  string devName, monName, keyName, keyType, keyFormat, arrayRange, enumLabels, keyComment, keyIndexStart, condition, if_condition, when, specLine, cell;
-  bool keyTransposed = false;
-  if (f.is_open())
+  FITSHeaderInfo_TRACE
+  for (FixedKeywordContainer::const_iterator item = other.fixedKeywordList_.begin();
+       item != other.fixedKeywordList_.end();
+       ++item)
   {
-    while(!f.eof())
-    { //this keyword is not mandatory, so it needs to be cleaned from previous value
-      arrayRange = "";
-      enumLabels = "";
-      keyComment = "";
-      condition = "";
-      if_condition = "";
-      keyName = "";
-      devName = "";
-      monName = "";
-      keyType = "";
-      keyFormat = "";
-      keyIndexStart="";
-      keyTransposed = false;
-      
-      getline(f,specLine);
-      stringstream ss(specLine);
-      
-      ss >> keyName;
-      keyName.erase(remove_if(keyName.begin(), keyName.end(), (int(*)(int)) isspace), keyName.end());      
-      if(keyName == "")
-      { //jump to the next line in the spec file if this is empty
-        continue;
-      }
-      ss >> devName;
-      ss >> monName;
-      ss >> keyType;
-      ss >> keyFormat;
-
-      //optional fields, must be tab separated!!! No spaces allowed!!
-      while(ss.good())
-      {
-        std::getline(ss, cell, ']');
-        if(cell != "")
-        { 
-          string tag = cell.substr(0,cell.find_first_of("="));
-          tag.erase(remove_if(tag.begin(), tag.end(), (int(*)(int)) isspace), tag.end());
-          if(tag == "range")
-          {
-            arrayRange = cell.substr(cell.find_first_of("[") + 1);
-          }
-          else if (tag == "indexstart")
-          {
-             keyIndexStart = cell.substr(cell.find_first_of("=") + 1);
-             keyIndexStart=keyIndexStart.substr(keyIndexStart.find_first_of("[") + 1, keyIndexStart.find_first_of("]") - 1);
-
-          }
-          else if (tag =="transpose")
-          {
-             keyTransposed = true;
-          }
-          else if(tag == "labels")
-          {
-            enumLabels = cell.substr(cell.find_first_of("[") + 1);
-          }
-          else if(tag == "comment")
-          {
-            keyComment = cell.substr(cell.find_first_of("=") + 1);
-            keyComment = keyComment.substr(keyComment.find_first_of("[") + 1, keyComment.find_first_of("]") - 1);
-          }
-          else if(tag == "condition")
-          {
-            condition = cell.substr(cell.find_first_of("=") + 1);
-            condition = condition.substr(condition.find_first_of("[") + 1, condition.find_first_of("]") - 1);
-          }
-          else if(tag == "if_condition")
-          {
-            if_condition = cell.substr(cell.find_first_of("=") + 1);
-            if_condition = if_condition.substr(if_condition.find_first_of("[") + 1, if_condition.find_first_of("]") - 1);
-          }
-          else if(tag == "when")
-          {
-            when = cell.substr(cell.find_first_of("=") + 1);
-            when = when.substr(when.find_first_of("[") + 1, when.find_first_of("]") - 1);            
-          }
-          else if(tag != "")
-          {
-            std::cout << "ERROR: No valid field tag have been found: " << tag << std::endl;
-
-          }
-        }
-      }
-
-      monList_.push_back(KeywordInfo(keyName, devName, monName, keyType, keyFormat, arrayRange, enumLabels, keyComment, keyIndexStart, keyTransposed, condition, if_condition, when));
-    }
-    f.close();
+    fixedKeywordList_.push_back((*item)->clone());
   }
 }
 
-void FITSHeaderInfo::forceSampleData(MonitorAgent* dfMonitorAgent)
+//----------------------------------------------------------------------
+// Move constructor
+//----------------------------------------------------------------------
+#if defined(__cplusplus) && (__cplusplus >= 201103L)
+FITSHeaderInfo::FITSHeaderInfo(FITSHeaderInfo &&other)
+    : keywordNamesList_(other.keywordNamesList_)
+    , fixedKeywordList_(other.fixedKeywordList_)
+    , monitorKeywordList_(other.monitorKeywordList_)
+    , parsedKeywords_(other.parsedKeywords_)
+    , notParsedNodesID_(other.notParsedNodesID_)
+    , notWrittenKeywords_(other.notWrittenKeywords_)
+    , discreteMonitorCounter_(other.discreteMonitorCounter_)
+    , sampledMonitorCounter_(other.sampledMonitorCounter_)
+    , monitorAgent_(other.monitorAgent_)
+    , logAgent_(other.logAgent_)
+    , trace_(other.trace_)
 {
-  vector<KeywordInfo>::const_iterator it, endIt;
+  FITSHeaderInfo_TRACE
+  other.monitorAgent_ = NULL;
+  other.logAgent_ = NULL;
+  other.trace_ = NULL;
+  other.fixedKeywordList_.clear();
+}
+#endif
 
-  it = monList_.begin();
-  endIt = monList_.end();
-  while (it != endIt)
-  {
-    try
-    {
-      if(monList_.size() == 0)
-      {
-        throw InvalidValue("Monitor List","No keywords configuration found.");
-      }
-      
-      dfMonitorAgent->forceSampleData(it->deviceName, it->monitorName);
-    }
-    catch (GCSException& ex)
-    {
-      cerr<<"ERROR forcing sample data: "<<it->keyName<<endl;
-      ex.addToTrace ("forceSampleData()");   
-      cerr<<ex<<endl;      
-    }
-    catch (const CORBA::Exception &ex)
-    {
-      cerr << "CORBA ERROR forcing sample data" << endl;
-      cerr<<ex<<endl;
-    }   
-    //increment position
-    ++it;
-  }
+//----------------------------------------------------------------------
+// Copy assignment
+//----------------------------------------------------------------------
+FITSHeaderInfo& FITSHeaderInfo::operator=(const FITSHeaderInfo &other)
+{
+  FITSHeaderInfo_TRACE
+  this->keywordNamesList_.clear();
+  this->fixedKeywordList_.clear();
+  this->monitorKeywordList_.clear();
+  this->parsedKeywords_.clear();
+  this->notParsedNodesID_.clear();
+  this->notWrittenKeywords_.clear();
+  this->discreteMonitorCounter_ = 0;
+  this->sampledMonitorCounter_ = 0;
+
+  this->keywordNamesList_ = other.keywordNamesList_;
+  this->fixedKeywordList_ = other.fixedKeywordList_;
+  this->monitorKeywordList_ = other.monitorKeywordList_;
+  this->parsedKeywords_ = other.parsedKeywords_;
+  this->notParsedNodesID_ = other.notParsedNodesID_;
+  this->notWrittenKeywords_ = other.notWrittenKeywords_;
+  this->discreteMonitorCounter_  = other.discreteMonitorCounter_ ;
+  this->sampledMonitorCounter_  = other.sampledMonitorCounter_ ;
+
+  this->monitorAgent_ = other.monitorAgent_;
+  this->logAgent_ = other.logAgent_;
+  this->trace_ = other.trace_;
+  return *this;
 }
 
-
-void FITSHeaderInfo::gatherMonitorKeywords(const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
+//----------------------------------------------------------------------
+// Move assignment
+//----------------------------------------------------------------------
+#if defined(__cplusplus) && (__cplusplus >= 201103L)
+FITSHeaderInfo& FITSHeaderInfo::operator=(FITSHeaderInfo &&other)
 {
-  vector<KeywordInfo>::const_iterator it = monList_.begin();
-  vector<KeywordInfo>::const_iterator endIt = monList_.end();
+  FITSHeaderInfo_TRACE
+  this->keywordNamesList_.clear();
+  this->fixedKeywordList_.clear();
+  this->monitorKeywordList_.clear();
+  this->parsedKeywords_.clear();
+  this->notParsedNodesID_.clear();
+  this->notWrittenKeywords_.clear();
+  this->discreteMonitorCounter_ = 0;
+  this->sampledMonitorCounter_ = 0;
 
-  conditionList_.clear();
+  this->keywordNamesList_ = other.keywordNamesList_;
+  this->fixedKeywordList_ = other.fixedKeywordList_;
+  this->monitorKeywordList_ = other.monitorKeywordList_;
+  this->parsedKeywords_ = other.parsedKeywords_;
+  this->notParsedNodesID_ = other.notParsedNodesID_;
+  this->notWrittenKeywords_ = other.notWrittenKeywords_;
+  this->discreteMonitorCounter_  = other.discreteMonitorCounter_ ;
+  this->sampledMonitorCounter_  = other.sampledMonitorCounter_ ;
 
-  std::vector<MM::MonitorQuery> mSampledQueryVector;
-  std::vector<MM::MonitorQuery> mDiscreteQueryVector;
-  
-  
-  //First loop to collect all the keywords needed by the agent and request them to the monitor manager
-  while (it != endIt)
-  {
-    try
-    {
-      if(it->if_condition != "")
-      { //some keywords values are used as conditions to show some others values in the header
-        map<string,bool>::iterator conditionListIt = conditionList_.find(it->if_condition);
-        if(conditionListIt != conditionList_.end())
-        {
-          if(conditionListIt->second == false)
-          {
-            throw InvalidValue("FITSHeaderInfo::gatherMonitorKeywords", "This keyword doesn't apply for this observation");
-          }
-        }
-        else
-        {
-          throw NotFound("FITSHeaderInfo::gatherMonitorKeywords", "Wrong condition configuration in spec file.");
-        }
-      }
-      
-      if (it->monitorType == "SAMPLED")
-      {
-        //gatherSampledMonitor_(*it, time, expTime, dfMonitorAgent, frame) : 
-        //KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime, MonitorAgent* dfMonitorAgent, DataDescription& frame
-        MM::MonitorQuery monsSampledQuery;
-        monsSampledQuery.gcs_component = CORBA::string_dup(it->deviceName.c_str());
-        monsSampledQuery.magnitude = CORBA::string_dup(it->monitorName.c_str());
-        
-        if(it->when == "" || it->when == "START")
-        {
-          monsSampledQuery.time_stamp = toIDL(time);
-        }      
-        else if(it->when == "END")
-        { 
-          monsSampledQuery.time_stamp = toIDL(time + expTime);
-        }
-        else
-        {
-          throw InvalidValue("FITSHeaderInfo::gatherMonitorKeywords()","Wrong when label in spec file.");
-        }
-        
-        mSampledQueryVector.push_back(monsSampledQuery);
-        std::cout << "SAMPLED Keyword : " << it->monitorName << std::endl;
-        
-      }
-      else if (it->monitorType == "DISCRETE")
-      {
-//        gatherDiscreteMonitor_(*it, time, dfMonitorAgent, frame) : 
-//        KeywordInfo& keyword, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame
-        MM::MonitorQuery monsDiscreteQuery;     
-        monsDiscreteQuery.gcs_component = CORBA::string_dup(it->deviceName.c_str());
-        monsDiscreteQuery.magnitude = CORBA::string_dup(it->monitorName.c_str());
-        monsDiscreteQuery.time_stamp = toIDL(time);
-        mDiscreteQueryVector.push_back(monsDiscreteQuery);
-      }
-      else
-      {
-        std::cout << "ERROR: invalid key format : " << it->keyName << " " << it->keyFormat << std::endl;
-      }
-      
-        
-    }
-    catch (GCSException& ex)
-    {
-      cerr<<"ERROR gathering header keyword: "<<it->keyName<<endl;
-      ex.addToTrace ("gatherMonitorKeywords_()");   
-//      logError_ ("Error gathering header keyword: %s", ex.toString());
-      cerr<<ex<<endl;      
-    }
-    catch (const CORBA::Exception &ex)
-    {
-      cerr << "CORBA ERROR gathering header keyword" << endl;
-//      logError_ ("CORBA Error gathering header keyword: %s", ex.toString());     
-      cerr<<ex<<endl;
-    }   
-    //increment position
-    ++it;
-  }
+  this->monitorAgent_ = other.monitorAgent_;
+  this->logAgent_ = other.logAgent_;
+  this->trace_ = other.trace_;
 
+  other.monitorAgent_ = NULL;
+  other.logAgent_ = NULL;
+  other.trace_ = NULL;
+  other.fixedKeywordList_.clear();
 
+  return *this;
+}
+#endif
 
-  MM::DataBlockList_var dataBlockL;
-  if(mSampledQueryVector.size() != 0)
-  {
-    MM::MonitorQueryList mSampledQueryList;
-    mSampledQueryList.length(mSampledQueryVector.size() );
-    std::vector<MM::MonitorQuery>::const_iterator itS, itSEnd;
-    itS = mSampledQueryVector.begin();
-    itSEnd = mSampledQueryVector.end();
-    unsigned int ii = 0;
-    while(itS != itSEnd)
-    {
-      mSampledQueryList[ii] = *itS;
-      ++ii; ++itS;
-    }
-    dataBlockL = dfMonitorAgent->retrieveLastDataSet(mSampledQueryList);
-  }
-    
-  MM::MagnitudeChangeList magnitudeChangeL;
-  if(mDiscreteQueryVector.size() != 0)
-  {
-    MM::MonitorQueryList mDiscreteQueryList;
-    mDiscreteQueryList.length(mDiscreteQueryVector.size() );
-    std::vector<MM::MonitorQuery>::const_iterator itD, itDEnd;
-    itD = mDiscreteQueryVector.begin();
-    itDEnd = mDiscreteQueryVector.end();
-    unsigned int jj = 0;
-    while(itD != itDEnd)
-    {
-      mDiscreteQueryList[jj] = *itD;
-      ++jj; ++itD;
-    }
-    magnitudeChangeL = dfMonitorAgent->retrieveLastMagnitudeSet(mDiscreteQueryList);
-  }
-  
-  
-  for(it = monList_.begin(); it != endIt; ++it)
-  {
-    try
-    {
-      if(it->monitorType == "SAMPLED")
-      {
-        //Search dataBlock that matches the keyword info within DataBlockList
-        for(unsigned int i = 0; i<dataBlockL->length(); ++i)
-        {
-          std::string magName = dataBlockL[i].magnitude.in();
-          std::string devName = dataBlockL[i].gcs_component.in();
-          if(it->monitorName == magName && it->deviceName == devName)
-          {
-              gatherSampledMonitor_(*it, dataBlockL[i], time, expTime, dfMonitorAgent, frame);
-              break;
-          }
-        }
-      }
-      else if(it->monitorType == "DISCRETE")
-      {
-        //Search magnitudeChange that matches the keyword info within MagnitudChangeList
-        for(unsigned int i = 0; i<magnitudeChangeL.length(); ++i)
-        {
-          std::string magName = magnitudeChangeL[i].magnitude.in();
-          std::string devName = magnitudeChangeL[i].gcs_component.in();
-          if(it->monitorName == magName && it->deviceName == devName)
-          {
-            gatherDiscreteMonitor_(*it, magnitudeChangeL[i], time, dfMonitorAgent, frame);
-            break;
-          }
-        }
-      }
-    }
-
-    catch (GCSException& ex)
-    {
-      cerr<<"Error writing header keyword: "<<it->keyName<<endl;
-      ex.addToTrace ("gatherMonitorKeywords_()");   
-//      logError_ ("Error writing header keyword: %s", ex.toString());
-      cerr<<ex<<endl;      
-    }
-    catch (const CORBA::Exception &ex)
-    {
-      cerr << "CORBA Error writing header keyword" << endl;
-//      logError_ ("CORBA Error writing header keyword: %s", ex.toString());     
-      cerr<<ex<<endl;
-    }
-  }
+//----------------------------------------------------------------------
+// Destructor
+//----------------------------------------------------------------------
+FITSHeaderInfo::~FITSHeaderInfo()
+{
+  FITSHeaderInfo_TRACE
+  clearAllMembers_();
 }
 
-string FITSHeaderInfo::getLabelFromValue_(const string &sLabels, const long &val)
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                            public methods                           **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+//----------------------------------------------------------------------
+// setMonitorAgent
+//----------------------------------------------------------------------
+void FITSHeaderInfo::setMonitorAgent(MonitorAgent *&monitorAgent)
 {
-  string label;
-//  string labelList = sLabels.substr(sLabels.find_first_of("[") + 1, sLabels.find_first_of("]") - 1);
-  stringstream strs(sLabels);
-  unsigned int count = 0;
-  while(strs.good())
+  FITSHeaderInfo_TRACE
+  monitorAgent_ = monitorAgent;
+}
+
+//----------------------------------------------------------------------
+// setLogAgent
+//----------------------------------------------------------------------
+void FITSHeaderInfo::setLogAgent(LogAgent *&logAgent)
+{
+  FITSHeaderInfo_TRACE
+  logAgent_ = logAgent;
+}
+
+//----------------------------------------------------------------------
+// setTrace
+//----------------------------------------------------------------------
+void FITSHeaderInfo::setTrace(Trace *&trace)
+{
+  FITSHeaderInfo_TRACE
+  trace_ = trace;
+}
+
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromFile
+//----------------------------------------------------------------------
+void FITSHeaderInfo::parseFITSHeaderKeywordsFromFile(const std::string &fileName)
+{
+  FITSHeaderInfo_TRACE
+  clearAllMembers_();
+
+  // Check if file can be opened
   {
-    std::getline(strs, label, ',');
-    if(count == val)
+    std::ifstream file(fileName.c_str());
+    if ( not file.is_open() )
     {
-      break;
+      NotFound exception(__PRETTY_FUNCTION__);
+      exception.addText("Unable to open file '%s'", fileName.c_str() );
+      throw exception;
     }
     else
     {
-      label = "";
-      count++;
+      file.close();
     }
   }
-  return label;
-}
 
-std::pair<unsigned int, unsigned int> FITSHeaderInfo::rangeFromString_( const string &sRange )
-{
-  //parse string with the format as follows; [valueX1,valueX2]
-  unsigned int startIndex, endIndex;
-  string vX1(sRange.substr(0, sRange.find_first_of(",")));
-  string vX2(sRange.substr(sRange.find_first_of(",") + 1, string::npos));
-  
-  istringstream issvX1(vX1), issvX2(vX2);
-  if( (issvX1 >> dec >> startIndex).fail() || (issvX2 >> dec >> endIndex).fail() )
+  // Determine the file format by its extension
+  if ( endsWith (fileName.c_str(), ".json") )
   {
-    throw InvalidValue("FITSHeaderInfo::rangeFromString_(string)","Cannot get a number from string");
-  }
-
-  return std::pair<unsigned int, unsigned int>(startIndex, endIndex);
-}
-
-template<typename C>
-C FITSHeaderInfo::trimmedArray1D_(C arrayIn, const std::string sRange)
-{
-  std::pair<unsigned int, unsigned int> range;
-  if(sRange == "")
-  { //no specified range means the whole range is applied
-    range = make_pair(0, (unsigned int)( (arrayIn.value.dimension.height * arrayIn.value.dimension.width) - 1 ));
-  }
+    parseFITSHeaderKeywordsFromJSONFile_(fileName);
+  }// JSON
   else
   {
-    range = rangeFromString_(sRange);
-  }
+    parseFITSHeaderKeywordsFromPlainTextFile_(fileName);
+  }// PlainText
 
-   
-  C arrayOut;
-  arrayOut.time_stamp = arrayIn.time_stamp;
-  arrayOut.value.dimension.height = (range.second - range.first) + 1;
-//  if( arrayIn.value.dimension.width != 1 ) 
-//  {
-//    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Only one dimentional array supported");
-//  }
-  if( range.second < range.first )
-  {
-    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Last index lower than first");
-  }
-//  if( range.first > (unsigned int)(arrayIn.value.dimension.height - 1) || range.second > (unsigned int)(arrayIn.value.dimension.height - 1) )
-//  {
-//    throw InvalidValue("FITSHeaderInfo::trimmedArray1D_(C, string)","Range out of bounds");
-//  }
-  
-  arrayOut.value.dimension.width = 1; 
-  arrayOut.value.data.length((range.second - range.first) + 1);
-
-  unsigned int i(0);
-  for(unsigned int j=range.first; j<range.second; ++j) 
-  {
-    arrayOut.value.data[i] = arrayIn.value.data[j];
-    ++i;
-  }
-  
-  return arrayOut;
 }
 
-
-template<class C, typename ValueType>
-void FITSHeaderInfo::addArrayToScalarKeywords_(const KeywordInfo& keyword, C arrayIn, const std::string& sRange, DataDescription& frame)
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromInline
+//----------------------------------------------------------------------
+void FITSHeaderInfo::parseFITSHeaderKeywordsFromInline(const Json::Value &root)
 {
-  std::pair<unsigned int, unsigned int> range;
-  int keySufix;
-  if(sRange == "")
-  { //no specified range means the whole range is applied
-    range = make_pair(0, (unsigned int)( (arrayIn[0].value.dimension.height * arrayIn[0].value.dimension.width)  ));
-  }
-  else
-  {
-    range = rangeFromString_(sRange);
-  }
+  FITSHeaderInfo_TRACE
+  clearAllMembers_();
 
-  if( range.second < range.first )
-  {
-    throw InvalidValue("FITSHeaderInfo::addArrayToScalarKeywords_()","Last index lower than first");
-  }
-  
-    if (keyword.keyIndexStart == "")
-     keySufix = range.first;
-  else
-  {
-     istringstream ss(keyword.keyIndexStart);     
-     ss >> keySufix;
+  // Check type of root node
+  if ( not root.isArray() )
+    throw SyntaxError(__PRETTY_FUNCTION__, "The root JSON node must be an array.");
 
-  }
-  
-  if (!keyword.transposed)
+  // Parse all keywords from subnodes of root.
+  #ifdef VXWORKS
+  typedef Json::Value::ArrayIndex ArrayIndex;
+  #elif LINUX
+  typedef Json::ArrayIndex ArrayIndex;
+  #endif
+  unsigned int id;
+  for (ArrayIndex i = 0; i < root.size(); ++i )
   {
-    for(unsigned int j=range.first; j<range.second; ++j) 
+    try
     {
-      std::ostringstream j_convert;
-      j_convert << keySufix;
-
-      frame.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName + j_convert.str(), (ValueType) arrayIn[0].value.data[j],   keyword.keyComment));
-      keySufix++;
-    }
- }
- else
- {
-    //int begin_i = range.first / arrayIn[0].value.dimension.width;
-    //int begin_j = range.first % arrayIn[0].value.dimension.width;
-    //int end_i = range.second / arrayIn[0].value.dimension.width;
-    //int end_j = range.second % arrayIn[0].value.dimension.width;
-    int begin_i = 0;
-    int begin_j = 0;
-    int end_i = arrayIn[0].value.dimension.width;
-    int end_j = arrayIn[0].value.dimension.height;
-
-
-    for (int j=begin_j; j<end_j; j++)
-    {
-       for (int i=begin_i; i<end_i; i++)
-       {
-      
-      int index = i*arrayIn[0].value.dimension.height + j;
-      if (index >= range.first && index < range.second)
+      id = i+1;
+      const unsigned int verbose = 0;
+      if ( trace_ not_eq NULL )
       {
-      std::ostringstream j_convert;
-      j_convert << keySufix;
-
-      frame.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName + j_convert.str(), (ValueType) arrayIn[0].value.data[index],   keyword.keyComment));
-      keySufix++;          
+        trace_->out("Parsing node #%03d", id);
       }
-     }
-    }
- }   
-}
-
-
-
-void FITSHeaderInfo::gatherSpecialMonitorKeywords_(const MM::DataBlock& mons, const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
-{
-  try
-  {
-    std::string magName = mons.magnitude.in();
-    if(mons.magnitude.in() == "demandedIPA")
-    {
-    //  IPA     OE/ObservingEngine      demandedIPA         SAMPLED RAD_TO_DEG	comment=[Instrument position angle]   
-    //  MM::DataBlock_var monsIPA = dfMonitorAgent->retrieveLastData("OE/ObservingEngine", "demandedIPA", time);
-    
-      double ipaAngle_deg = formatRadianToDeg_((double) mons.samples.d()[0].value);
-      frame.addKeyword(DPKF::Keyword<double>("IPA", ipaAngle_deg, string("Instrument position angle (degrees)").c_str() ));
-  
-      double ipa0Angle_deg = 150.53;
-      frame.addKeyword(DPKF::Keyword<double>("IPA0", ipa0Angle_deg, string("Instrument position angle on rotator (degrees)").c_str() ));
-  
-      double paAngle_deg = ipaAngle_deg - ipa0Angle_deg;
-      frame.addKeyword(DPKF::Keyword<double>("PA", paAngle_deg, string("FOV position angle (Deg. from north)").c_str() ));
-    }
-    
-    if(mons.magnitude.in() == "airmass")
-    {
-    //  AIRMASS OE/ObservingEngine      airmass             SAMPLED NONE	when=[AVG] comment=[Average airmass for the obs
-      static std::vector<double> airmass;
-      airmass.push_back(double(mons.samples.d()[0].value));
-      if(airmass.size() == 2)
+      // Is a fixed keyword?
+      if ( root[i].isMember("value") )
       {
-        frame.addKeyword(DPKF::Keyword<double>("AIRMASS", (airmass.front()+airmass.back())/2.0, string("Average airmass for the observation").c_str() ));
-        airmass.clear();
+        parseFixedKeywords_(id, root[i]);
       }
-    }
-  }
-  catch (GCSException& ex)
-  {
-    cerr << "ERROR gathering header special keyword: " << endl;
-    ex.addToTrace ("gatherSpecialMonitorKeywords_()");   
-//      logError_ ("Error gathering header keyword: %s", ex.toString());const KeywordInfo& keyword, const TimeValue& requestedTime, const TimeValue& requestedExpTime, MonitorAgent* dfMonitorAgent, DataDescription& frame
-    cerr << ex << endl;      
-  }
-  catch (const CORBA::Exception &ex)
-  {
-    cerr << "CORBA ERROR gathering header special keyword." << endl;
-//      logError_ ("CORBA Error gathering header keyword: %s", ex.toString());     
-    cerr << ex << endl;
-  }     
-}
-
-void FITSHeaderInfo::gatherSampledMonitor_( const KeywordInfo& keyword, const MM::DataBlock& mons, const TimeValue& requestedTime, const TimeValue& requestedExpTime, 
-                                            MonitorAgent* dfMonitorAgent, DataDescription& frame )
-{
-   try
-   {  
-      switch ( mons.samples._d() )
+        // Is a monitor keyword?
+      else if ( root[i].isMember("monitor") )
       {
-         case MM::TYPE_SAMPLE_DOUBLE_LIST:
-           addSampledMonitorKeyword_<MM::SampleDoubleList, double>(keyword, mons.samples.d(), frame);
-           break;
-         case MM::TYPE_SAMPLE_FLOAT_LIST:
-           addSampledMonitorKeyword_<MM::SampleFloatList, double>(keyword, mons.samples.f(), frame);
-           break;
-         case MM::TYPE_SAMPLE_LONG_LIST:
-           addSampledMonitorKeyword_<MM::SampleLongList, long>(keyword, mons.samples.l(), frame);
-           break;
-         case MM::TYPE_SAMPLE_SHORT_LIST:
-           addSampledMonitorKeyword_<MM::SampleShortList, long>(keyword, mons.samples.s(), frame);
-           break;
-         case MM::TYPE_SAMPLE_OCTET_LIST:
-           addSampledMonitorKeyword_<MM::SampleOctetList, long>(keyword, mons.samples.o(), frame);
-           break;
-         case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
-         {
-            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
-            {
-              addArrayToScalarKeywords_<MM::SampleDoubleArrayList, double>(keyword, mons.samples.array_d(), keyword.arrayRange, frame);
-            }
-            else
-            {            
-              ostringstream formatbuf;            
-	          toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_(mons.samples.array_d()[0], keyword.arrayRange));
-//	          toStream_(formatbuf, trimmedArray1D_((*mons).samples.array_d()[0], keyword.arrayRange), 1);
-	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
-            }
-	    break;
-         }   
-         case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
-         {
-            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
-            {
-
-              addArrayToScalarKeywords_<MM::SampleFloatArrayList, double>(keyword, mons.samples.array_f(), keyword.arrayRange, frame);
-            }
-            else
-            {
-              ostringstream formatbuf;            
-	          toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_(mons.samples.array_f()[0], keyword.arrayRange));
-	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
-            }
-         }   
-	      break;         
-         case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
-         {
-            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
-            {
-              addArrayToScalarKeywords_<MM::SampleLongArrayList, long>(keyword, mons.samples.array_l(), keyword.arrayRange, frame);
-            }
-            else
-            {
-              ostringstream formatbuf;
-	          toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_(mons.samples.array_l()[0], keyword.arrayRange));
-	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
-            }
-         }
-	      break;
-         case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
-         {
-            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
-            {
-              addArrayToScalarKeywords_<MM::SampleShortArrayList, long>(keyword, mons.samples.array_s(), keyword.arrayRange, frame);
-            }
-            else
-            {
-              ostringstream formatbuf;
-	          toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_(mons.samples.array_s()[0], keyword.arrayRange));
-	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
-            }
-         }   
-	      break;
-         case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
-         {
-            if(keyword.keyFormat == "ARRAY_TO_SCALAR")
-            {
-              addArrayToScalarKeywords_<MM::SampleOctetArrayList, long>(keyword, mons.samples.array_o(), keyword.arrayRange, frame);
-            }
-            else
-            {        
-	          ostringstream formatbuf;
-	          toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_(mons.samples.array_o()[0], keyword.arrayRange));
-	          frame.addKeyword (DPKF::Keyword<string>(keyword.keyName, formatbuf.str(), keyword.keyComment)); 
-            }
-         }   
-	      break;
-          
-         default:
-          throw InvalidValue("FITSHeaderInfo::gatherSampledMonitor_()","No type identified.");
-          
-      }
-   }
-   catch (GCSException& ex)
-   {
-     
-      ex.addToTrace ("gatherSampledMonitor()");
-      throw;
-   }
-   catch (const CORBA::Exception &ex)
-   {
-      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-      gcsex.addToTrace ("gatherSampledMonitor()");
-      throw gcsex;
-   }   
-   
-}
-
-void FITSHeaderInfo::gatherDiscreteMonitor_(const KeywordInfo& keyword, const MM::MagnitudeChange& mons, const TimeValue& requestedTime, MonitorAgent* dfMonitorAgent, DataDescription& frame)
-{
-   try
-   {
-      if(keyword.condition != "")
-      {  //This keyword value is used as a condition to show some other's
-        conditionList_.insert(pair<string, bool>(keyword.keyName, (keyword.condition == getLabelFromValue_(keyword.enumLabels, mons.new_value) ) ) );
-      }
-      
-      if(keyword.enumLabels == "")
-      {
-        frame.addKeyword(DPKF::Keyword<long>(keyword.keyName, mons.new_value, keyword.keyComment));
+        parseMonitorKeywords_(id, root[i]);
       }
       else
       {
-        frame.addKeyword(DPKF::Keyword<string>(keyword.keyName, getLabelFromValue_(keyword.enumLabels, mons.new_value), keyword.keyComment));        
+        SyntaxError exception(__PRETTY_FUNCTION__);
+        exception.addText("One of following fields should be provided: 'value' or 'monitor'.");
+        if (trace_ not_eq NULL)
+          trace_->err(exception.text());
+        if (logAgent_ not_eq NULL)
+          logAgent_->logError(exception.text());
+        throw exception;
       }
-   }
-   catch (GCSException& ex)
-   {
-      ex.addToTrace ("gatherDiscreteMonitor()");
+    }
+    catch (GCSException &exception)
+    {
+      notParsedNodesID_.insert( id );
+      exception.addToTrace(__PRETTY_FUNCTION__);
       throw;
-   }   
+    }
+    catch (...)
+    {
+      notParsedNodesID_.insert( id );
+      UnknownException exception(__PRETTY_FUNCTION__);
+      exception.addText("Unable to parse the node #%03d. Check syntax or allowed fields or theirs values.", id );
+      std::cerr << exception.toString() << std::endl;
+      if (trace_ not_eq NULL)
+      {
+        trace_->err(exception.text());
+      }
+      if (logAgent_ not_eq NULL)
+      {
+        logAgent_->logError(exception.text());
+      }
+      throw;
+    }
+  }
 }
 
-void FITSHeaderInfo::writeHeaderToFile( const TimeValue& time, const TimeValue& expTime, MonitorAgent* dfMonitorAgent, fitsfile* rawFile)
+//----------------------------------------------------------------------
+// merge
+//----------------------------------------------------------------------
+void FITSHeaderInfo::merge(const FITSHeaderInfo &other)
 {
+  FITSHeaderInfo_TRACE
+  //<editor-fold desc="Merge trace, logAgent and monitorManager">
+  // Assign trace
+  if ( this->trace_ == NULL and other.trace_ not_eq NULL )
+  {
+    this->trace_ = other.trace_;
+  }
+  // Assign logAgent
+  if ( this->logAgent_ == NULL and other.logAgent_ not_eq NULL )
+  {
+    this->logAgent_ = other.logAgent_;
+  }
+  // Assign monitorAgent
+  if ( this->monitorAgent_ == NULL and other.monitorAgent_ not_eq NULL )
+  {
+    this->monitorAgent_ = other.monitorAgent_;
+  }
+  //</editor-fold>
+
+  //<editor-fold desc="Merge non-repeated keywords">
+  // Add keywords contained in other, which doesn't exist in this object.
+  unsigned int repeatedKeywordsCounter(0);
+
+  //<editor-fold desc="Merge fixed-Keywords">
+  for (FixedKeywordContainer::const_iterator item = other.fixedKeywordList_.begin();
+       item != other.fixedKeywordList_.end();
+       ++item)
+  {
+
+    // Discard keyword if it's repeated in this object.
+    if (keywordNamesList_.count((*item)->name()) > 0)
+    {
+      // item exists in 'this' list of monitor keyword -> discard item.
+      if ( trace_ not_eq NULL )
+      {
+        trace_->err("Repeated fixed-keyword '%s', which will be discarded.", (*item)->name().c_str() );
+      }
+      if ( logAgent_ not_eq NULL )
+      {
+        logAgent_->logError("Repeated fixed-keyword '%s', which will be discarded.", (*item)->name().c_str() );
+      }
+      ++repeatedKeywordsCounter;
+      continue; // Ignore this keyword definition.
+    }
+    // Add keyword
+    this->keywordNamesList_.insert((*item)->name());
+    this->parsedKeywords_.insert((*item)->name());
+    this->fixedKeywordList_.push_back((*item));
+  }
+  //</editor-fold>
+
+  //<editor-fold desc="Merge monitor-Keywords">
+  for (MonitorKeywordContainer::const_iterator item = other.monitorKeywordList_.begin();
+       item != other.monitorKeywordList_.end();
+       ++item)
+  {
+    // Discard keyword if it's repeated in this object.
+    if (keywordNamesList_.count(item->keyName) > 0)
+    {
+      // item exists in 'this' list of monitor keyword -> discard item.
+      if ( trace_ not_eq NULL )
+      {
+        trace_->err("Repeated monitor-keyword '%s', which will be discarded.", item->keyName.c_str() );
+      }
+      if ( logAgent_ not_eq NULL )
+      {
+        logAgent_->logError("Repeated monitor-keyword '%s', which will be discarded.", item->keyName.c_str() );
+      }
+      ++repeatedKeywordsCounter;
+      continue; // @note: Ignore keyword definition.
+    }
+    // Add keyword
+    this->keywordNamesList_.insert(item->keyName);
+    this->parsedKeywords_.insert(item->keyName);
+    this->monitorKeywordList_.insert(*item);
+    // Increase counters
+    switch (item->monitorType)
+    {
+      case MonitorKeyword/*::MonitorType*/::SAMPLED:
+        ++sampledMonitorCounter_;
+        break;
+      case MonitorKeyword/*::MonitorType*/::DISCRETE:
+        ++discreteMonitorCounter_;
+        break;
+      default:
+        break;
+    }
+  }
+  //</editor-fold>
+
+  //<editor-fold desc="Throw exception, if there is any repeated keyword">
+  if ( repeatedKeywordsCounter > 0 )
+  {
+    CannotProceed exception(__PRETTY_FUNCTION__);
+    static const std::string singularOrPlural (repeatedKeywordsCounter == 1? "is" : "are");
+    exception.addText("There %s '%ld' repeated keyword(s).", singularOrPlural.c_str(), repeatedKeywordsCounter);
+    throw exception;
+  }
+  //</editor-fold>
+  //</editor-fold>
+
+  // Nothing to do for not parsed nodes ID
+  // Nothing to do for not written keywords
+}
+
+//----------------------------------------------------------------------
+// gatherFixedKeywords
+//----------------------------------------------------------------------
+bool FITSHeaderInfo::gatherFixedKeywords(DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+  bool everythingOK (true);
+  for (FixedKeywordContainer::const_iterator item = fixedKeywordList_.begin();
+       item != fixedKeywordList_.end();
+       ++item)
+  {
+    try
+    {
+      header.addKeyword (*(*item));
+    }
+    catch (GCSException & exception)
+    {
+      exception.addToTrace(__PRETTY_FUNCTION__);
+      exception.addText("Problem to add keyword '%s' in header.", (*item)->name().c_str() );
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      everythingOK = false;
+    }
+    catch (...)
+    {
+      UnknownException exception(__PRETTY_FUNCTION__);
+      exception.addText("Problem to add keyword '%s' in header.", (*item)->name().c_str() );
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      everythingOK = false;
+    }
+  }
+  return everythingOK;
+}
+
+//----------------------------------------------------------------------
+// gatherMonitorKeywords
+//----------------------------------------------------------------------
+bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &time,
+                                           const TimeValue &expTime,
+                                           DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+  if ( monitorAgent_ not_eq NULL )
+    return gatherMonitorKeywords(time, expTime, monitorAgent_, header);
+  else
+    throw CannotProceed(__PRETTY_FUNCTION__, "The reference to MonitorAgent is null.");
+}
+
+//----------------------------------------------------------------------
+// gatherMonitorKeywords
+//----------------------------------------------------------------------
+bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
+                                           const TimeValue &durationExpTime,
+                                           MonitorAgent *monitorAgent,
+                                           DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+  if (monitorAgent == NULL)
+  {
+    throw CannotProceed(__PRETTY_FUNCTION__, "The reference to MonitorAgent is null.");
+  }
+  bool returnValue (true);
+  notWrittenKeywords_.clear();
+  DGT::TimeValue idlStartTime = toIDL(startExpTime);
+  DGT::TimeValue idlEndTime   = toIDL(startExpTime + durationExpTime);
+
+  //<editor-fold desc="Group all queries by their type: sampled and discrete">
+  int indexSampled (-1), indexDiscrete (-1);
+  MM::MonitorQueryList sampledQueryList, discreteQueryList;
+  sampledQueryList.length( sampledMonitorCounter_ );
+  discreteQueryList.length( discreteMonitorCounter_ );
+  for (MonitorKeywordContainer::iterator monitorKeyword = monitorKeywordList_.begin();
+       monitorKeyword != monitorKeywordList_.end();
+       ++monitorKeyword)
+  {
+    try
+    {
+      MM::MonitorQuery query;
+      query.gcs_component = CORBA::string_dup( monitorKeyword->deviceName.c_str() );
+      query.magnitude     = CORBA::string_dup( monitorKeyword->monitorName.c_str());
+      // Set startExpTime stamp of the query
+      if ( monitorKeyword->when not_eq MonitorKeyword/*::When*/::END )
+        query.time_stamp = idlStartTime;
+      else
+        query.time_stamp = idlEndTime;
+      // Add query to its respective group
+      if (monitorKeyword->monitorType == MonitorKeyword/*::MonitorType*/::SAMPLED)
+        sampledQueryList[++indexSampled] = query;
+      else if (monitorKeyword->monitorType == MonitorKeyword/*::MonitorType*/::DISCRETE)
+        discreteQueryList[++indexDiscrete] = query;
+    }
+    catch (...)
+    {
+      UnknownException exception(__PRETTY_FUNCTION__);
+      exception.addText("Unable to create the query for the keyword '%s'", monitorKeyword->keyName.c_str() );
+      std::cerr << exception.toString() << std::endl;
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      notWrittenKeywords_.insert(monitorKeyword->keyName);
+      returnValue = false;
+    }
+  }
+  //</editor-fold>
+
+  //<editor-fold desc="Retrieve all SAMPLED monitors">
+  MM::DataBlockList retrievedMonitors;
+  try
+  {
+    retrievedMonitors =  *( monitorAgent->retrieveLastDataSet(sampledQueryList) );
+  }
+  catch (CORBA::Exception &ex)
+  {
+    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+    gcsex.addToTrace(__PRETTY_FUNCTION__);
+    gcsex.addText("Unable to retrieve all SAMPLED monitors");
+    if ( trace_ not_eq NULL )
+      trace_->err(gcsex.toString());
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError(gcsex.toString());
+    returnValue = false;
+  }
+  catch (GCSException &ex)
+  {
+    ex.addToTrace(__PRETTY_FUNCTION__);
+    ex.addText("Unable to retrieve all SAMPLED monitors");
+    if ( trace_ not_eq NULL )
+      trace_->err(ex.toString());
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError(ex.toString());
+    returnValue = false;
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to retrieve all SAMPLED monitors");
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    returnValue = false;
+  }
+  //</editor-fold>
+
+  //<editor-fold desc="Retrieve all DISCRETE monitors">
+  MM::MagnitudeChangeList retrievedMagnitudes;
+  try
+  {
+    retrievedMagnitudes = monitorAgent->retrieveLastMagnitudeSet(discreteQueryList);
+  }
+  catch (CORBA::Exception &ex)
+  {
+    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+    gcsex.addToTrace(__PRETTY_FUNCTION__);
+    gcsex.addText("Unable to retrieve all DISCRETE monitors");
+    if ( trace_ not_eq NULL )
+      trace_->err(gcsex.toString());
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError(gcsex.toString());
+    returnValue = false;
+  }
+  catch (GCSException &ex)
+  {
+    ex.addToTrace(__PRETTY_FUNCTION__);
+    ex.addText("Unable to retrieve all DISCRETE monitors");
+    if ( trace_ not_eq NULL )
+      trace_->err(ex.toString());
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError(ex.toString());
+    returnValue = false;
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to retrieve all DISCRETE monitors");
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    returnValue = false;
+  }
+  //</editor-fold>
+
+  // Did all queries retrieve successfully?
+  NumberOfKeywords retrievedMonitorsSize ( retrievedMonitors.length() );
+  NumberOfKeywords retrievedMagnitudesSize ( retrievedMagnitudes.length() );
+  bool retrievedAllMonitors ( retrievedMonitorsSize == sampledMonitorCounter_ );
+  bool retrievedAllMagnitudes ( retrievedMagnitudesSize == discreteMonitorCounter_ );
+  returnValue &= retrievedAllMonitors and retrievedAllMagnitudes;
+
+  //<editor-fold desc="Write retrieved monitors and magnitudes on header">
+  notWrittenKeywords_.clear();
+  indexSampled  = -1;
+  indexDiscrete = -1;
+  for (MonitorKeywordContainer::iterator monitorKeyword = monitorKeywordList_.begin();
+       monitorKeyword != monitorKeywordList_.end();
+       ++monitorKeyword)
+  {
+    try
+    {
+      switch (monitorKeyword->monitorType)
+      {
+
+        //<editor-fold desc="SAMPLED">
+        case MonitorKeyword/*::MonitorType*/::SAMPLED:
+        {
+          if ( not retrievedAllMonitors )
+          {
+            //Search dataBlock that matches the keyword info within DataBlockList
+            signed int i (-1);
+            for(; ++i < retrievedMonitorsSize;)
+            {
+              if ( monitorKeyword->deviceName ==  std::string ( retrievedMonitors[i].gcs_component.in() )
+                   and monitorKeyword->monitorName ==  std::string ( retrievedMonitors[i].magnitude.in() )
+                  )
+              {
+                gatherSampledMonitor_(*monitorKeyword, retrievedMonitors[i], header);
+                break;
+              }
+            }
+            if ( i == retrievedMonitorsSize )
+            {
+              NotFound exception( __PRETTY_FUNCTION__ );
+              exception.addText("The keyword '%s' could not be retrieved from database.", monitorKeyword->keyName.c_str() );
+              throw exception;
+            }
+          }
+          else
+          {
+            gatherSampledMonitor_(*monitorKeyword, retrievedMonitors[++indexSampled], header);
+          }
+          break;
+        }// SAMPLED
+        //</editor-fold>
+
+        //<editor-fold desc="DISCRETE">
+        case MonitorKeyword/*::MonitorType*/::DISCRETE:
+        {
+          if ( not retrievedAllMagnitudes )
+          {
+            //Search magnitudeChange that matches the keyword info within MagnitudeChangeList
+            signed int i (-1);
+            for( ; ++i < retrievedMagnitudesSize; )
+            {
+              if ( monitorKeyword->deviceName ==  std::string ( retrievedMonitors[i].gcs_component.in() )
+                   and monitorKeyword->monitorName ==  std::string ( retrievedMonitors[i].magnitude.in() )
+                  )
+              {
+                gatherDiscreteMonitor_(*monitorKeyword, retrievedMagnitudes[i], header);
+                break;
+              }
+            }
+            if ( i == retrievedMonitorsSize )
+            {
+              NotFound exception( __PRETTY_FUNCTION__ );
+              exception.addText("The keyword '%s' could not be retrieved from database.", monitorKeyword->keyName.c_str() );
+              throw exception;
+            }
+          }
+          else
+          {
+            gatherDiscreteMonitor_(*monitorKeyword, retrievedMagnitudes[++indexDiscrete], header);
+          }
+          break;
+        }// DISCRETE
+        //</editor-fold>
+      }
+    }
+    catch (const CORBA::Exception &ex)
+    {
+      notWrittenKeywords_.insert(monitorKeyword->keyName);
+      returnValue = false;
+      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+      gcsex.addToTrace(__PRETTY_FUNCTION__);
+      gcsex.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
+      if ( trace_ not_eq NULL )
+        trace_->err(gcsex.toString());
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError(gcsex.toString());
+      //throw ; // @note: Don't re-throw exception to prevent break loop
+    }
+    catch (GCSException &ex)
+    {
+      notWrittenKeywords_.insert(monitorKeyword->keyName);
+      returnValue = false;
+      ex.addToTrace(__PRETTY_FUNCTION__);
+      ex.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
+      if ( trace_ not_eq NULL )
+        trace_->err(ex.toString());
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError(ex.toString());
+      //throw ; // @note: Don't re-throw exception to prevent break loop
+    }
+    catch (...)
+    {
+      notWrittenKeywords_.insert(monitorKeyword->keyName);
+      returnValue = false;
+      UnknownException exception(__PRETTY_FUNCTION__);
+      exception.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
+      if ( trace_ not_eq NULL )
+        trace_->err( exception.text() );
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError( exception.text() );
+      //throw ; // @note: Don't re-throw exception to prevent break loop
+    }
+  }
+  //</editor-fold>
+
+  return returnValue;
+}
+
+//----------------------------------------------------------------------
+// writeHeaderToFile
+//----------------------------------------------------------------------
+void FITSHeaderInfo::writeHeaderToFile(const TimeValue &time,
+                                       const TimeValue &expTime,
+                                       fitsfile *rawFile)
+{
+  FITSHeaderInfo_TRACE
+  if ( monitorAgent_ not_eq NULL )
+    writeHeaderToFile(time, expTime, monitorAgent_, rawFile);
+  else
+    throw CannotProceed(__PRETTY_FUNCTION__, "The reference to MonitorAgent is null.");
+}
+
+//----------------------------------------------------------------------
+// writeHeaderToFile
+//----------------------------------------------------------------------
+void FITSHeaderInfo::writeHeaderToFile(const TimeValue &time,
+                                       const TimeValue &expTime,
+                                       MonitorAgent *monitorAgent,
+                                       fitsfile *rawFile)
+{
+  FITSHeaderInfo_TRACE
+  if ( monitorAgent == NULL )
+  {
+    throw CannotProceed(__PRETTY_FUNCTION__, "The reference to MonitorAgent is null.");
+  }
+
   //first of all we gather monitor keywrods into the dataDescription object
   DataDescription newKeywords;
-  gatherMonitorKeywords (time, expTime, dfMonitorAgent, newKeywords);
-  
+  gatherFixedKeywords (newKeywords);
+  gatherMonitorKeywords (time, expTime, monitorAgent, newKeywords);
+
   int status_=0;
   //We replace fits_write_key with fits_update_key funtion
   //obtained from HDU::write, the routine there is not suitable
   //for our needs, but nearly
   try
   {
-    
     for (DataDescription::RecordConstIterator it = newKeywords.begin(); it != newKeywords.end(); it++)
     {
-       status_ = 0;
-       if (!FITS::initialKeyword((*it)->name()))
-       {
-          (*it)->toFits (rawFile, &status_);
-       }
+      status_ = 0;
+      if (!FITS::initialKeyword((*it)->name()))
+      {
+        (*it)->toFits (rawFile, &status_);
+      }
     }
   }
   catch(GCSException &ex)
   {
-    cerr<<"ERROR While adding header to FITS file"<<endl;
-    ex.addToTrace ("ERROR While adding header to FITS file");
-    cerr << ex << endl;
-  }    
+    ex.addToTrace(__PRETTY_FUNCTION__);
+    ex.addText("ERROR While adding header to FITS file");
+    std::cerr << ex << std::endl;
+    //throw ;
+  }
+  catch(...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("ERROR While adding header to FITS file");
+    std::cerr << exception << std::endl;
+    //throw ;
+  }
 
 }
 
-
-template<class ListType>
-ostream& FITSHeaderInfo::toStream_(ostream& ost, const ListType& a)
+//----------------------------------------------------------------------
+// forceSampleData
+//----------------------------------------------------------------------
+void FITSHeaderInfo::forceSampleData() const
 {
+  FITSHeaderInfo_TRACE
+  if ( monitorAgent_ not_eq NULL )
+  {
+    forceSampleData(monitorAgent_);
+  }
+  else
+  {
+    throw CannotProceed(__PRETTY_FUNCTION__, "The reference to MonitorAgent is null.");
+  }
+}
+
+//----------------------------------------------------------------------
+// forceSampleData
+//----------------------------------------------------------------------
+void FITSHeaderInfo::forceSampleData(MonitorAgent *monitorAgent) const
+{
+  FITSHeaderInfo_TRACE
+  if (monitorAgent == NULL)
+  {
+    throw CannotProceed(__PRETTY_FUNCTION__, "The reference to MonitorAgent is null.");
+  }
+
+  if(monitorKeywordList_.size() == 0)
+  {
+    throw InvalidValue(__PRETTY_FUNCTION__, "No monitor-keywords found.");
+  }
+
+  for (MonitorKeywordContainer::iterator item = monitorKeywordList_.begin();
+       item != monitorKeywordList_.end();
+       ++item)
+  {
+    try
+    {
+      monitorAgent->forceSampleData(item->deviceName, item->monitorName);
+    }
+    catch (const CORBA::Exception &ex)
+    {
+      std::cerr << __PRETTY_FUNCTION__ << ": CORBA ERROR forcing sample data: " << item->keyName << std::endl;
+      std::cerr << ex << std::endl;
+      //throw; // @note: Don't re-throw exception
+    }
+    catch (GCSException &ex)
+    {
+      ex.addToTrace(__PRETTY_FUNCTION__);
+      ex.addText("ERROR forcing sample data: %s", item->keyName.c_str() );
+      std::cerr << ex << std::endl;
+      //throw; // @note: Don't re-throw exception
+    }
+    catch (...)
+    {
+      UnknownException exception(__PRETTY_FUNCTION__);
+      exception.addText("ERROR forcing sample data: %s", item->keyName.c_str() );
+      std::cerr << exception << std::endl;
+      //throw; // @note: Don't re-throw exception
+    }
+  }
+}
+
+//----------------------------------------------------------------------
+// getKeywordNameList
+//----------------------------------------------------------------------
+const FITSHeaderInfo::KeywordNamesContainer &FITSHeaderInfo::getKeywordNameList() const
+{
+  FITSHeaderInfo_TRACE
+  return keywordNamesList_;
+}
+
+//----------------------------------------------------------------------
+// getMonitorKeywordList
+//----------------------------------------------------------------------
+const FITSHeaderInfo::FixedKeywordContainer& FITSHeaderInfo::getFixedKeywordList() const
+{
+  FITSHeaderInfo_TRACE
+  return fixedKeywordList_;
+}
+
+//----------------------------------------------------------------------
+// getMonitorKeywordList
+//----------------------------------------------------------------------
+const FITSHeaderInfo::MonitorKeywordContainer& FITSHeaderInfo::getMonitorKeywordList() const
+{
+  FITSHeaderInfo_TRACE
+  return monitorKeywordList_;
+}
+
+//----------------------------------------------------------------------
+// getParsedKeywords
+//----------------------------------------------------------------------
+const FITSHeaderInfo::ParsedKeywordsContainer& FITSHeaderInfo::getParsedKeywords() const
+{
+  FITSHeaderInfo_TRACE
+  return parsedKeywords_;
+}
+
+//----------------------------------------------------------------------
+// getNotParsedNodesID
+//----------------------------------------------------------------------
+const FITSHeaderInfo::NotParsedNodesIDContainer& FITSHeaderInfo::getNotParsedNodesID() const
+{
+  FITSHeaderInfo_TRACE
+  return notParsedNodesID_;
+}
+
+//----------------------------------------------------------------------
+// getNotWrittenKeywords
+//----------------------------------------------------------------------
+const FITSHeaderInfo::NotWrittenKeywordsContainer& FITSHeaderInfo::getNotWrittenKeywords() const
+{
+  FITSHeaderInfo_TRACE
+  return notWrittenKeywords_;
+}
+
+//----------------------------------------------------------------------
+// getNumberOfDiscreteKeywords
+//----------------------------------------------------------------------
+const FITSHeaderInfo::NumberOfKeywords& FITSHeaderInfo::getNumberOfDiscreteKeywords() const
+{
+  FITSHeaderInfo_TRACE
+  return discreteMonitorCounter_;
+}
+
+//----------------------------------------------------------------------
+// getNumberOfSampledKeywords
+//----------------------------------------------------------------------
+const FITSHeaderInfo::NumberOfKeywords& FITSHeaderInfo::getNumberOfSampledKeywords() const
+{
+  FITSHeaderInfo_TRACE
+  return sampledMonitorCounter_;
+}
+
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                          protected methods                          **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+//----------------------------------------------------------------------
+// clearAllMembers_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::clearAllMembers_()
+{
+  FITSHeaderInfo_TRACE
+  monitorAgent_ = NULL;
+  logAgent_ = NULL;
+  trace_ = NULL;
+
+  keywordNamesList_.clear();
+
+  for (int i (-1); ++i < fixedKeywordList_.size(); )
+  {
+    if ( fixedKeywordList_[i] not_eq NULL )
+    {
+      //delete (fixedKeywordList_[i]); // #ToDo: release allocate memory.
+      fixedKeywordList_[i] = NULL;
+    }
+  }
+  fixedKeywordList_.erase(fixedKeywordList_.begin(), fixedKeywordList_.end());
+  fixedKeywordList_.clear();
+  monitorKeywordList_.clear();
+  parsedKeywords_.clear();
+  notParsedNodesID_.clear();
+  notWrittenKeywords_.clear();
+  discreteMonitorCounter_ = 0;
+  sampledMonitorCounter_ = 0;
+}
+
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromPlainTextFile_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::parseFITSHeaderKeywordsFromPlainTextFile_(const std::string &fileName)
+{
+  FITSHeaderInfo_TRACE
+  clearAllMembers_();
+  std::ifstream file(fileName.c_str());
+  std::string line;
+  unsigned int lineNumber(0);
+  const unsigned int verbose = 0;
+  if ( file.is_open() )
+  {
+    while( not file.eof() )
+    {
+      getline(file,line);
+      if ( line.empty() )
+      {
+        break;
+      }
+      ++lineNumber;
+      if ( trace_ not_eq NULL )
+        trace_->out("Parsing line #%03d", lineNumber);
+      try
+      {
+        MonitorKeyword keyMon (line, lineNumber, logAgent_, *trace_);
+        if ( parsedKeywords_.count(keyMon.keyName) > 0 )
+        {
+          // keyword repeated
+          notParsedNodesID_.insert( lineNumber );
+          if ( trace_ not_eq NULL )
+          {
+            trace_->err("FITSHeaderInfo::%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
+          }
+          if ( logAgent_ not_eq NULL )
+          {
+            logAgent_->logError("FITSHeaderInfo::%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
+          }
+          continue;
+        }
+        // Add keyword
+        keywordNamesList_.insert(keyMon.keyName);
+        parsedKeywords_.insert(keyMon.keyName);
+        monitorKeywordList_.insert(keyMon);
+        // Increase counters
+        switch (keyMon.monitorType)
+        {
+          case MonitorKeyword/*::MonitorType*/::SAMPLED:
+            ++sampledMonitorCounter_;
+            break;
+          case MonitorKeyword/*::MonitorType*/::DISCRETE:
+            ++discreteMonitorCounter_;
+            break;
+        }
+      }
+      catch (CORBA::Exception &ex)
+      {
+        notParsedNodesID_.insert( lineNumber );
+        GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+        gcsex.addToTrace(__PRETTY_FUNCTION__);
+        gcsex.addText("Unable to parse the line #%02d", lineNumber );
+        if ( trace_ not_eq NULL )
+          trace_->err(gcsex.toString());
+        if ( logAgent_ not_eq NULL )
+          logAgent_->logError(gcsex.toString());
+        throw ;
+      }
+      catch (GCSException &ex)
+      {
+        notParsedNodesID_.insert( lineNumber );
+        ex.addToTrace(__PRETTY_FUNCTION__);
+        ex.addText("Unable to parse the line #%02d", lineNumber );
+        if ( trace_ not_eq NULL )
+          trace_->err(ex.toString());
+        if ( logAgent_ not_eq NULL )
+          logAgent_->logError(ex.toString());
+        throw ;
+      }
+      catch (...)
+      {
+        notParsedNodesID_.insert( lineNumber );
+        UnknownException exception(__PRETTY_FUNCTION__);
+        exception.addText("Unable to parse the line #%d", lineNumber );
+        if ( trace_ not_eq NULL )
+          trace_->err( exception.text() );
+        if ( logAgent_ not_eq NULL )
+          logAgent_->logError( exception.text() );
+        throw ;
+      }
+    }
+    file.close();
+  }
+}
+
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromJSONFile_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::parseFITSHeaderKeywordsFromJSONFile_(const std::string &fileName)
+{
+  FITSHeaderInfo_TRACE
+  clearAllMembers_();
+  std::ifstream file(fileName.c_str());
+
+  // Parse JSON file
+  Json::Value root;
+  try
+  {
+    file >> root;
+  }
+  catch (...)
+  {
+    SyntaxError exception(__PRETTY_FUNCTION__);
+    exception.addText("Error when parsing JSON file ('%s'). Suggestion: Check JSON syntax.", fileName.c_str() );
+    throw exception;
+  }
+  file.close();
+
+  parseFITSHeaderKeywordsFromInline(root);
+}
+
+//----------------------------------------------------------------------
+// parseFixedKeywords_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const Json::Value &node)
+{
+  FITSHeaderInfo_TRACE
+  // Define allowed fields values
+  static const char
+      * keywordFieldName (MonitorKeyword::AllowedMembers::name),
+      * valueFieldName   ("value"),
+      * commentFieldName (MonitorKeyword::AllowedMembers::comment),
+      * unitsFieldName   (MonitorKeyword::AllowedMembers::unit)
+  ;
+  {
+    AllowedFileNames::iterator it = allowedFieldNamesForFixedKeywords.begin();
+    allowedFieldNamesForFixedKeywords.insert(it, keywordFieldName); ++it;
+    allowedFieldNamesForFixedKeywords.insert(it, valueFieldName);   ++it;
+    allowedFieldNamesForFixedKeywords.insert(it, commentFieldName); ++it;
+    allowedFieldNamesForFixedKeywords.insert(it, unitsFieldName);   ++it;
+  }
+
+  // Check if all mandatory fields are present or not in this node.
+  for (AllowedFileNames::const_iterator it = allowedFieldNamesForFixedKeywords.begin();
+       it != allowedFieldNamesForFixedKeywords.end();
+       ++it)
+  {
+    if ( not node.isMember(*it) )
+    {
+      SyntaxError exception(__PRETTY_FUNCTION__);
+      exception.addText("The node number '%03d' must have defined the field called '%s'.", nodeNumber, *it);
+      if ( trace_ not_eq NULL )
+        trace_->err( exception.text() );
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError( exception.text() );
+      throw exception;
+    }
+  }
+
+  // Define alias for each allowed member.
+  const Json::Value
+      &nodeKeyword(node[keywordFieldName]),
+      &nodeComment(node[commentFieldName]),
+      &nodeUnit(node[unitsFieldName]),
+      &nodeValue(node[valueFieldName]);
+
+  // Check types of values
+  try
+  {
+    // Check type of "keywordFieldName" field.
+    if ( not nodeKeyword.isString() )
+    {
+      SyntaxError exception(__PRETTY_FUNCTION__);
+      exception.addText("The type of field '%s' must be a string.", keywordFieldName);
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      throw exception;
+    }
+    // Check type of commentFieldName"" field.
+    if ( not nodeComment.isString() )
+    {
+      SyntaxError exception(__PRETTY_FUNCTION__);
+      exception.addText("The type of field '%s' must be a string.", commentFieldName);
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      throw exception;
+    }
+    // Check type of "unitsFieldName" field.
+    if ( not nodeUnit.isString() )
+    {
+      SyntaxError exception(__PRETTY_FUNCTION__);
+      exception.addText("The type of field '%s' must be a string.", unitsFieldName);
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      throw exception;
+    }
+    // Check type of "valueFieldName" field.
+    //if ( not nodeValue.isString() and not nodeValue.isBool() and not nodeValue.isNumeric()) {
+    if (nodeValue.isNull() or nodeValue.isObject() or nodeValue.isArray())
+    {
+      SyntaxError exception(__PRETTY_FUNCTION__);
+      exception.addText("The type of field '%s' can be a string, bool, long, double.", valueFieldName);
+      if (trace_ not_eq NULL)
+        trace_->err(exception.text());
+      if (logAgent_ not_eq NULL)
+        logAgent_->logError(exception.text());
+      throw exception;
+    }
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to parse the node #%d. Check syntax or allowed fields or theirs values.", nodeNumber );
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    throw ;
+  }
+
+  
+  // Define variables and assign the content of fields values.
+  std::string
+      keywordFieldValue(nodeKeyword.asString()),
+      commentFieldValue(nodeComment.asString()),
+      unitsFieldValue(nodeUnit.asString())
+  ;
+
+  FixedKeywordContainer::value_type keywordPtr (NULL);
+  try
+  {
+    switch (nodeValue.type())
+    {
+      // bool
+      case Json/*::ValueType*/::booleanValue:
+      {
+        keywordPtr = new (std::nothrow) DPKF::Keyword<bool>(keywordFieldValue, nodeValue.asBool(), commentFieldValue, unitsFieldValue);
+        break;
+      }
+      // string
+      case Json/*::ValueType*/::stringValue:
+      {
+        keywordPtr = new (std::nothrow) DPKF::Keyword<std::string>(keywordFieldValue, nodeValue.asString(), commentFieldValue, unitsFieldValue);
+        break;
+      }
+        // double
+      case Json/*::ValueType*/::realValue:
+      {
+        keywordPtr = new (std::nothrow) DPKF::Keyword<double>(keywordFieldValue, nodeValue.asDouble(), commentFieldValue, unitsFieldValue);
+        break;
+      }
+        // long
+      case Json/*::ValueType*/::intValue:
+      case Json/*::ValueType*/::uintValue:
+      {
+        keywordPtr = new (std::nothrow) DPKF::Keyword<long>(keywordFieldValue, nodeValue.asInt(), commentFieldValue, unitsFieldValue);
+        break;
+      }
+        // Save-guard!
+      case Json/*::ValueType*/::nullValue:
+      case Json/*::ValueType*/::arrayValue:
+      case Json/*::ValueType*/::objectValue:
+      default:
+      {
+        SyntaxError exception(__PRETTY_FUNCTION__);
+        exception.addText("The type of field '%s' can be a string, bool, double, long.", valueFieldName);
+        if ( trace_ not_eq NULL )
+          trace_->err( exception.text() );
+        if ( logAgent_ not_eq NULL )
+          logAgent_->logError( exception.text() );
+        throw exception;
+      }
+    }
+
+    if ( keywordPtr == NULL )
+    {
+      CannotProceed exception(__PRETTY_FUNCTION__);
+      exception.addText("Unable to allocate memory.");
+      if ( trace_ not_eq NULL )
+        trace_->err( exception.text() );
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError( exception.text() );
+      throw exception;
+    }
+
+    if ( parsedKeywords_.count(keywordFieldValue) > 0 )
+    {
+      // keyword repeated
+      notParsedNodesID_.insert( nodeNumber );
+      if ( trace_ not_eq NULL )
+        trace_->err("%s(...) Keyword '%s' already exists", __func__, keywordFieldValue.c_str());
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError("%s(...) Keyword '%s' already exists", __func__, keywordFieldValue.c_str());
+      return;
+    }
+
+    // Add keyword
+    keywordNamesList_.insert(keywordFieldValue);
+    parsedKeywords_.insert(keywordFieldValue);
+    fixedKeywordList_.push_back(keywordPtr);
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Problems to parse fixed keyword of the node #%03d.", nodeNumber );
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    throw ;
+  }
+}
+
+//----------------------------------------------------------------------
+// parseMonitorKeywords_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const Json::Value &node)
+{
+  FITSHeaderInfo_TRACE
+  try
+  {
+    MonitorKeyword keyMon (node, nodeNumber, logAgent_, *trace_);
+    if ( parsedKeywords_.count(keyMon.keyName) > 0 )
+    {
+      // keyword repeated
+      notParsedNodesID_.insert( nodeNumber );
+      if ( trace_ not_eq NULL )
+        trace_->err("%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
+      if ( logAgent_ not_eq NULL )
+        logAgent_->logError("%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
+      return;
+    }
+    // Add keyword
+    keywordNamesList_.insert(keyMon.keyName);
+    parsedKeywords_.insert(keyMon.keyName);
+    monitorKeywordList_.insert(keyMon);
+    // Increase counters
+    switch (keyMon.monitorType)
+    {
+      case MonitorKeyword/*::MonitorType*/::SAMPLED:
+      {
+        ++sampledMonitorCounter_;
+        break;
+      }
+      case MonitorKeyword/*::MonitorType*/::DISCRETE:
+      {
+        ++discreteMonitorCounter_;
+        break;
+      }
+    }
+  }
+  catch (CORBA::Exception &ex)
+  {
+    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+    gcsex.addToTrace(__PRETTY_FUNCTION__);
+    gcsex.addText("Unable to parse a JSON node #%03d.", nodeNumber );
+    if ( trace_ not_eq NULL )
+      trace_->err(gcsex.toString());
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError(gcsex.toString());
+    throw ;
+  }
+  catch (GCSException &ex)
+  {
+    ex.addToTrace(__PRETTY_FUNCTION__);
+    ex.addText("Unable to parse a JSON node #%03d.", nodeNumber );
+    if ( trace_ not_eq NULL )
+      trace_->err(ex.toString());
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError(ex.toString());
+    throw ;
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to parse the node #%03d.", nodeNumber );
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    throw ;
+  }
+}
+
+//----------------------------------------------------------------------
+// gatherSampledMonitor_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::gatherSampledMonitor_(const MonitorKeyword &keyword,
+                                           const MM::DataBlock &mons,
+                                           DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+  try
+  {
+    switch ( mons.samples._d() )
+    {
+      case MM::TYPE_SAMPLE_DOUBLE_LIST:
+      {
+        addSampledMonitorKeyword_<MM::SampleDoubleList, double>(keyword, mons.samples.d(), header);
+        break;
+      }
+      case MM::TYPE_SAMPLE_FLOAT_LIST:
+      {
+        addSampledMonitorKeyword_<MM::SampleFloatList, double>(keyword, mons.samples.f(), header);
+        break;
+      }
+      case MM::TYPE_SAMPLE_LONG_LIST:
+      {
+        addSampledMonitorKeyword_<MM::SampleLongList, long>(keyword, mons.samples.l(), header);
+        break;
+      }
+      case MM::TYPE_SAMPLE_SHORT_LIST:
+      {
+        addSampledMonitorKeyword_<MM::SampleShortList, long>(keyword, mons.samples.s(), header);
+        break;
+      }
+      case MM::TYPE_SAMPLE_OCTET_LIST:
+      {
+        addSampledMonitorKeyword_<MM::SampleOctetList, long>(keyword, mons.samples.o(), header);
+        break;
+      }
+      case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
+      {
+        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
+        {
+          addArrayToScalarKeywords_<MM::SampleDoubleArrayList, double>(keyword, mons.samples.array_d(), header);
+        }
+        else
+        {
+          std::ostringstream formatbuf;
+          toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_d()[0] ));
+          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
+        }
+        break;
+      }
+      case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
+      {
+        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
+        {
+          addArrayToScalarKeywords_<MM::SampleFloatArrayList, double>(keyword, mons.samples.array_f(), header);
+        }
+        else
+        {
+          std::ostringstream formatbuf;
+          toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_f()[0] ));
+          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
+        }
+      }
+        break;
+      case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
+      {
+        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
+        {
+          addArrayToScalarKeywords_<MM::SampleLongArrayList, long>(keyword, mons.samples.array_l(), header);
+        }
+        else
+        {
+          std::ostringstream formatbuf;
+          toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_l()[0] ));
+          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
+        }
+      }
+        break;
+      case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
+      {
+        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
+        {
+          addArrayToScalarKeywords_<MM::SampleShortArrayList, long>(keyword, mons.samples.array_s(), header);
+        }
+        else
+        {
+          std::ostringstream formatbuf;
+          toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_s()[0] ));
+          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
+        }
+      }
+        break;
+      case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
+      {
+        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
+        {
+          addArrayToScalarKeywords_<MM::SampleOctetArrayList, long>(keyword, mons.samples.array_o(), header);
+        }
+        else
+        {
+          std::ostringstream formatbuf;
+          toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_o()[0] ));
+          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
+        }
+      }
+        break;
+
+      default:
+        throw InvalidValue(__PRETTY_FUNCTION__,"No type identified.");
+
+    }
+  }
+  catch (GCSException &ex)
+  {
+    ex.addToTrace(__PRETTY_FUNCTION__);
+    throw;
+  }
+  catch (const CORBA::Exception &ex)
+  {
+    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+    gcsex.addToTrace(__PRETTY_FUNCTION__);
+    throw gcsex;
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to gather sampled-monitor.");
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    throw ;
+  }
+
+}
+
+//----------------------------------------------------------------------
+// gatherDiscreteMonitor_
+//----------------------------------------------------------------------
+void FITSHeaderInfo::gatherDiscreteMonitor_(const MonitorKeyword &keyword,
+                                            const MM::MagnitudeChange &mons,
+                                            DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+  try
+  {
+    const MonitorKeyword::EnumLabels::size_type &size ( keyword.enumLabels.size() );
+    if ( size <= 0 or mons.new_value > size )
+    {
+      header.addKeyword(DPKF::Keyword<long>(keyword.keyName, mons.new_value, keyword.keyComment, keyword.keyUnit));
+    }
+    else
+    {
+      header.addKeyword(DPKF::Keyword<std::string>(keyword.keyName, keyword.enumLabels[mons.new_value], keyword.keyComment, keyword.keyUnit));
+    }
+  }
+  catch (GCSException &ex)
+  {
+    ex.addToTrace(__PRETTY_FUNCTION__);
+    throw;
+  }
+  catch (const CORBA::Exception &ex)
+  {
+    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
+    gcsex.addToTrace(__PRETTY_FUNCTION__);
+    throw gcsex;
+  }
+  catch (...)
+  {
+    UnknownException exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to gather discrete-monitor.");
+    if ( trace_ not_eq NULL )
+      trace_->err( exception.text() );
+    if ( logAgent_ not_eq NULL )
+      logAgent_->logError( exception.text() );
+    throw ;
+  }
+}
+
+//----------------------------------------------------------------------
+// addSampledMonitorKeyword_
+//----------------------------------------------------------------------
+template<typename ArrayListType, typename ValueType>
+void FITSHeaderInfo::addSampledMonitorKeyword_(const MonitorKeyword &keyword,
+                                               const ArrayListType &arrayList,
+                                               DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+
+  #if defined(__cplusplus) && (__cplusplus >= 201103L)
+  //<editor-fold desc="Check typenames in compile time">
+  // Check in compile time if ArrayListType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<MM::SampleDoubleList, ArrayListType>::value or
+          std::is_same<MM::SampleFloatList,  ArrayListType>::value or
+          std::is_same<MM::SampleLongList,   ArrayListType>::value or
+          std::is_same<MM::SampleShortList,  ArrayListType>::value or
+          std::is_same<MM::SampleOctetList,  ArrayListType>::value
+      ),
+      "Invalid given type for ArrayListType typename."
+  );
+  // Check in compile time if ValueType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<double, ValueType>::value or
+          std::is_same<long,   ValueType>::value
+      ),
+      "Invalid given type for ValueType typename."
+  );
+  static_assert(
+      (
+          std::is_same<double, ValueType>::value and
+          (
+              std::is_same<MM::SampleDoubleList, ArrayListType>::value or
+              std::is_same<MM::SampleFloatList,  ArrayListType>::value
+          )
+      )
+      or
+      (
+          std::is_same<long, ValueType>::value and
+          (
+              std::is_same<MM::SampleLongList,  ArrayListType>::value or
+              std::is_same<MM::SampleShortList, ArrayListType>::value or
+              std::is_same<MM::SampleOctetList, ArrayListType>::value
+          )
+      ),
+      "Invalid given combination of typename ArrayListType and typename ValueType."
+  );
+  //</editor-fold>
+  #endif
+
+  if (arrayList.length() < 1)
+  {
+    throw NotFound(__PRETTY_FUNCTION__, "Data length is 0.");
+  }
+
+  std::string unitComment = keyword.keyUnit;
+  if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::RAD_TO_HMS)
+  {
+    unitComment = "h:m:s";
+    header.addKeyword(DPKF::Keyword<std::string>(keyword.keyName, formatRadianToHms_((double) arrayList[0].value), keyword.keyComment, unitComment ));
+  }
+  else if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::RAD_TO_DMS)
+  {
+    unitComment = " d:m:s";
+    header.addKeyword(DPKF::Keyword<std::string>(keyword.keyName, formatRadianToDms_((double) arrayList[0].value), keyword.keyComment, unitComment ));
+  }
+  else if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::RAD_TO_DEG)
+  {
+    unitComment = "degrees";
+    header.addKeyword(DPKF::Keyword<double>(keyword.keyName, formatRadianToDeg_((double) arrayList[0].value), keyword.keyComment, unitComment ));
+  }
+  else
+  {
+    header.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName, (ValueType) arrayList[0].value, keyword.keyComment, unitComment));
+  }
+}
+
+//----------------------------------------------------------------------
+// addArrayToScalarKeywords_
+//----------------------------------------------------------------------
+template<typename ArrayListType, typename ValueType>
+void FITSHeaderInfo::addArrayToScalarKeywords_(const MonitorKeyword &keyword,
+                                               const ArrayListType &arrayList,
+                                               DataDescription &header)
+{
+  FITSHeaderInfo_TRACE
+
+  #if defined(__cplusplus) && (__cplusplus >= 201103L)
+  //<editor-fold desc="Check typenames in compile time">
+  // Check in compile time if ArrayListType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<MM::SampleDoubleArrayList, ArrayListType>::value or
+          std::is_same<MM::SampleFloatArrayList,  ArrayListType>::value or
+          std::is_same<MM::SampleLongArrayList,   ArrayListType>::value or
+          std::is_same<MM::SampleShortArrayList,  ArrayListType>::value or
+          std::is_same<MM::SampleOctetArrayList,  ArrayListType>::value
+      ),
+      "Invalid given type for ArrayListType typename."
+  );
+  // Check in compile time if ValueType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<double, ValueType>::value or
+          std::is_same<long,   ValueType>::value
+      ),
+      "Invalid given type for ValueType typename."
+  );
+  static_assert(
+      (
+          std::is_same<double, ValueType>::value and
+          (
+              std::is_same<MM::SampleDoubleArrayList, ArrayListType>::value or
+              std::is_same<MM::SampleFloatArrayList,  ArrayListType>::value
+          )
+      )
+      or
+      (
+          std::is_same<long, ValueType>::value and
+          (
+              std::is_same<MM::SampleLongArrayList,  ArrayListType>::value or
+              std::is_same<MM::SampleShortArrayList, ArrayListType>::value or
+              std::is_same<MM::SampleOctetArrayList, ArrayListType>::value
+          )
+      ),
+      "Invalid given combination of typename ArrayListType and typename ValueType."
+  );
+  //</editor-fold>
+  #endif
+
+  if (arrayList.length() < 1)
+  {
+    throw NotFound(__PRETTY_FUNCTION__, "Data length is 0.");
+  }
+
+  unsigned int keySufix;
+  std::ostringstream keySufix_ostr;
+
+  if ( not keyword.isMemberPresent(MonitorKeyword::AllowedMembers::initialIndex) )
+  {
+    keySufix = keyword.arrayRange.first;
+  }
+  else
+  {
+    keySufix = keyword.keyInitialIndex;
+  }
+
+  if ( not keyword.transposed )
+  {
+    for(unsigned int j = keyword.arrayRange.first; j <= keyword.arrayRange.second; ++j, ++keySufix)
+    {
+      keySufix_ostr.clear();
+      keySufix_ostr.seekp(0);
+      keySufix_ostr << keySufix;
+      header.addKeyword(DPKF::Keyword<ValueType>(keyword.keyName + keySufix_ostr.str(),
+                                                 (ValueType) arrayList[0].value.data[j],
+                                                 keyword.keyComment,
+                                                 keyword.keyUnit));
+    }
+  }
+  else
+  {
+    const unsigned int &width  ( arrayList[0].value.dimension.width  );
+    const unsigned int &height ( arrayList[0].value.dimension.height );
+    //</editor-fold>
+    for (unsigned int h(0); h < height; h++)
+    {
+      for (unsigned int w(0); w < width; w++)
+      {
+        const unsigned int &index (w * height + h);
+        //</editor-fold>
+        if (    index >= keyword.arrayRange.first
+            and index <= keyword.arrayRange.second
+            )
+        {
+          keySufix_ostr.clear();
+          keySufix_ostr.seekp(0);
+          keySufix_ostr << keySufix;
+          header.addKeyword(
+              DPKF::Keyword<ValueType>(
+                  keyword.keyName + keySufix_ostr.str(),      // name
+                  (ValueType) arrayList[0].value.data[index], // value
+                  keyword.keyComment,                         // comment
+                  keyword.keyUnit                             // unit
+              )
+          );
+          keySufix++;
+        }
+      }
+    }
+  }
+}
+
+//----------------------------------------------------------------------
+// trimmedArray1D_
+//----------------------------------------------------------------------
+template<typename ArrayType>
+ArrayType FITSHeaderInfo::trimmedArray1D_(const MonitorKeyword &keyword,
+                                          const ArrayType &arrayIn)
+{
+  FITSHeaderInfo_TRACE
+
+  #if defined(__cplusplus) && (__cplusplus >= 201103L)
+  //<editor-fold desc="Check typenames in compile time">
+  // Check in compile time if ArrayType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<MM::SampleDoubleArray, ArrayType>::value or
+          std::is_same<MM::SampleFloatArray,  ArrayType>::value or
+          std::is_same<MM::SampleLongArray,   ArrayType>::value or
+          std::is_same<MM::SampleShortArray,  ArrayType>::value or
+          std::is_same<MM::SampleOctetArray,  ArrayType>::value
+      ),
+      "Invalid given type for ArrayType typename."
+  );
+  //</editor-fold>
+  #endif
+
+  const std::size_t size ( (keyword.arrayRange.second - keyword.arrayRange.first) + 1 );
+  ArrayType arrayOut;
+  arrayOut.time_stamp = arrayIn.time_stamp;
+  arrayOut.value.dimension.width = 1;
+  arrayOut.value.dimension.height = size;
+  arrayOut.value.data.length( size );
+  for (unsigned int i( 0 ), j ( keyword.arrayRange.first );
+       j < keyword.arrayRange.second;
+       ++j, ++i)
+  {
+    arrayOut.value.data[i] = arrayIn.value.data[j];
+  }
+  return arrayOut;
+}
+
+//----------------------------------------------------------------------
+// toStream_
+//----------------------------------------------------------------------
+template<typename ArrayType>
+std::ostream& FITSHeaderInfo::toStream_(std::ostream &ost,
+                                        const ArrayType &array)
+{
+  FITSHeaderInfo_TRACE
+
+  #if defined(__cplusplus) && (__cplusplus >= 201103L)
+  //<editor-fold desc="Check typenames in compile time">
+  // Check in compile time if ArrayType has a valid type or not.
+  static_assert(
+      (std::is_same<MM::SampleDoubleArray, ArrayType>::value or
+          std::is_same<MM::SampleFloatArray,  ArrayType>::value or
+          std::is_same<MM::SampleLongArray,   ArrayType>::value or
+          std::is_same<MM::SampleShortArray,  ArrayType>::value or
+          std::is_same<MM::SampleOctetArray,  ArrayType>::value),
+      "Invalid given type for ArrayType typename."
+  );
+  //</editor-fold>
+  #endif
+
   unsigned i,j;
-  if (a.value.dimension.height != 1 || a.value.dimension.width != 1)
+  if (array.value.dimension.height != 1 or array.value.dimension.width != 1)
   {
     ost << "[ ";
   }
-  for(i=0; i< a.value.dimension.height; ++i)
+  for(i=0; i< array.value.dimension.height; ++i)
   {
-    for(j=0; j< a.value.dimension.width; ++j)
+    for(j=0; j< array.value.dimension.width; ++j)
     {
-      ost << a.value.data[ a.value.dimension.width * i + j] << " ";
+      ost << array.value.data[ array.value.dimension.width  *i + j] << " ";
     }
-    if (i < (a.value.dimension.height -1))
+    if (i < (array.value.dimension.height -1))
     {
       ost << "; ";
     }
-    if ( (a.value.dimension.width >= 5) && (i < (a.value.dimension.height -1)) )
+    if ( (array.value.dimension.width >= 5) and (i < (array.value.dimension.height -1)) )
     {
       ost << "\\" << endl;
     }
   }
-  if (a.value.dimension.height != 1 || a.value.dimension.width != 1)
-  {  
+  if (array.value.dimension.height != 1 or array.value.dimension.width != 1)
+  {
     ost << "]";
   }
   return ost;
 }
 
+//----------------------------------------------------------------------
+// formatRadianToHms_
+//----------------------------------------------------------------------
+std::string FITSHeaderInfo::formatRadianToHms_(const double &rad) const
+{
+  FITSHeaderInfo_TRACE
+  char sign;
+  int ihmsf[4];
+  std::ostringstream strbuf;
+
+  slaDr2tf (3, rad, &sign, ihmsf);
+  if(sign not_eq '+')
+  { //adds sign when negative
+    strbuf << sign;
+  }
+  strbuf << std::setw(2) << std::setfill('0') << ihmsf[0] << ":"
+         << std::setw(2) << std::setfill('0') << ihmsf[1] << ":"
+         << std::setw(2) << std::setfill('0') << ihmsf[2] << "."
+         << std::setw(3) << std::setfill('0') << ihmsf[3];
+  return strbuf.str();
+}
+
+//----------------------------------------------------------------------
+// formatRadianToDms_
+//----------------------------------------------------------------------
+std::string FITSHeaderInfo::formatRadianToDms_(const double &rad) const
+{
+  FITSHeaderInfo_TRACE
+  char sign;
+  int ihmsf[4];
+  std::ostringstream strbuf;
+  slaDr2af (3, rad, &sign, ihmsf);
+  if(sign != '+')
+  { //adds sign when negative
+    strbuf << sign;
+  }
+  strbuf << std::setw(2) << std::setfill('0') << ihmsf[0] << ":"
+         << std::setw(2) << std::setfill('0') << ihmsf[1] << ":"
+         << std::setw(2) << std::setfill('0') << ihmsf[2] << "."
+         << std::setw(3) << std::setfill('0') << ihmsf[3];
+  return strbuf.str();
+}
+
+//----------------------------------------------------------------------
+// formatRadianToDeg_
+//----------------------------------------------------------------------
+double
+FITSHeaderInfo::formatRadianToDeg_(const double &rad) const
+{
+  FITSHeaderInfo_TRACE
+  return rad*DR2D;
+}
+
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                           private methods                           **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+//----------------------------------------------------------------------
+//----------------------------------------------------------------------

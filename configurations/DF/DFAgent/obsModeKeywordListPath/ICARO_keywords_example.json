@@ -1,0 +1,33 @@
+// Copyright (c) 2020 Gran Telescopio Canarias, S.A. (GRANTECAN)
+// All Rights Reserved
+{
+  "keyword-sections": [
+    {
+      "name": "FixedKeywords",
+      "keywords": [
+        { "keyword":"KWSTR",   "value":"TEST", "comment":"Test of str   keyword with value.", "unit": "None" }
+       ,{ "keyword":"KWBOL",   "value":true,   "comment":"Test of bool  keyword with value.", "unit": "None" }
+       ,{ "keyword":"KWINT",   "value":1,      "comment":"Test of int   keyword with value.", "unit": "None" }
+       ,{ "keyword":"KWFLT",   "value":1.0,    "comment":"Test of float keyword with value.", "unit": "None" }
+      ]
+    },
+    {
+      "name": "InspectorDevice1",
+      "keywords": "/work/arusso/src_c++/gtc/AL/OC/DF/DFAgent/configurations/DF/DFAgent/obsModeKeywordListPath/InspectorDevice_1_keyword_section_example.json"
+    }
+  ],
+  "observation-modes": [
+    { "id": 0,  "name": "process_frame",              "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 1,  "name": "flat",                       "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 2,  "name": "process_ab_pair",            "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 3,  "name": "process_abba_dither",        "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 4,  "name": "image_combine",              "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 5,  "name": "image",                      "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 6,  "name": "bias",                       "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 7,  "name": "remove_detector_signatures", "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 8,  "name": "image_combine_second",       "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 9,  "name": "abba_strategy",              "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+   ,{ "id": 10, "name": "strategy_1",                 "keywords":["FixedKeywords", "InspectorDevice1"], "settings":{"saveFrame":false, "saveFITS":false, "propagateFrame":false, "propagateFITS":false, "autoReduce":false,"writeKeywords":false} }
+  ]
+}
+

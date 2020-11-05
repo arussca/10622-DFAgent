@@ -1,0 +1,47 @@
+LDLIBS += ${XPA_LIBS} ${FITSIO_LIBS} ${WCS_LIBS} ${GSL_LIBS} $(TAO_LIBS) $(DSL_LIBS) -lsla -lDDPKF -lcfitsio -lRF -lDPKF -lParserLibrary -lConfigFileMgr -lDPhysicalQuantity   -lCatalog -lFilters -lDAF -lDPKF_IO -lPhysicalQuantity  -lDataDisplay -lTask $(SSL_LIBS) $(DSL_DEV_LIBS) -lPeriodicTask
+
+LDLIBS += ${JSON_LIBS} -ljsoncpp
+
+#LDLIBS += $(TAO_LIBS)                   # ACE+TAO
+#LDLIBS += -lBasicTypes                  # String
+#LDLIBS += -lTrace                       # Trace
+#LDLIBS += -lSK                          # PropertyParser
+#LDLIBS += $(GOOGLETEST_LIBS)            # Google Test Framework - ::testing::Test, TEST_*
+
+#CPPFLAGS += -std=c++98                  # [-std=] Determine the language standard.
+                                         # [c++11] The 2011 ISO C++ standard plus amendments.
+#CPPFLAGS += -fdiagnostics-color         # Use color in diagnostics to pipe the output to less
+                                         # [https://unix.stackexchange.com/a/314978]
+#CPPFLAGS += -Wall                       # Turns on the most warning flags.
+#CPPFLAGS += -Wextra                     # This enables some extra warning flags that are not enabled by -Wall.nm
+#CPPFLAGS += -Wpedantic                  # Issue all the warnings demanded by strict ISO C and ISO C++;
+                                         # reject all programs that use forbidden extensions,
+                                         # and some other programs that do not follow ISO C and ISO C++.
+#CPPFLAGS += -Werror                     # Make all warnings into errors.
+#CPPFLAGS += -v                          # Verbose mod
+
+# Generate a list of #define directives.
+#CPPFLAGS += -x c++                      # Specify explicitly the language for the following input files (rather than
+                                         # letting the compiler choose a default based on the file name suffix).
+                                         # This option applies to all following input files until the next -x option.
+                                         # Possible values for language are:
+                                         #                    c  c-header  cpp-output
+                                         #                    c++  c++-header  c++-cpp-output
+                                         #                    objective-c  objective-c-header  objective-c-cpp-output
+                                         #                    objective-c++ objective-c++-header objective-c++-cpp-output
+                                         #                    assembler  assembler-with-cpp
+                                         #                    ada
+                                         #                    d
+                                         #                    f77  f77-cpp-input f95  f95-cpp-input
+                                         #                    go
+                                         #                    brig
+
+#CPPFLAGS += -dM                         # Instead of the normal output, generate a list of #define directives for
+                                         # all the macros defined during the execution of the preprocessor,
+                                         # including predefined macros. This gives you a way of finding out what is
+                                         # predefined in your version of the preprocessor.
+
+#CPPFLAGS += -E                          # Stop after the preprocessing stage; do not run the compiler proper.
+                                         # The output is in the form of preprocessed source code,
+                                         # which is sent to the standard output.
+                                         # Input files that don't require preprocessing are ignored.

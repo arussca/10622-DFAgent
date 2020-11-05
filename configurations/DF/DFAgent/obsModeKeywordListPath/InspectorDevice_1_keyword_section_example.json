@@ -1,0 +1,22 @@
+// Copyright (c) 2020 Gran Telescopio Canarias, S.A. (GRANTECAN)
+// All Rights Reserved
+[
+  { "keyword": "TID1_b",  "comment": "Boolean monitor 1",     "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "boolMonitor1"        , "type": "DISCRETE" }
+, { "keyword": "TID1_e",  "comment": "Enum monitor 1",        "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "enumMonitor1"        , "type": "DISCRETE", "labels": ["VALUE1", "VALUE2", "VALUE3", "VALUE4", "VALUE5"] }
+, { "keyword": "TID1_s",  "comment": "Short monitor 1",       "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortMonitor1"       , "type": "SAMPLED", "format": "NONE", "when": "NONE" }
+, { "keyword": "TID1_l",  "comment": "Long monitor 1",        "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "longMonitor1"        , "type": "SAMPLED", "format": "NONE", "when": "START" }
+, { "keyword": "TID1_f",  "comment": "Float monitor 1",       "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "floatMonitor1"       , "type": "SAMPLED", "format": "NONE", "when": "END" }
+, { "keyword": "TID1_d1", "comment": "Double monitor 1",      "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleMonitor1"      , "type": "SAMPLED", "format": "RAD_TO_HMS" }
+, { "keyword": "TID1_d2", "comment": "Double monitor 1",      "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleMonitor2"      , "type": "SAMPLED", "format": "RAD_TO_DMS" }
+, { "keyword": "TID1_d3", "comment": "Double monitor 1",      "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleMonitor3"      , "type": "SAMPLED", "format": "RAD_TO_DEG" }
+, { "keyword": "TID1_O",  "comment": "ByteArray1D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "byteArray1DMonitor"  , "type": "SAMPLED", "format": "NONE" }
+, { "keyword": "TID1_S",  "comment": "ShortArray1D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortArray1DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transposed": true, "initialIndex": 10, "range": [0,9] }
+, { "keyword": "TID1_L",  "comment": "LongArray1D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "longArray1DMonitor"  , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transposed": true, "initialIndex": 1, "range": [4,7] }
+, { "keyword": "TID1_F",  "comment": "FloatArray1D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "floatArray1DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transposed": true, "range": [0,3] }
+, { "keyword": "TID1_D",  "comment": "DoubleArray1D monitor", "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleArray1DMonitor", "type": "SAMPLED", "format": "NONE" }
+, { "keyword": "TID1_5",  "comment": "ByteArray2D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "byteArray2DMonitor"  , "type": "SAMPLED", "format": "NONE" }
+, { "keyword": "TID1_6",  "comment": "ShortArray2D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortArray2DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "initialIndex": 1 }
+, { "keyword": "TID1_7",  "comment": "LongArray2D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "longArray2DMonitor"  , "type": "SAMPLED", "format": "NONE", "when": "END" }
+, { "keyword": "TID1_8",  "comment": "FloatArray2D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "floatArray2DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "when": "START" }
+, { "keyword": "TID1_9",  "comment": "DoubleArray2D monitor", "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleArray2DMonitor", "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "initialIndex": 2 }
+]

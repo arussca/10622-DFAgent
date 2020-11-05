@@ -12,13 +12,123 @@ static const char rcsid[]="@(#) $Id$";
 
 //@ipc
 #include <MonitorHubFactory.h>
-#include <algorithm>
+#include <sstream>                         // std::stringstream
+#include <algorithm>                       // std::find
 #include <IDL_Adapters_RF.h>
 #include <IDL_Adapters_DPKF.h>
 #include <DataPackInfo.h>
-#include <CORBARef.h>
+#include <CORBARef.h>                      // CORBARef
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <PropertyParser.h>               // SyntaxError
+#include <Wrappers_All.h>                 // endsWith
+//@epc
+
+//@ipc
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                               Macros                                **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+//<editor-fold desc="Enable or disable debug trace via source code">
+//#define DFAgent_DEBUG // Enable debug trace
+//#undef DFAgent_DEBUG  // Disable debug trace
+//</editor-fold>
+//<editor-fold desc="Define DFAgent_TRACE">
+#if defined(DFAgent_DEBUG)
+#include <ace/Trace.h>                    // ACE_Trace
+#define DFAgent_TRACE \
+  ACE_Trace ace_trace(__func__, __LINE__, __FILE__);\
+  ace_trace.start_tracing();\
+  ace_trace.set_nesting_indent(1);
+#else
+#define DFAgent_TRACE \
+  //;
+#endif
+//</editor-fold>
+//@epc
+
+//@ipc
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                              Constants                              **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+#if defined(__cplusplus) && (__cplusplus >= 201103L)
+const DFAgent::JsonKeywordsList_t DFAgent::jsonFixedKeywordLevel1_ =
+    DFAgent::JsonKeywordsList_t ({
+			"keyword-sections", "observation-modes"
+    });
+
+const DFAgent::JsonKeywordsList_t DFAgent::jsonFixedKeywordLevel2_ =
+    DFAgent::JsonKeywordsList_t ({
+			"name", "keywords"
+    });
+
+#else
+DFAgent::JsonKeywordsList_t DFAgent::jsonFixedKeywordLevel1_;
+DFAgent::JsonKeywordsList_t DFAgent::jsonFixedKeywordLevel2_;
+
+#endif
+//@epc
+
+//@ipc
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                  Protected static function members                  **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+//----------------------------------------------------------------------
+// hash
+//----------------------------------------------------------------------
+const DFAgent::Hash_t DFAgent::hash(const std::string &obj) /*noexcept*/
+{
+	DFAgent_TRACE
+	// [Hash Functions](http://www.cse.yorku.ca/~oz/hash.html)
+	// djb2
+	DFAgent::Hash_t return_value (5381);
+	for (std::string::size_type index = 0; index < obj.size(); ++index)
+	{
+    return_value = ((return_value << 5) + return_value) + obj[index];
+	}
+	return static_cast<const DFAgent::Hash_t>(return_value);
+}
+
+//----------------------------------------------------------------------
+// hash
+//----------------------------------------------------------------------
+#if defined(__cplusplus) && (__cplusplus >= 201103L)
+template<typename T>
+const DFAgent::Hash_t DFAgent::hash(const T &obj) /*noexcept*/
+{
+	DFAgent_TRACE
+  static_assert(
+      (std::is_enum<T>::value or                          // is T an enum data type?
+       std::is_same<int short, T>::value or               // is T an int short data type?
+       std::is_same<int, T>::value or                     // is T an int data type?
+       std::is_same<int long, T>::value or                // is T an int long data type?
+       std::is_same<int long long , T>::value or          // is T an int long long data type?
+       std::is_same<unsigned int short, T>::value or      // is T an unsigned int short data type?
+       std::is_same<unsigned int, T>::value or            // is T an unsigned int data type?
+       std::is_same<unsigned int long, T>::value or       // is T an unsigned int long data type?
+       std::is_same<unsigned int long long , T>::value or // is T an unsigned int long long data type?
+       std::is_same<std::string, T>::value                // is T a  string data type?
+      ),
+      "Invalid given type for T typename."
+  );
+  const static std::hash<T> hash_fn;
+  return (hash_fn(obj));
+}
+#endif
+
 //@epc
 
 //----------------------------------------------------------------------
@@ -27,6 +137,7 @@ static const char rcsid[]="@(#) $Id$";
 DFAgent::DFAgent(string name)
 : Device(name)
 {
+	DFAgent_TRACE
 	trace_.out("constructor\n");
 	className_ = "DFAgent";
 	isComposite_ = FALSE;
@@ -49,6 +160,7 @@ DFAgent::DFAgent(string name)
 
 	//Initialize ObsType variable to default value
 	obsType_ = OBJECTS;
+	//<editor-fold desc="#ToDo: This section could be removed. See [[deprecated]] comments next to members definition on header.">
 	//initialize map with ObservationType and string names..
 
 	obsTypeName_[BIAS] = "BIAS";
@@ -59,12 +171,15 @@ DFAgent::DFAgent(string name)
 	obsTypeName_[ARC] = "ARC";
 	obsTypeName_[SKY] = "SKY";
 	obsTypeName_[OBJECTS] = "OBJECT";
+	//</editor-fold>
 
 	//Initialize ObsClass variable to default value
 	obsClass_ = SCIENCE;
+	//<editor-fold desc="#ToDo: This section could be removed. See [[deprecated]] comments next to members definition on header.">
 	//initialize map with ObservationClass and string names..
 	obsClassName_[SCIENCE] = "Science";
 	obsClassName_[CALIB] = "Calib";
+	//</editor-fold>
 
 	//@ipc
 	//init pointer to devices to null
@@ -74,6 +189,19 @@ DFAgent::DFAgent(string name)
 	//init some custom variables
 	rawFrame_ = NULL;
 	isSessionRunning_ = false;
+
+
+  #if defined(__cplusplus) && (__cplusplus >= 201103L)
+
+  #else
+  DFAgent::jsonFixedKeywordLevel1_.insert("keyword-sections");
+	DFAgent::jsonFixedKeywordLevel1_.insert("observation-modes");
+	
+	DFAgent::jsonFixedKeywordLevel2_.insert("name");
+	DFAgent::jsonFixedKeywordLevel2_.insert("keywords");
+
+  #endif
+
 	//@epc
 }
 
@@ -82,8 +210,10 @@ DFAgent::DFAgent(string name)
 //----------------------------------------------------------------------
 DFAgent::~DFAgent()
 {
+	DFAgent_TRACE
 	trace_.out("destructor\n");
 	// Disconnect and delete aggregated Devices
+  	obsModeKeywordList_.clear();
 }
 
 /************************************************************************
@@ -100,6 +230,7 @@ DFAgent::~DFAgent()
 void DFAgent::connect(string orbname,unsigned threads,long priority,
 		bool mode,bool update)
 {
+	DFAgent_TRACE
 	Device::connect(orbname,threads,priority,mode,update);
 
 	// Create IDL/CORBA Adapter
@@ -153,6 +284,7 @@ void DFAgent::connect(string orbname,unsigned threads,long priority,
 //----------------------------------------------------------------------
 void DFAgent::start()
 {
+	DFAgent_TRACE
 	trace_.out("start()\n");
 	goStarting_();
 
@@ -184,6 +316,7 @@ void DFAgent::start()
 //----------------------------------------------------------------------
 void DFAgent::init()
 {
+	DFAgent_TRACE
 	trace_.out("init()\n");
 	goInitialising_();
 
@@ -199,6 +332,7 @@ void DFAgent::init()
 //----------------------------------------------------------------------
 void DFAgent::halt()
 {
+	DFAgent_TRACE
 	trace_.out("halt()\n");
 	goHalting_();
 
@@ -213,6 +347,7 @@ void DFAgent::halt()
 //----------------------------------------------------------------------
 void DFAgent::shutdown()
 {
+	DFAgent_TRACE
 	trace_.out("shutdown()\n");
 	goShuttingDown_();
 	// //if started previously
@@ -228,6 +363,7 @@ void DFAgent::shutdown()
 //----------------------------------------------------------------------
 void DFAgent::reset()
 {
+	DFAgent_TRACE
 	trace_.out("reset()\n");
 	goResetting_();
 
@@ -242,6 +378,7 @@ void DFAgent::reset()
 //----------------------------------------------------------------------
 void DFAgent::restore()
 {
+	DFAgent_TRACE
 	trace_.out("restore()\n");
 	if (isFault()==FALSE)
 	{
@@ -269,6 +406,7 @@ void DFAgent::restore()
 //----------------------------------------------------------------------
 void DFAgent::test()
 {
+	DFAgent_TRACE
 	trace_.out("test()\n");
 	if (isOn()==FALSE)
 	{
@@ -286,6 +424,7 @@ void DFAgent::test()
 //----------------------------------------------------------------------
 void DFAgent::abort()
 {
+	DFAgent_TRACE
 	trace_.out("abort()\n");
 
 	// ## Abort procedure
@@ -299,6 +438,7 @@ void DFAgent::abort()
 //----------------------------------------------------------------------
 char* DFAgent::report(short level)
 {
+	DFAgent_TRACE
 	trace_.out("report(%d)\n",level);
 	char* dev_reply = new char[DEVICE_REPORT_SIZE_];
 	ostrstream ost(dev_reply, DEVICE_REPORT_SIZE_);
@@ -350,6 +490,7 @@ char* DFAgent::report(short level)
 //----------------------------------------------------------------------
 const char* DFAgent::version()
 {
+	DFAgent_TRACE
 	trace_.out("version()\n");
 	return(rcsid);
 }
@@ -359,6 +500,7 @@ const char* DFAgent::version()
 //----------------------------------------------------------------------
 void DFAgent::createMonitors_()
 {
+	DFAgent_TRACE
 	trace_.out("creating monitors\n");
 }
 
@@ -367,6 +509,7 @@ void DFAgent::createMonitors_()
 //----------------------------------------------------------------------
 void DFAgent::createDevices_(bool update)
 {
+	DFAgent_TRACE
 	trace_.out("creating aggregated Devices\n");
 }
 
@@ -396,6 +539,7 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
 		DF::RecipeQualityControlType qc,
 		const DDPKF::RecipeResult& result)
 {
+	DFAgent_TRACE
 
 	ACE_Guard<ACE_Thread_Mutex> guard(dfagentGuardMutex_);
 
@@ -404,9 +548,9 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
 			id,
 			obsResultId);
 
-	DFObservationStrategy::ObservationStrategyPtr observation_strategy_node;
+	DF::DFObservationStrategy::ObservationStrategyPtr observation_strategy_node;
 	//Get the observation strategy node from the observation result id.
-	std::vector<DFObservationStrategy *>::iterator observation_strategies_iter = observation_strategies_.begin();
+	DF::DFObservationStrategyList::iterator observation_strategies_iter = observation_strategies_.begin();
 	for(;observation_strategies_iter!=observation_strategies_.end();++observation_strategies_iter) {
 		try {
 			observation_strategy_node = (*observation_strategies_iter)->fromObservationResultId(obsResultId);
@@ -440,8 +584,8 @@ void DFAgent::receiveRecipeResult(std::string observingMode,
 
 		for (int next_id = 0; next_id < observation_strategy_node->next.size(); next_id++) {
 			//Get the observation strategy parent
-			DFObservationStrategy::ObservationStrategyPtr observation_strategy_next_node =
-				(*observation_strategies_iter)->fromId(observation_strategy_node->next[next_id]);
+			DF::DFObservationStrategy::ObservationStrategyPtr observation_strategy_next_node =
+					(*observation_strategies_iter)->fromId(observation_strategy_node->next[next_id]);
 			//Increase element counter
 			observation_strategy_next_node->element_counter++;
 			//Store recipe id
@@ -484,6 +628,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 		const DGT::TinyVector& idlBottomRight, const DGT::TimeValue& idlTimestamp,
 		const DGT::TimeValue& idlExposureTime, const char* cameraId )
 {
+	DFAgent_TRACE
 	trace_.out("receiveFrame()\n");
 
 	//check dfBranchInstance_, aren't null, otherwise reconnect to them.
@@ -506,7 +651,10 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 		trace_.out ("Gathering monitor keywords values...");
 		TimeValue expStartTime ( fromIDL(idlTimestamp) );
 
-		obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, fromIDL(idlExposureTime), monitorAgent_, header);
+		// Old style
+		// obsModeKeywordList_[shortObsMode_].gatherMonitorKeywords(expStartTime, fromIDL(idlExposureTime), monitorAgent_, header);
+		// New style
+		gatherKeywords_(expStartTime, fromIDL(idlExposureTime), header);
 
 		writeStandardKeywords_(header);
 		TinyVector<unsigned long, 2> sizeF;
@@ -609,6 +757,7 @@ void DFAgent::receiveFrame( const DDPKF::Frame& idlNoKeywordsFrame, int currentW
 //----------------------------------------------------------------------
 void DFAgent::setPrincipalInvestigatorName(const char* piName)
 {
+	DFAgent_TRACE
 	trace_.out("setPrincipalInvestigatorName(%s)\n",piName);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -621,7 +770,9 @@ void DFAgent::setPrincipalInvestigatorName(const char* piName)
 //----------------------------------------------------------------------
 void DFAgent::setObservationType(ObservationType obsType)
 {
+	DFAgent_TRACE
 	trace_.out("setObservationType(%s)\n", obsTypeName_[obsType].c_str());
+	//trace_.out("setObservationType(%s)\n", to_string(obsType));
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
 
@@ -633,7 +784,9 @@ void DFAgent::setObservationType(ObservationType obsType)
 //----------------------------------------------------------------------
 void DFAgent::setObservationClass(ObservationClass obsClass)
 {
+	DFAgent_TRACE
 	trace_.out("setObservationClass(%s)\n", obsClassName_[obsClass].c_str());
+	//trace_.out("setObservationClass(%s)\n", to_string(obsClass));
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
 
@@ -645,6 +798,7 @@ void DFAgent::setObservationClass(ObservationClass obsClass)
 //----------------------------------------------------------------------
 void DFAgent::setInstrumentMode(const char* insMode)
 {
+	DFAgent_TRACE
 	trace_.out("setInstrumentMode(%s)\n",insMode);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -657,6 +811,7 @@ void DFAgent::setInstrumentMode(const char* insMode)
 //----------------------------------------------------------------------
 void DFAgent::setObserverName(const char* observerName)
 {
+	DFAgent_TRACE
 	trace_.out("setObserverName(%s)\n",observerName);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -669,6 +824,7 @@ void DFAgent::setObserverName(const char* observerName)
 //----------------------------------------------------------------------
 void DFAgent::setObjectName(const char* objectName)
 {
+	DFAgent_TRACE
 	trace_.out("setObjectName(%s)\n",objectName);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -681,6 +837,7 @@ void DFAgent::setObjectName(const char* objectName)
 //----------------------------------------------------------------------
 string DFAgent::getObjectName()
 {
+	DFAgent_TRACE
 	trace_.out("getObjectName\n");
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -693,6 +850,7 @@ string DFAgent::getObjectName()
 //----------------------------------------------------------------------
 void DFAgent::setProgramId(const char* programId)
 {
+	DFAgent_TRACE
 	trace_.out("setProgramId(%s)\n",programId);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -705,6 +863,7 @@ void DFAgent::setProgramId(const char* programId)
 //----------------------------------------------------------------------
 void DFAgent::setESOProgramId(const char* esoProgramId)
 {
+	DFAgent_TRACE
 	trace_.out("setESOProgramId(%s)\n",esoProgramId);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -717,6 +876,7 @@ void DFAgent::setESOProgramId(const char* esoProgramId)
 //----------------------------------------------------------------------
 void DFAgent::setObservationBlockId(const char* obId)
 {
+	DFAgent_TRACE
 	trace_.out("setObservationBlockId(%s)\n",obId);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -729,6 +889,7 @@ void DFAgent::setObservationBlockId(const char* obId)
 //----------------------------------------------------------------------
 void DFAgent::setImageTitle(const char* imageTitle)
 {
+	DFAgent_TRACE
 	trace_.out("setImageTitle(%s)\n",imageTitle);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -741,6 +902,7 @@ void DFAgent::setImageTitle(const char* imageTitle)
 //----------------------------------------------------------------------
 void DFAgent::setObservationComment(const char* observationComment)
 {
+	DFAgent_TRACE
 	trace_.out("setObservationComment(%s)\n",observationComment);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -753,6 +915,7 @@ void DFAgent::setObservationComment(const char* observationComment)
 //----------------------------------------------------------------------
 void DFAgent::setObsModeLowLevel(short obsMode)
 {
+	DFAgent_TRACE
 
 	trace_.out("setObsModeLowLevel(%d)\n",obsMode);
 
@@ -821,13 +984,13 @@ void DFAgent::setObservationMode(const char * obsMode) {
 
 	trace_.out("setObservationMode(%s)\n",obsMode);
 
-	//Get the availables observation modes
+	//Get the available observation modes
 	std::vector<std::string> observation_modes = getAvailableObsMode_();
 	if ( find(observation_modes.begin(), observation_modes.end(), obsMode) != observation_modes.end() ) {
 		//Get the observation strategy description
 		std::string strategy = dfBranchInstance_->getObsStrategyDetailts(obsMode);
 		//Create & Build the configuration strategy.
-		DFObservationStrategy * observation_strategy = new DFObservationStrategy();
+		DF::DFObservationStrategy * observation_strategy = new DF::DFObservationStrategy();
 		observation_strategy->build(strategy);
 		//Print debug info
 		observation_strategy->debug();
@@ -847,6 +1010,7 @@ void DFAgent::setObservationMode(const char * obsMode) {
 //----------------------------------------------------------------------
 void DFAgent::setPropagateFrame(bool doesPropagate)
 {
+	DFAgent_TRACE
 	trace_.out("setPropagateFrame(%hd)\n",doesPropagate);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -862,6 +1026,7 @@ void DFAgent::setPropagateFrame(bool doesPropagate)
 //----------------------------------------------------------------------
 void DFAgent::setSaveFrame(bool doesSave)
 {
+	DFAgent_TRACE
 	trace_.out("setSaveFrame(%hd)\n",doesSave);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -876,6 +1041,7 @@ void DFAgent::setSaveFrame(bool doesSave)
 //----------------------------------------------------------------------
 void DFAgent::setPropagateFITS(bool doesPropagate)
 {
+	DFAgent_TRACE
 	trace_.out("setPropagateFITS(%hd)\n",doesPropagate);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -890,6 +1056,7 @@ void DFAgent::setPropagateFITS(bool doesPropagate)
 //----------------------------------------------------------------------
 void DFAgent::setSaveFITS(bool doesSave)
 {
+	DFAgent_TRACE
 	trace_.out("setSaveFITS(%hd)\n",doesSave);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -904,6 +1071,7 @@ void DFAgent::setSaveFITS(bool doesSave)
 //----------------------------------------------------------------------
 void DFAgent::setAutoReduce(bool doesAuto)
 {
+	DFAgent_TRACE
 	trace_.out("setAutoReduce(%hd)\n",doesAuto);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -918,6 +1086,7 @@ void DFAgent::setAutoReduce(bool doesAuto)
 //----------------------------------------------------------------------
 void DFAgent::setWriteKeywords(bool doesWrite)
 {
+	DFAgent_TRACE
 	trace_.out("setWriteKeywords(%hd)\n",doesWrite);
 
 	ACE_Guard<ACE_Thread_Mutex> guard(deviceGuardMutex_);
@@ -949,6 +1118,7 @@ void DFAgent::setWriteKeywords(bool doesWrite)
 //----------------------------------------------------------------------
 bool DFAgent::doesSaveFrame()
 {
+	DFAgent_TRACE
 	return doesSaveFrame_;
 }
 
@@ -957,6 +1127,7 @@ bool DFAgent::doesSaveFrame()
 //----------------------------------------------------------------------
 bool DFAgent::doesPropagateFrame()
 {
+	DFAgent_TRACE
 	return doesPropagateFrame_;
 }
 
@@ -965,6 +1136,7 @@ bool DFAgent::doesPropagateFrame()
 //----------------------------------------------------------------------
 bool DFAgent::doesSaveFITS()
 {
+	DFAgent_TRACE
 	return doesSaveFITS_;
 }
 
@@ -973,6 +1145,7 @@ bool DFAgent::doesSaveFITS()
 //----------------------------------------------------------------------
 bool DFAgent::doesPropagateFITS()
 {
+	DFAgent_TRACE
 	return doesPropagateFITS_;
 }
 
@@ -981,6 +1154,7 @@ bool DFAgent::doesPropagateFITS()
 //----------------------------------------------------------------------
 bool DFAgent::doesAutoReduce()
 {
+	DFAgent_TRACE
 	return doesAutoReduce_;
 }
 
@@ -989,6 +1163,7 @@ bool DFAgent::doesAutoReduce()
 //----------------------------------------------------------------------
 bool DFAgent::doesWriteKeywords()
 {
+	DFAgent_TRACE
 	return doesWriteKeywords_;
 }
 
@@ -1014,6 +1189,7 @@ bool DFAgent::doesWriteKeywords()
 //----------------------------------------------------------------------
 const char* DFAgent::offlineImagesPath()
 {
+	DFAgent_TRACE
 	trace_.out("offlineImagesPath()\n");
 	return offlineImagesPath_.in();
 }
@@ -1023,6 +1199,7 @@ const char* DFAgent::offlineImagesPath()
 //----------------------------------------------------------------------
 void DFAgent::offlineImagesPath(const char* new_offlineImagesPath)
 {
+	DFAgent_TRACE
 	trace_.out("offlineImagesPath(%s)\n",new_offlineImagesPath);
 	// Change property
 	offlineImagesPath_ = new_offlineImagesPath;
@@ -1035,6 +1212,7 @@ void DFAgent::offlineImagesPath(const char* new_offlineImagesPath)
 //----------------------------------------------------------------------
 const char* DFAgent::dfBranchInstanceName()
 {
+	DFAgent_TRACE
 	trace_.out("dfBranchInstanceName()\n");
 	return dfBranchInstanceName_.in();
 }
@@ -1044,6 +1222,7 @@ const char* DFAgent::dfBranchInstanceName()
 //----------------------------------------------------------------------
 void DFAgent::dfBranchInstanceName(const char* new_dfBranchInstanceName)
 {
+	DFAgent_TRACE
 	trace_.out("dfBranchInstanceName(%s)\n",new_dfBranchInstanceName);
 	// Change property
 	dfBranchInstanceName_ = new_dfBranchInstanceName;
@@ -1061,6 +1240,7 @@ void DFAgent::dfBranchInstanceName(const char* new_dfBranchInstanceName)
 //----------------------------------------------------------------------
 const char* DFAgent::dfManagerInstanceName()
 {
+	DFAgent_TRACE
 	trace_.out("dfManagerInstanceName()\n");
 	return dfManagerInstanceName_.in();
 }
@@ -1070,6 +1250,7 @@ const char* DFAgent::dfManagerInstanceName()
 //----------------------------------------------------------------------
 void DFAgent::dfManagerInstanceName(const char* new_dfManagerInstanceName)
 {
+	DFAgent_TRACE
 	trace_.out("dfManagerInstanceName(%s)\n",new_dfManagerInstanceName);
 	// Change property
 	dfManagerInstanceName_ = new_dfManagerInstanceName;
@@ -1087,6 +1268,7 @@ void DFAgent::dfManagerInstanceName(const char* new_dfManagerInstanceName)
 //----------------------------------------------------------------------
 const char* DFAgent::dfAgentPartnerInstanceName()
 {
+	DFAgent_TRACE
 	trace_.out("dfAgentPartnerInstanceName()\n");
 	return dfAgentPartnerInstanceName_.in();
 }
@@ -1096,6 +1278,7 @@ const char* DFAgent::dfAgentPartnerInstanceName()
 //----------------------------------------------------------------------
 void DFAgent::dfAgentPartnerInstanceName(const char* new_dfAgentPartnerInstanceName)
 {
+	DFAgent_TRACE
 	trace_.out("dfAgentPartnerInstanceName(%s)\n",new_dfAgentPartnerInstanceName);
 	// Change property
 	dfAgentPartnerInstanceName_ = new_dfAgentPartnerInstanceName;
@@ -1113,6 +1296,7 @@ void DFAgent::dfAgentPartnerInstanceName(const char* new_dfAgentPartnerInstanceN
 //----------------------------------------------------------------------
 short DFAgent::propagateFrame()
 {
+	DFAgent_TRACE
 	trace_.out("propagateFrame()\n");
 	return doesPropagateFrame_;
 }
@@ -1122,6 +1306,7 @@ short DFAgent::propagateFrame()
 //----------------------------------------------------------------------
 void DFAgent::propagateFrame(short new_propagateFrame)
 {
+	DFAgent_TRACE
 	trace_.out("propagateFrame(%hd)\n",new_propagateFrame);
 	// Change property
 	doesPropagateFrame_ = new_propagateFrame;
@@ -1135,6 +1320,7 @@ void DFAgent::propagateFrame(short new_propagateFrame)
 //----------------------------------------------------------------------
 short DFAgent::saveFrame()
 {
+	DFAgent_TRACE
 	trace_.out("saveFrame()\n");
 	return doesSaveFrame_;
 }
@@ -1144,6 +1330,7 @@ short DFAgent::saveFrame()
 //----------------------------------------------------------------------
 void DFAgent::saveFrame(short new_saveFrame)
 {
+	DFAgent_TRACE
 	trace_.out("saveFrame(%hd)\n",new_saveFrame);
 	// Change property
 	doesSaveFrame_ = new_saveFrame;
@@ -1157,6 +1344,7 @@ void DFAgent::saveFrame(short new_saveFrame)
 //----------------------------------------------------------------------
 short DFAgent::propagateFITS()
 {
+	DFAgent_TRACE
 	trace_.out("propagateFITS()\n");
 	return doesPropagateFITS_;
 }
@@ -1166,6 +1354,7 @@ short DFAgent::propagateFITS()
 //----------------------------------------------------------------------
 void DFAgent::propagateFITS(short new_propagateFITS)
 {
+	DFAgent_TRACE
 	trace_.out("propagateFITS(%hd)\n",new_propagateFITS);
 	// Change property
 	doesPropagateFITS_ = new_propagateFITS;
@@ -1179,6 +1368,7 @@ void DFAgent::propagateFITS(short new_propagateFITS)
 //----------------------------------------------------------------------
 short DFAgent::saveFITS()
 {
+	DFAgent_TRACE
 	trace_.out("saveFITS()\n");
 	return doesSaveFITS_;
 }
@@ -1188,6 +1378,7 @@ short DFAgent::saveFITS()
 //----------------------------------------------------------------------
 void DFAgent::saveFITS(short new_saveFITS)
 {
+	DFAgent_TRACE
 	trace_.out("saveFITS(%hd)\n",new_saveFITS);
 	// Change property
 	doesSaveFITS_ = new_saveFITS;
@@ -1201,6 +1392,7 @@ void DFAgent::saveFITS(short new_saveFITS)
 //----------------------------------------------------------------------
 short DFAgent::autoReduce()
 {
+	DFAgent_TRACE
 	trace_.out("autoReduce()\n");
 	return doesAutoReduce_;
 }
@@ -1210,6 +1402,7 @@ short DFAgent::autoReduce()
 //----------------------------------------------------------------------
 void DFAgent::autoReduce(short new_autoReduce)
 {
+	DFAgent_TRACE
 	trace_.out("autoReduce(%hd)\n",new_autoReduce);
 	// Change property
 	doesAutoReduce_ = new_autoReduce;
@@ -1223,6 +1416,7 @@ void DFAgent::autoReduce(short new_autoReduce)
 //----------------------------------------------------------------------
 short DFAgent::writeKeywords()
 {
+	DFAgent_TRACE
 	trace_.out("writeKeywords()\n");
 	return doesWriteKeywords_;
 }
@@ -1232,6 +1426,7 @@ short DFAgent::writeKeywords()
 //----------------------------------------------------------------------
 void DFAgent::writeKeywords(short new_writeKeywords)
 {
+	DFAgent_TRACE
 	trace_.out("writeKeywords(%hd)\n",new_writeKeywords);
 	// Change property
 	doesWriteKeywords_ = new_writeKeywords;
@@ -1245,6 +1440,7 @@ void DFAgent::writeKeywords(short new_writeKeywords)
 //----------------------------------------------------------------------
 short DFAgent::flippedImage()
 {
+	DFAgent_TRACE
 	trace_.out("flippedImage()\n");
 	return flippedImage_;
 }
@@ -1254,6 +1450,7 @@ short DFAgent::flippedImage()
 //----------------------------------------------------------------------
 void DFAgent::flippedImage(short new_flippedImage)
 {
+	DFAgent_TRACE
 	trace_.out("flippedImage(%hd)\n",new_flippedImage);
 	// Change property
 	flippedImage_ = new_flippedImage;
@@ -1266,6 +1463,7 @@ void DFAgent::flippedImage(short new_flippedImage)
 //----------------------------------------------------------------------
 short DFAgent::testingMode()
 {
+	DFAgent_TRACE
 	trace_.out("testingMode()\n");
 	return testingMode_;
 }
@@ -1275,6 +1473,7 @@ short DFAgent::testingMode()
 //----------------------------------------------------------------------
 void DFAgent::testingMode(short new_testingMode)
 {
+	DFAgent_TRACE
 	trace_.out("testingMode(%hd)\n",new_testingMode);
 	// Change property
 	testingMode_ = new_testingMode;
@@ -1287,6 +1486,7 @@ void DFAgent::testingMode(short new_testingMode)
 //----------------------------------------------------------------------
 const char* DFAgent::obsModeKeywordListPath()
 {
+	DFAgent_TRACE
 	trace_.out("obsModeKeywordListPath()\n");
 	return obsModeKeywordListPath_.in();
 }
@@ -1296,36 +1496,54 @@ const char* DFAgent::obsModeKeywordListPath()
 //----------------------------------------------------------------------
 void DFAgent::obsModeKeywordListPath(const char* new_obsModeKeywordListPath)
 {
-	trace_.out("obsModeKeywordListPath(%s)\n",new_obsModeKeywordListPath);
-	// Change property
-	obsModeKeywordListPath_ = new_obsModeKeywordListPath;
-	//@ipc
-	//load fits header keywords for each Obs Mode
-	std::string fitsHeaderPath;
-	std::ifstream inputFile(obsModeKeywordListPath_.c_str());
-
-	if(inputFile)
-	{
-		while(inputFile >> fitsHeaderPath)
-		{
-			trace_.out ("Parsing keyword specification...");
-			//header keyword files are read in the same order than ObservationMode enumeration
-			FITSHeaderInfo fitsHeaderInfo;
-			fitsHeaderInfo.parseKeywordsFile(fitsHeaderPath.c_str());
-			obsModeKeywordList_.push_back(fitsHeaderInfo);
-		}
-		if (obsModeKeywordList_.size() == 0)
-		{
-			throw InvalidValue("obsModeKeywordListPath","No keywords configuration found.");
-		}
-	}
-	else
-	{
-		throw OperationFailed("DFAgent::obsModeKeywordListPath(const char*)",
-				("Missing fileName: " + obsModeKeywordListPath_).c_str());
-	}
-	//@epc
-	propertyChange_("obsModeKeywordListPath");
+  DFAgent_TRACE
+  trace_.out("obsModeKeywordListPath(%s)\n",new_obsModeKeywordListPath);
+  // Check if the connection to DFBranch is feasible.
+  if (dfBranchInstanceName_ == String::empty)
+  {
+    InvalidValue exception(__PRETTY_FUNCTION__);
+    exception.addText("The DFBranch instance name can not be empty when setting obsModeKeywordListPath property.");
+    logError_(exception.text());
+    trace_.err(exception.text());
+    throw exception;
+  }
+  // Parse file to obtain the keywords to include in received frames.
+  try
+  {
+    parseFITSHeaderKeywordsFromFile_(new_obsModeKeywordListPath);
+    // Change property
+    obsModeKeywordListPath_ = new_obsModeKeywordListPath;
+    propertyChange_("obsModeKeywordListPath");
+  }
+  catch (CORBA::Exception & corba_exception)
+  {
+    obsModeKeywordList_.clear();
+    obsModeHash_.clear();
+    GCSException gcs_exception = DException::mapCORBAException(corba_exception);
+    gcs_exception.addToTrace(__PRETTY_FUNCTION__);
+    gcs_exception.addText("Unable to parse file (%s).", new_obsModeKeywordListPath);
+    logError_(gcs_exception.text());
+    trace_.err(gcs_exception.text());
+    throw gcs_exception;
+  }
+  catch (GCSException & exception)
+  {
+    obsModeKeywordList_.clear();
+    obsModeHash_.clear();
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to parse file (%s).", new_obsModeKeywordListPath);
+    logError_(exception.text());
+    trace_.err(exception.text());
+    throw;
+  }
+  catch (...)
+  {
+    obsModeKeywordList_.clear();
+    obsModeHash_.clear();
+    logError_("Unable to parse file (%s).", new_obsModeKeywordListPath);
+    trace_.err("Unable to parse file (%s).", new_obsModeKeywordListPath);
+    throw;
+  }
 }
 
 //----------------------------------------------------------------------
@@ -1333,6 +1551,7 @@ void DFAgent::obsModeKeywordListPath(const char* new_obsModeKeywordListPath)
 //----------------------------------------------------------------------
 const char* DFAgent::recipeDictionaryPath()
 {
+	DFAgent_TRACE
 	trace_.out("recipeDictionaryPath()\n");
 	return recipeDictionaryPath_.in();
 }
@@ -1342,6 +1561,7 @@ const char* DFAgent::recipeDictionaryPath()
 //----------------------------------------------------------------------
 void DFAgent::recipeDictionaryPath(const char* new_recipeDictionaryPath)
 {
+	DFAgent_TRACE
 	trace_.out("recipeDictionaryPath(%s)\n",new_recipeDictionaryPath);
 	recipeDictionaryPath_ = new_recipeDictionaryPath;
 	//@ipc
@@ -1364,6 +1584,7 @@ void DFAgent::recipeDictionaryPath(const char* new_recipeDictionaryPath)
 //----------------------------------------------------------------------
 const char* DFAgent::gcsComponent()
 {
+	DFAgent_TRACE
 	trace_.out("gcsComponent()\n");
 	return gcsComponent_.in();
 }
@@ -1373,6 +1594,7 @@ const char* DFAgent::gcsComponent()
 //----------------------------------------------------------------------
 void DFAgent::gcsComponent(const char* new_gcsComponent)
 {
+	DFAgent_TRACE
 	trace_.out("gcsComponent(%s)\n",new_gcsComponent);
 
 	// checkConfigurability_();
@@ -1389,6 +1611,7 @@ void DFAgent::gcsComponent(const char* new_gcsComponent)
 //----------------------------------------------------------------------
 const char* DFAgent::cameraName()
 {
+	DFAgent_TRACE
 	trace_.out("cameraName()\n");
 	return cameraName_.in();
 }
@@ -1398,6 +1621,7 @@ const char* DFAgent::cameraName()
 //----------------------------------------------------------------------
 void DFAgent::cameraName(const char* new_cameraName)
 {
+	DFAgent_TRACE
 	trace_.out("cameraName(%s)\n",new_cameraName);
 
 	// checkConfigurability_();
@@ -1414,6 +1638,7 @@ void DFAgent::cameraName(const char* new_cameraName)
 //----------------------------------------------------------------------
 const DoubleArray1D DFAgent::referencePixel()
 {
+	DFAgent_TRACE
 	trace_.out("referencePixel()\n");
 	DoubleArray1D doubleArray1D(referencePixel_.size());
 	for(unsigned int w=0; w<referencePixel_.size(); w++)
@@ -1429,6 +1654,7 @@ const DoubleArray1D DFAgent::referencePixel()
 //----------------------------------------------------------------------
 void DFAgent::referencePixel(const DoubleArray1D& new_referencePixel)
 {
+	DFAgent_TRACE
 	trace_.out("referencePixel(double[%ld])\n",new_referencePixel.width());
 
 	// Check if is a valid array
@@ -1461,6 +1687,7 @@ void DFAgent::referencePixel(const DoubleArray1D& new_referencePixel)
 //----------------------------------------------------------------------
 void DFAgent::fetchORInfo_()
 {
+	DFAgent_TRACE
 	try
 	{
 		//check dfBranchInstance_ isn't null, otherwise reconnect to it.
@@ -1501,13 +1728,14 @@ void DFAgent::fetchORInfo_()
 
 std::vector<std::string> DFAgent::getAvailableObsMode_()
 {
+	DFAgent_TRACE
 	initDFBranchInstance_(false);
 
 	try {
 
 		DGT::StringList_var idl_string_list = dfBranchInstance_->getAvailableObsMode();
 		std::vector<std::string> string_list;
-		fromIDL(idl_string_list,string_list);
+		fromIDL(idl_string_list.inout(), string_list);
 
 		return string_list;
 	} catch (GCSException& ex ) {
@@ -1521,6 +1749,7 @@ std::vector<std::string> DFAgent::getAvailableObsMode_()
 //----------------------------------------------------------------------
 DDPKF::DataElement *DFAgent::getWithFrameRecipeElement_(const string & elementName)
 {
+	DFAgent_TRACE
 	//virtual function to be implemented by
 	return NULL;
 }
@@ -1530,6 +1759,7 @@ DDPKF::DataElement *DFAgent::getWithFrameRecipeElement_(const string & elementNa
 //----------------------------------------------------------------------
 DDPKF::DataElement *DFAgent::getBeforeFrameRecipeElement_(const string & elementName)
 {
+	DFAgent_TRACE
 	//virtual function to be implemented by
 	return NULL;
 }
@@ -1539,6 +1769,7 @@ DDPKF::DataElement *DFAgent::getBeforeFrameRecipeElement_(const string & element
 //----------------------------------------------------------------------
 bool DFAgent::belongsToRecipe_(const string& elementName)
 {
+	DFAgent_TRACE
 	bool status(false);
 	string elementTraslationName(recipeDictionary_.fetchTranslation(elementName, obsModeName_[shortObsMode_]) );
 	vector<string>::iterator itResult(find(recipeElementNames_.begin(), recipeElementNames_.end(), elementTraslationName));
@@ -1554,6 +1785,7 @@ bool DFAgent::belongsToRecipe_(const string& elementName)
 //----------------------------------------------------------------------
 void DFAgent::sendElement_(string elementRecipeName, bool hasFrameArrived)
 {
+	DFAgent_TRACE
 	DDPKF::DataElement * pDataElement = NULL;
 	try
 	{
@@ -1606,6 +1838,7 @@ void DFAgent::sendElement_(string elementRecipeName, bool hasFrameArrived)
 //----------------------------------------------------------------------
 void DFAgent::sendElement_(string elementRecipeName)
 {
+	DFAgent_TRACE
 	DDPKF::DataElement * pDataElement = NULL;
 	try
 	{
@@ -1657,6 +1890,7 @@ void DFAgent::sendElement_(string elementRecipeName)
 //----------------------------------------------------------------------
 void DFAgent::initDFBranchInstance_(bool init_obsmode_lowlevel)
 {
+	DFAgent_TRACE
 	try
 	{
 		if(CORBA::is_nil(const_cast<const DF::Branch_ifce_var&>(dfBranchInstance_)))
@@ -1701,6 +1935,7 @@ void DFAgent::initDFBranchInstance_(bool init_obsmode_lowlevel)
 //----------------------------------------------------------------------
 void DFAgent::initDFManagerInstance_()
 {
+	DFAgent_TRACE
 	try
 	{
 		if(CORBA::is_nil(const_cast<const DF::DataAcquisitionManager_ifce_var&>(dfManagerInstance_)))
@@ -1742,6 +1977,7 @@ void DFAgent::initDFManagerInstance_()
 //----------------------------------------------------------------------
 void DFAgent::initDFAgentPartnerInstance_()
 {
+	DFAgent_TRACE
 	try
 	{
 		if((dfAgentPartnerInstanceName_.length() != 0) && CORBA::is_nil(const_cast<const DFAGENT::DFAgent_ifce_var&>(dfAgentPartnerInstance_)))
@@ -1782,6 +2018,7 @@ void DFAgent::initDFAgentPartnerInstance_()
 //----------------------------------------------------------------------
 void DFAgent::writeStandardKeywords_(DataDescription& frame)
 {
+	DFAgent_TRACE
 	try
 	{
 		try
@@ -1803,10 +2040,22 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
 		try
 		{
 			frame.addKeyword(DPKF::Keyword<string>("OBSTYPE", obsTypeName_[obsType_].c_str(), "Observation Type", ""));
+			//frame.addKeyword(DPKF::Keyword<string>("OBSTYPE", to_string(obsType_), "Observation Type", ""));
 		}
 		catch(AlreadyExists &ex)
 		{
 			frame.modifyKeyword("OBSTYPE", obsTypeName_[obsType_]);
+			//frame.modifyKeyword("OBSTYPE", std::string(to_string(obsType_)));
+		}
+		try
+		{
+		  frame.addKeyword(DPKF::Keyword<string>("OBSCLASS", obsClassName_[obsClass_].c_str(), "Observation Class", ""));
+		  //frame.addKeyword(DPKF::Keyword<string>("OBSCLASS", to_string(obsClass_), "Observation Class", ""));
+		}
+		catch(AlreadyExists &ex)
+		{
+		  frame.modifyKeyword("OBSCLASS", obsClassName_[obsClass_]);
+		  //frame.modifyKeyword("OBSCLASS", std::string(to_string(obsClass_)));
 		}
 		try
 		{
@@ -1921,6 +2170,7 @@ void DFAgent::writeStandardKeywords_(DataDescription& frame)
 //----------------------------------------------------------------------
 void DFAgent::writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long, 2>& frameSize)
 {
+	DFAgent_TRACE
 
 	trace_.out("writeWCSKeywords_()\n");
 	// Implemented if needed by inherited class
@@ -1931,6 +2181,7 @@ void DFAgent::writeWCSKeywords_(DataDescription& frame, TinyVector<unsigned long
 //----------------------------------------------------------------------
 void DFAgent::writeAdditionalKeywords_(DataDescription& frame)
 {
+	DFAgent_TRACE
 	trace_.out("writeAdditionalKeywords_()\n");
 
 	// Implemented if needed by inherited class
@@ -1940,7 +2191,9 @@ void DFAgent::writeAdditionalKeywords_(DataDescription& frame)
 // applyObsModeSettings_
 //----------------------------------------------------------------------
 void DFAgent::applyObsModeSettings_(const std::vector<bool> & settings)
-{  // this method is virtual, so it can be redefined in the derived class
+{
+	DFAgent_TRACE
+	// this method is virtual, so it can be redefined in the derived class
 	// the behaviour can be different from this,
 	// different settings order, or different settings magnitudes for instance
 	// default behaviour is the following:
@@ -1986,26 +2239,19 @@ void DFAgent::receiveFrameObsStrategy(const DDPKF::Frame& idlFrame,
 	trace_.out("receiveFrame\n");
 
 	//Get the first observation strategy node with room for new images.
-	std::vector<DFObservationStrategy *>::iterator observation_strategies_iter = observation_strategies_.begin();
-	for(;observation_strategies_iter!=observation_strategies_.end();++observation_strategies_iter) {
-		if ( ! (*observation_strategies_iter)->isAcquisitionComplete() ) {
-			break;
-		}
-	}
-	if ( observation_strategies_iter == observation_strategies_.end() ) {
-		throw NoEntries("Not more Observation Strategy nodes");
-	}
+	DF::DFObservationStrategyPtr strategyPtr (NULL);
+	strategyPtr = DF::find1stObsStrategyNotAcquisitionCompleted(observation_strategies_);
 
 	//Print debug info
-	(*observation_strategies_iter)->debug();
+	strategyPtr->debug();
 
 	//Obtain the next Observation Strategy
-	DFObservationStrategy::ObservationStrategyPtr observation_strategy_node = (*observation_strategies_iter)->next();
+	DF::DFObservationStrategy::ObservationStrategyPtr observation_strategy_node (strategyPtr->next());
 
 	//If a reduction session has not been opened
 	if(observation_strategy_node->session_id == 0) {
 		subscribeToReductionResult_(observation_strategy_node->observation_mode.c_str());
-		configureObsMode_(observation_strategy_node->observation_mode.c_str(),(*observation_strategies_iter)->strategy_session_id);
+		configureObsMode_(observation_strategy_node->observation_mode.c_str(), strategyPtr->strategy_session_id);
 		observation_strategy_node->session_id=dfSessionId_;
 	}
 
@@ -2047,11 +2293,12 @@ void DFAgent::receiveFrameObsStrategy(const DDPKF::Frame& idlFrame,
 		}
 	}
 	//Print debug info
-	(*observation_strategies_iter)->debug();
+	strategyPtr->debug();
 }
 
 void DFAgent::configureObsMode_(const char * obsMode, long observation_strategy_session)
 {
+	DFAgent_TRACE
 
 	trace_.out("DFAgent::configureObsMode_ [obs_mode=%s]\n",obsMode);
 
@@ -2059,6 +2306,7 @@ void DFAgent::configureObsMode_(const char * obsMode, long observation_strategy_
 
 	try {
 		dfSessionId_ = dfBranchInstance_->configureObsMode( obsMode,observation_strategy_session );
+		shortObsMode_ = obsModeHash_[obsMode];
 		dfBranchInstance_->setInstrumentId (gcsComponent_, cameraName_, dfBranchInstanceName_, dfSessionId_);
 		dfBranchInstance_->setSessionAutoReduce(doesAutoReduce_, dfBranchInstanceName_, dfSessionId_);
 		//isSessionRunning_ = true;
@@ -2070,6 +2318,7 @@ void DFAgent::configureObsMode_(const char * obsMode, long observation_strategy_
 
 void DFAgent::unsubscribeToReductionResult_(const char * recipe_name)
 {
+	DFAgent_TRACE
 	try
 	{
 		trace_.out("Unsubscribe to Reduction Result [name=%s]\n", recipe_name);
@@ -2085,6 +2334,7 @@ void DFAgent::unsubscribeToReductionResult_(const char * recipe_name)
 
 void DFAgent::subscribeToReductionResult_(const char * recipe_name)
 {
+	DFAgent_TRACE
 	initDFManagerInstance_();
 
 	unsubscribeToReductionResult_(recipe_name);
@@ -2100,3 +2350,630 @@ void DFAgent::subscribeToReductionResult_(const char * recipe_name)
 		throw;
 	}
 }
+
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromFile_
+//----------------------------------------------------------------------
+void DFAgent::parseFITSHeaderKeywordsFromFile_(std::string filePath)
+{
+	DFAgent_TRACE
+  if ( filePath.empty() )
+  {
+    filePath = std::string(obsModeKeywordListPath_.c_str());
+  }
+
+  // Check if the DFBranch is available or not.
+  initDFBranchInstance_(false);
+
+  // Check if file can be opened
+  {
+    std::ifstream file(filePath.c_str());
+    if ( not file.is_open() )
+    {
+      NotFound exception(__PRETTY_FUNCTION__);
+      exception.addText("Unable to open file '%s' where the monitor-keywords are specified.", filePath.c_str() );
+      throw exception;
+    }
+    else
+    {
+      file.close();
+    }
+  }
+
+  // Determine the file format by its extension
+  if ( endsWith (filePath.c_str(), ".json") )
+  {
+    parseFITSHeaderKeywordsFromJSONFile_(filePath);
+  }// JSON
+  else
+  {
+    parseFITSHeaderKeywordsFromPlainTextFile_(filePath);
+  }// PlainText
+}
+
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromPlainTextFile_
+//----------------------------------------------------------------------
+void DFAgent::parseFITSHeaderKeywordsFromPlainTextFile_(const std::string &filePath)
+{
+	DFAgent_TRACE
+  // Check pre-condition
+  if ( obsModeName_.size() < 1 )
+  {
+    NoEntries exception(__PRETTY_FUNCTION__);
+    exception.addText("obsModeName_ member must be initialized with all observation mode names before.");
+    throw exception;
+  }
+
+  // Load FITS Header keywords for each Obs Mode
+  std::ifstream inputFile(filePath.c_str());
+
+  if( inputFile.is_open() )
+  {
+    obsModeKeywordList_.clear();
+    obsModeHash_.clear();
+    std::string fitsHeaderPath;
+    Hash_t identifier(0);
+    while(inputFile >> fitsHeaderPath)
+    {
+      
+      trace_.out ("Parsing keyword specification line %d ...", identifier);
+      // Check pre-condition
+      if ( obsModeName_.count(identifier) < 1 )
+      {
+        NoEntries exception(__PRETTY_FUNCTION__);
+        exception.addText("There is not defined an observation mode name for id number '%d'.", identifier);
+        throw exception;
+      }
+      //header keyword files are read in the same order than ObservationMode enumeration
+      FITSHeaderInfo fitsHeaderInfo;
+      fitsHeaderInfo.parseFITSHeaderKeywordsFromFile(fitsHeaderPath.c_str());
+      {
+        ObsModeKeywordList_t::value_type value_to_insert (identifier, fitsHeaderInfo);
+        obsModeKeywordList_.insert(value_to_insert);
+      }
+      {
+        ObsModeHash_t::value_type value_to_insert (obsModeName_[identifier], identifier);
+        obsModeHash_.insert(value_to_insert);
+      }
+      ++identifier;
+    }
+    if (obsModeKeywordList_.size() == 0)
+    {
+      InvalidValue exception (__PRETTY_FUNCTION__);
+      exception.addText("No keywords configuration found.");
+      throw exception;
+    }
+    inputFile.close();
+  }
+  else
+  {
+    OperationFailed exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to open file '%s'.", filePath.c_str());
+    throw exception;
+  }
+}
+
+//----------------------------------------------------------------------
+// parseFITSHeaderKeywordsFromJSONFile_
+//----------------------------------------------------------------------
+void DFAgent::parseFITSHeaderKeywordsFromJSONFile_(const std::string &filePath)
+{
+	DFAgent_TRACE
+  std::ifstream inputFile(filePath.c_str());
+  if ( not inputFile.is_open() )
+  {
+    OperationFailed exception(__PRETTY_FUNCTION__);
+    exception.addText("Unable to open file '%s'.", filePath.c_str());
+    throw exception;
+  }
+
+  //<editor-fold desc="Parse JSON file">
+  Json::Value root;
+  try
+  {
+    inputFile >> root;
+  }
+  catch (...)
+  {
+    SyntaxError exception(__PRETTY_FUNCTION__);
+    exception.addText("Error when parsing JSON file ('%s'). Suggestion: Check JSON syntax.", filePath.c_str() );
+    throw exception;
+  }
+  inputFile.close();
+  //</editor-fold>
+
+  // Check type of root node
+  if ( not root.isObject() )
+  {
+    throw SyntaxError(__PRETTY_FUNCTION__, "The root JSON node must be an object.");
+  }
+
+  //<editor-fold desc="Check if all fields, which belong to 1st level, exist or not">
+  {
+    for (JsonKeywordsList_t::const_iterator item = jsonFixedKeywordLevel1_.begin();
+         item != jsonFixedKeywordLevel1_.end();
+         ++item)
+    {
+      //<editor-fold desc="Check if item is present or not">
+      if ( not root.isMember(*item) )
+      {
+        SyntaxError exception(__PRETTY_FUNCTION__);
+        exception.addText("The root JSON node must have defined the field called '%s'.", item->c_str());
+        trace_.err( exception.text() );
+        if ( logAgent_ not_eq NULL )
+          logAgent_->logError( exception.text() );
+        throw exception;
+      }
+      //</editor-fold>
+
+      //<editor-fold desc="Check if item node is an array or not">
+      if ( not root[*item].isArray() )
+      {
+        SyntaxError exception(__PRETTY_FUNCTION__);
+        exception.addText("The field called '%s' must be an array type.", item->c_str());
+        trace_.err( exception.text() );
+        if ( logAgent_ not_eq NULL )
+          logAgent_->logError( exception.text() );
+        throw exception;
+      }
+      //</editor-fold>
+    }
+  }
+  //</editor-fold>
+
+  // Define aliases
+  Json::Value
+    &nodeKeywordSections( root["keyword-sections"]),
+    &nodeKeywordObsModes( root["observation-modes"])
+  ;
+
+  //<editor-fold desc="Parse sections of keywords.">
+  trace_.out("Parse sections of keywords.");
+  typedef std::map<std::string, FITSHeaderInfo> KeywordSectionContainer;
+  KeywordSectionContainer keywordSections;
+  {
+    for (ArrayIndex indexSection (0); indexSection < nodeKeywordSections.size(); ++indexSection)
+    {
+      unsigned int id (indexSection + 1);
+      Json::Value & node ( nodeKeywordSections[indexSection] );
+      try
+      {
+        //<editor-fold desc="Check if the mandatory field exists or not.">
+        for (JsonKeywordsList_t::const_iterator item = jsonFixedKeywordLevel2_.begin();
+             item != jsonFixedKeywordLevel2_.end();
+             ++item)
+        {
+          if ( not node.isMember(*item) )
+          {
+            SyntaxError exception (__PRETTY_FUNCTION__);
+            exception.addText("The node number '%03d' doesn't contain the field '%s'", id, item->c_str());
+            trace_.err( exception.text() );
+            if ( logAgent_ not_eq NULL )
+              logAgent_->logError( exception.text() );
+            throw exception;
+          }
+        }
+        //</editor-fold>
+
+        // Define aliases
+        Json::Value
+          & nodeSectionName     (node["name"]),
+          & nodeSectionKeywords (node["keywords"])
+        ;
+
+        //<editor-fold desc="Check fields types">
+        if ( not nodeSectionName.isString() )
+        {
+          SyntaxError exception (__PRETTY_FUNCTION__);
+          exception.addText("Error in the node number '%03d'. The value of the field 'name' must be a string.'", id);
+          trace_.err( exception.text() );
+          if ( logAgent_ not_eq NULL )
+            logAgent_->logError( exception.text() );
+          throw exception;
+        }
+        if ( not nodeSectionKeywords.isString() and not nodeSectionKeywords.isArray() )
+        {
+          SyntaxError exception (__PRETTY_FUNCTION__);
+          exception.addText("Error in the node number '%03d'. The value of the field 'keywords' must be a string or an array.'", id);
+          trace_.err( exception.text() );
+          if ( logAgent_ not_eq NULL )
+            logAgent_->logError( exception.text() );
+          throw exception;
+        }
+        //</editor-fold>
+
+        KeywordSectionContainer::key_type    sectionName     ( nodeSectionName.asString() );
+        KeywordSectionContainer::mapped_type sectionKeywords (monitorAgent_, logAgent_, trace_);
+
+        //<editor-fold desc="Parse section of keywords">
+        // Inline keywords definition or not
+        if ( nodeSectionKeywords.isString() )
+        {
+          // Keywords are defined in a file
+          sectionKeywords.parseFITSHeaderKeywordsFromFile( nodeSectionKeywords.asString() );
+        }
+        else if ( nodeSectionKeywords.isArray() )
+        {
+          // Keywords are defined inline
+          sectionKeywords.parseFITSHeaderKeywordsFromInline( nodeSectionKeywords );
+        }
+        else
+        {
+          // Save guard!
+          UnknownException exception(__PRETTY_FUNCTION__);
+          exception.addText("Software error. Line='%d'", __LINE__);
+          trace_.err( exception.text() );
+          if ( logAgent_ not_eq NULL )
+            logAgent_->logError( exception.text() );
+          throw exception;
+        }
+        //</editor-fold>
+
+        {
+					KeywordSectionContainer::value_type value_to_insert ( sectionName, sectionKeywords );
+					keywordSections.insert( value_to_insert );
+				}
+      }
+      catch (GCSException &exception)
+      {
+        exception.addToTrace(__PRETTY_FUNCTION__);
+        throw;
+      }
+      catch (...)
+      {
+        UnknownException exception(__PRETTY_FUNCTION__);
+        exception.addText( "Problems to parse the node number '%03d'.", id );
+        trace_.err( exception.text() );
+        if ( logAgent_ not_eq NULL )
+        {
+          logAgent_->logError( exception.text() );
+        }
+        throw;
+      }
+    }
+  }
+  //</editor-fold>
+
+  //<editor-fold desc="Get all available observation modes">
+  std::vector<std::string> availableObsModeList (getAvailableObsMode_() );
+  //</editor-fold>
+
+  //<editor-fold desc="Parse observation mode keywords">
+  {
+    trace_.out("Parse observation mode keywords.");
+    obsModeKeywordList_.clear();
+    obsModeHash_.clear();
+    obsModeName_.clear();
+    for (ArrayIndex indexObsMode (0); indexObsMode < nodeKeywordObsModes.size(); ++indexObsMode)
+    {
+      unsigned int id (indexObsMode + 1);
+      Json::Value & node ( nodeKeywordObsModes[indexObsMode] );
+      try
+      {
+        //<editor-fold desc="Check if the mandatory field exists or not">
+        for (JsonKeywordsList_t::const_iterator item = jsonFixedKeywordLevel2_.begin();
+             item != jsonFixedKeywordLevel2_.end();
+             ++item)
+        {
+          if ( not node.isMember(*item) )
+          {
+            SyntaxError exception (__PRETTY_FUNCTION__);
+            exception.addText("The node number '%03d' doesn't contain the field '%s'.", id, item->c_str());
+            trace_.err( exception.text() );
+            if ( logAgent_ not_eq NULL )
+              logAgent_->logError( exception.text() );
+            throw exception;
+          }
+        }
+        //</editor-fold>
+
+        const bool & isIDPresent(node.isMember("id"));
+        const Json::Value
+            & nodeObsModeName   (node["name"]),
+            & nodeObsModeLabels (node["keywords"]),
+            & nodeObsModeID (node["id"])
+        ;
+
+        //<editor-fold desc="Check fields types">
+        if ( not nodeObsModeName.isString() )
+        {
+          SyntaxError exception (__PRETTY_FUNCTION__);
+          exception.addText("Error in the node number '%03d'. The value of the field 'name' must be a string.'", id);
+          trace_.err( exception.text() );
+          if ( logAgent_ not_eq NULL )
+            logAgent_->logError( exception.text() );
+          throw exception;
+        }
+        if ( isIDPresent and not (nodeObsModeID.isUInt() or nodeObsModeID.isInt()) )
+        {
+          SyntaxError exception (__PRETTY_FUNCTION__);
+          exception.addText("The node number '%03d'. The value of the field 'id' must be a natural number.", id);
+          trace_.err( exception.text() );
+          if ( logAgent_ not_eq NULL )
+            logAgent_->logError( exception.text() );
+          throw exception;
+        }
+        if ( not nodeObsModeLabels.isArray() )
+        {
+          SyntaxError exception (__PRETTY_FUNCTION__);
+          exception.addText("Error in the node number '%03d'. The value of the field 'keywords' must be an array.'", id);
+          trace_.err( exception.text() );
+          if ( logAgent_ not_eq NULL )
+            logAgent_->logError( exception.text() );
+          throw exception;
+        }
+        //</editor-fold>
+
+        const std::string obsModeName     ( nodeObsModeName.asString() );
+        const Hash_t obsModeID            (isIDPresent ? nodeObsModeID.asUInt() : DFAgent::hash(obsModeName) );
+        FITSHeaderInfo    obsModeKeywords (monitorAgent_, logAgent_, trace_);
+
+        //<editor-fold desc="Check if the given observation mode name is available or not">
+        if ( availableObsModeList.end() == std::find(availableObsModeList.begin(),
+                                                     availableObsModeList.end(),
+                                                     obsModeName)
+           )
+        {
+          InvalidValue exception(__PRETTY_FUNCTION__);
+          exception.addText("Observation mode '%s' is not defined in the Pipeline.", obsModeName.c_str());
+          throw exception;
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="Collect and merge all keywords sections">
+        for (ArrayIndex indexSectionLabel (0); indexSectionLabel < nodeObsModeLabels.size(); ++indexSectionLabel)
+        {
+          //<editor-fold desc="Check type">
+          if ( not nodeObsModeLabels[indexSectionLabel].isString() )
+          {
+            SyntaxError exception (__PRETTY_FUNCTION__);
+            exception.addText("Error in the node number '%03d'.", id);
+            exception.addText("Unable to parse the element number '%d', it must be a string.'", (indexSectionLabel+1) );
+            trace_.err( exception.text() );
+            if ( logAgent_ not_eq NULL )
+              logAgent_->logError( exception.text() );
+            throw exception;
+          }
+          //</editor-fold>
+          //<editor-fold desc="Check if label exists or not">
+          const KeywordSectionContainer::key_type & label (nodeObsModeLabels[indexSectionLabel].asString());
+          if ( keywordSections.count(label) < 1 )
+          {
+            SyntaxError exception(__PRETTY_FUNCTION__);
+            exception.addText("Unable to find the section '%s'.", label.c_str() );
+            trace_.err( exception.text() );
+            if ( logAgent_ not_eq NULL )
+              logAgent_->logError( exception.text() );
+            throw exception;
+          }
+          //</editor-fold>
+          //<editor-fold desc="Merge">
+          obsModeKeywords.merge(keywordSections[label]);
+          //</editor-fold>
+        }
+        //</editor-fold>
+
+        //<editor-fold desc="Register parsed keywords for the specific observation mode.">
+        {
+					ObsModeKeywordList_t::value_type value_to_insert (obsModeID, obsModeKeywords);
+					obsModeKeywordList_.insert(value_to_insert);
+				}
+        {
+					ObsModeHash_t::value_type value_to_insert (obsModeName, obsModeID);
+					obsModeHash_.insert(value_to_insert);
+				}
+        {
+					ObsModeHashName_t::value_type value_to_insert (obsModeID, obsModeName);
+					obsModeName_.insert(value_to_insert);
+				}
+        //</editor-fold>
+      }
+      catch (GCSException &exception)
+      {
+        exception.addToTrace(__PRETTY_FUNCTION__);
+        throw;
+      }
+      catch (...)
+      {
+
+        UnknownException exception(__PRETTY_FUNCTION__);
+        exception.addText( "Problems to parse the node number '%03d'.", id );
+        trace_.err( exception.text() );
+        if ( logAgent_ not_eq NULL )
+        {
+          logAgent_->logError( exception.text() );
+        }
+        throw;
+      }
+    }
+  }
+  //</editor-fold>
+}
+
+//----------------------------------------------------------------------
+// gatherKeywords_
+//----------------------------------------------------------------------
+bool DFAgent::gatherKeywords_(const TimeValue &time,
+		                      const TimeValue &expTime,
+		                      DataDescription &header)
+{
+	DFAgent_TRACE
+	bool retVal (true);
+	retVal &= gatherFixedKeywords_(header);
+	retVal &= gatherMonitorKeywords_(time, expTime, header);
+	return retVal;
+}
+
+//----------------------------------------------------------------------
+// gatherFixedKeywords_
+//----------------------------------------------------------------------
+bool DFAgent::gatherFixedKeywords_(DataDescription &header)
+{
+	DFAgent_TRACE
+	bool retVal (true);
+	const DFAgent::Hash_t & hash (obsModeHash_[obsModeName_[shortObsMode_]]);
+	retVal = DFAgent::obsModeKeywordList_[hash].gatherFixedKeywords(header);
+	return retVal;
+}
+
+//----------------------------------------------------------------------
+// gatherMonitorKeywords_
+//----------------------------------------------------------------------
+bool DFAgent::gatherMonitorKeywords_(const TimeValue &time,
+		                             const TimeValue &expTime,
+		                             DataDescription &header)
+
+{
+	DFAgent_TRACE
+	bool retVal (true);
+	const DFAgent::Hash_t & hash (obsModeHash_[obsModeName_[shortObsMode_]]);
+	retVal = DFAgent::obsModeKeywordList_[hash]
+			.gatherMonitorKeywords(time, expTime, DFAgent::monitorAgent_, header);
+	return retVal;
+}
+
+//----------------------------------------------------------------------
+// getNameOf1stAcquiringObsStrategyNode_
+//----------------------------------------------------------------------
+const char * DFAgent::getNameOf1stAcquiringObsStrategyNode_()
+{
+	DFAgent_TRACE
+	DF::DFObservationStrategyPtr strategyPtr (NULL);
+	strategyPtr = DF::find1stObsStrategyNotAcquisitionCompleted(DFAgent::observation_strategies_);
+	//Print debug info
+	strategyPtr->debug();
+	DF::DFObservationStrategy::ObservationStrategyPtr observation_strategy_node (strategyPtr->next());
+	return observation_strategy_node->observation_mode.c_str();
+}
+
+//----------------------------------------------------------------------
+// getHashOf1stAcquiringObsStrategyNode_
+//----------------------------------------------------------------------
+DFAgent::Hash_t DFAgent::getHashOf1stAcquiringObsStrategyNode_()
+{
+	DFAgent_TRACE
+	const char* obsModeNodeName ( DFAgent::getNameOf1stAcquiringObsStrategyNode_() );
+	if ( DFAgent::obsModeHash_.count(obsModeNodeName) < 1 )
+	{
+		NoEntries exception(__PRETTY_FUNCTION__);
+		exception.addText("First observation mode for acquisition '%s' has not a registered identifier.", obsModeNodeName);
+		throw exception;
+	}
+	DFAgent::shortObsMode_ = DFAgent::obsModeHash_[obsModeNodeName];
+	return DFAgent::shortObsMode_;
+}
+
+
+/************************************************************************
+*************************************************************************
+**                                                                     **
+**                           Other functions                           **
+**                                                                     **
+*************************************************************************
+************************************************************************/
+
+//----------------------------------------------------------------------
+// to_string
+//----------------------------------------------------------------------
+const char* to_string(const DFAgent::ObservationType &obj)
+{
+	DFAgent_TRACE
+  switch (obj)
+  {
+    case DFAgent/*::ObservationType*/::BIAS:          return "BIAS";
+    case DFAgent/*::ObservationType*/::DARK:          return "DARK";
+    case DFAgent/*::ObservationType*/::SKY_FLAT:      return "SKY_FLAT";
+    case DFAgent/*::ObservationType*/::DOME_FLAT:     return "DOME_FLAT";
+    case DFAgent/*::ObservationType*/::SPECTRAL_FLAT: return "SPECTRAL_FLAT";
+    case DFAgent/*::ObservationType*/::ARC:           return "ARC";
+    case DFAgent/*::ObservationType*/::SKY:           return "SKY";
+    case DFAgent/*::ObservationType*/::OBJECTS:       return "OBJECTS";
+    default:
+      throw InvalidValue(
+          __PRETTY_FUNCTION__,
+          "The given value is unknown for DFAgent::ObservationType data type."
+      );
+      return "UNKNOWN";
+  }
+}
+
+//----------------------------------------------------------------------
+// to_string
+//----------------------------------------------------------------------
+const char* to_string(const DFAgent::ObservationClass &obj)
+{
+	DFAgent_TRACE
+  switch (obj)
+  {
+    case DFAgent/*::ObservationClass*/::SCIENCE: return "SCIENCE";
+    case DFAgent/*::ObservationClass*/::CALIB:   return "CALIB";
+    default:
+      throw InvalidValue(
+          __PRETTY_FUNCTION__,
+          "The given value is unknown for DFAgent::ObservationClass data type."
+      );
+      return "UNKNOWN";
+  }
+}
+
+//----------------------------------------------------------------------
+// from_string
+//----------------------------------------------------------------------
+void from_string(const std::string &str, DFAgent::ObservationType &obj)
+{
+	DFAgent_TRACE
+  if      ( str == "BIAS"          ) { obj = DFAgent/*::ObservationType*/::BIAS          ; return; }
+  else if ( str == "DARK"          ) { obj = DFAgent/*::ObservationType*/::DARK          ; return; }
+  else if ( str == "SKY_FLAT"      ) { obj = DFAgent/*::ObservationType*/::SKY_FLAT      ; return; }
+  else if ( str == "DOME_FLAT"     ) { obj = DFAgent/*::ObservationType*/::DOME_FLAT     ; return; }
+  else if ( str == "SPECTRAL_FLAT" ) { obj = DFAgent/*::ObservationType*/::SPECTRAL_FLAT ; return; }
+  else if ( str == "ARC"           ) { obj = DFAgent/*::ObservationType*/::ARC           ; return; }
+  else if ( str == "SKY"           ) { obj = DFAgent/*::ObservationType*/::SKY           ; return; }
+  else if ( str == "OBJECTS"       ) { obj = DFAgent/*::ObservationType*/::OBJECTS       ; return; }
+  else
+  {
+    throw InvalidValue(
+        __PRETTY_FUNCTION__,
+        "The given string doesn't match with a value of DFAgent::ObservationType data type."
+    );
+  }
+}
+
+//----------------------------------------------------------------------
+// from_string
+//----------------------------------------------------------------------
+void from_string(const std::string &str, DFAgent::ObservationClass &obj)
+{
+	DFAgent_TRACE
+  if      ( str == "SCIENCE" ) { obj = DFAgent/*::ObservationClass*/::SCIENCE ; return ; }
+  else if ( str == "CALIB"   ) { obj = DFAgent/*::ObservationClass*/::CALIB   ; return ; }
+  else
+  {
+    throw InvalidValue(
+        __PRETTY_FUNCTION__,
+        "The given string doesn't match with a value of DFAgent::ObservationClass data type."
+    );
+  }
+}
+
+//----------------------------------------------------------------------
+// operator << DFAgent::ObservationType
+//----------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &out, const DFAgent::ObservationType &obj)
+{
+	DFAgent_TRACE
+  out << to_string(obj);
+  return out;
+}
+
+//----------------------------------------------------------------------
+// operator << DFAgent::ObservationClass
+//----------------------------------------------------------------------
+std::ostream& operator<<(std::ostream &out, const DFAgent::ObservationClass &obj)
+{
+	DFAgent_TRACE
+  out << to_string(obj);
+  return out;
+}
+

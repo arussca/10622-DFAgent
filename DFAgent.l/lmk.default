@@ -1,0 +1,9 @@
+
+# Facility that keeps track of which methods are entered and exited.
+# CPPFLAGS += -D DFAgent_DEBUG            # Turn on (defined) or turn off (not defined) the facility that keeps track
+#                                         # of which methods are entered and exited in DFAgent.
+# CPPFLAGS += -D FITSHeaderInfo_DEBUG     # Turn on (defined) or turn off (not defined) the facility that keeps track
+#                                         # of which methods are entered and exited in FITSHeaderInfo.
+# CPPFLAGS += -D MonitorKeyword_DEBUG     # Turn on (defined) or turn off (not defined) the facility that keeps track
+#                                         # of which methods are entered and exited in MonitorKeyword.
+# CPPFLAGS += -D DEBUG_TRACE_INDENT=1     # Set the nesting indentation level when functions are entered and exited.
