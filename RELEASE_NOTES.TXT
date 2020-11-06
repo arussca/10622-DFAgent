@@ -1,3 +1,14 @@
+            RELEASE NOTES 1.3.11
+Interface
+- Reformat some header files.
+
+Bugs
+
+Implementation
+
+Known errors
+
+
             RELEASE NOTES 1.3.10
 Interface
 

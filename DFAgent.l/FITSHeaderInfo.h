@@ -29,21 +29,21 @@
 class FITSHeaderInfo
 {
 
-  //--------------------------------------------------
-  // public section
-  //--------------------------------------------------
-  public:
+ //--------------------------------------------------
+ // public section
+ //--------------------------------------------------
+ public:
 
   //############################ PUBLIC TYPES ############################
 
-  typedef std::set<std::string>           KeywordNamesContainer;
-  typedef std::vector<DPKF::KeywordBase*> FixedKeywordContainer;
-  typedef std::set<MonitorKeyword>        MonitorKeywordContainer;
-  typedef std::set<std::string>           ParsedKeywordsContainer;
-  typedef std::set<unsigned int>          NotParsedNodesIDContainer;
-  typedef std::set <std::string>          NotWrittenKeywordsContainer;
-  typedef std::size_t                     NumberOfKeywords;
-  typedef std::set<const char*>           AllowedFileNames;
+  typedef std::set<std::string>            KeywordNamesContainer;
+  typedef std::vector<DPKF::KeywordBase *> FixedKeywordContainer;
+  typedef std::set<MonitorKeyword>         MonitorKeywordContainer;
+  typedef std::set<std::string>            ParsedKeywordsContainer;
+  typedef std::set<unsigned int>           NotParsedNodesIDContainer;
+  typedef std::set<std::string>            NotWrittenKeywordsContainer;
+  typedef std::size_t                      NumberOfKeywords;
+  typedef std::set<const char *>           AllowedFileNames;
 
   //########################## PUBLIC CONSTANTS ##########################
 
@@ -70,9 +70,9 @@ class FITSHeaderInfo
    * @param[in] trace        Trace pointer, which is related to the object
    *                         that invokes this constructor.
    */
-   /*explicit*/ FITSHeaderInfo(MonitorAgent *&monitorAgent,
-                          LogAgent *&logAgent,
-                          Trace &trace);
+  /*explicit*/ FITSHeaderInfo(MonitorAgent *& monitorAgent,
+                              LogAgent *& logAgent,
+                              Trace & trace);
 
   /**
    * Copy constructor.
@@ -80,7 +80,7 @@ class FITSHeaderInfo
    * @param[in] other Other instance of FITSHeaderInfo class,
    *                  used as reference to construct this object.
    */
-  FITSHeaderInfo(const FITSHeaderInfo &other);
+  FITSHeaderInfo(const FITSHeaderInfo & other);
 
   #if defined(__cplusplus) && (__cplusplus >= 201103L)
   /**
@@ -99,7 +99,7 @@ class FITSHeaderInfo
    *                  used as reference to construct this object.
    * @return          A reference of itself.
    */
-  FITSHeaderInfo& operator=(const FITSHeaderInfo &other);
+  FITSHeaderInfo & operator=(const FITSHeaderInfo & other);
 
   #if defined(__cplusplus) && (__cplusplus >= 201103L)
   /**
@@ -126,7 +126,7 @@ class FITSHeaderInfo
    *
    * @param[in] monitorAgent Pointer to MonitorAgent instance.
    */
-  void setMonitorAgent(MonitorAgent *&monitorAgent);
+  void setMonitorAgent(MonitorAgent *& monitorAgent);
 
   /**
    * Assigns a new value to the internal logAgent_ member.
@@ -135,7 +135,7 @@ class FITSHeaderInfo
    *
    * @param[in] logAgent Pointer to LogAgent instance.
    */
-  void setLogAgent(LogAgent *&logAgent);
+  void setLogAgent(LogAgent *& logAgent);
 
   /**
    * Assigns a new value to the internal trace_ member.
@@ -144,21 +144,21 @@ class FITSHeaderInfo
    *
    * @param[in] trace Pointer to Trace instance.
    */
-  void setTrace(Trace *&trace);
+  void setTrace(Trace *& trace);
 
   /**
    * Parses a file to extract all the desired keywords related to a monitor.
    *
    * @param[in] fileName File name, which contains all desired keywords related to a monitor.
    */
-  virtual void parseFITSHeaderKeywordsFromFile(const std::string &fileName);
+  virtual void parseFITSHeaderKeywordsFromFile(const std::string & fileName);
 
   /**
    * Parses a JSON node to extract all the desired keywords related to a monitor.
    *
    * @param[in] root JSON node where all set of keywords are defined.
    */
-  virtual void parseFITSHeaderKeywordsFromInline(const Json::Value &root);
+  virtual void parseFITSHeaderKeywordsFromInline(const Json::Value & root);
 
   /**
    * It merges in this object the information contained in a given object.
@@ -175,7 +175,7 @@ class FITSHeaderInfo
    * @return             Indicates if all keywords could be written in the
    *                     header or not.
    */
-  virtual bool gatherFixedKeywords(DataDescription &header);
+  virtual bool gatherFixedKeywords(DataDescription & header);
 
   /**
    * Obtains the monitor data from the database of each specified keyword
@@ -188,9 +188,9 @@ class FITSHeaderInfo
    * @return             Indicates if all keywords could be written in the
    *                     header or not.
    */
-  virtual bool gatherMonitorKeywords(const TimeValue &time,
-                                     const TimeValue &expTime,
-                                     DataDescription &header);
+  virtual bool gatherMonitorKeywords(const TimeValue & time,
+                                     const TimeValue & expTime,
+                                     DataDescription & header);
 
   /**
    * Obtains the monitor data from the database of each specified keyword
@@ -206,10 +206,10 @@ class FITSHeaderInfo
    * @return                      Indicates if all keywords could be written in the
    *                              header or not.
    */
-  virtual bool gatherMonitorKeywords(const TimeValue &startExpTime,
-                                     const TimeValue &durationExpTime,
-                                     MonitorAgent *monitorAgent,
-                                     DataDescription &header);
+  virtual bool gatherMonitorKeywords(const TimeValue & startExpTime,
+                                     const TimeValue & durationExpTime,
+                                     MonitorAgent * monitorAgent,
+                                     DataDescription & header);
 
   /**
    * Writes all specified FITS header keyword at an existing FITS file.
@@ -218,9 +218,9 @@ class FITSHeaderInfo
    * @param[in]  expTime Duration time of the exposure.
    * @param[out] rawFile File name of the existing FITS file.
    */
-  virtual void writeHeaderToFile(const TimeValue &time,
-                                 const TimeValue &expTime,
-                                 fitsfile *rawFile);
+  virtual void writeHeaderToFile(const TimeValue & time,
+                                 const TimeValue & expTime,
+                                 fitsfile * rawFile);
 
   /**
    * Writes all specified FITS header keyword at an existing FITS file.
@@ -231,10 +231,10 @@ class FITSHeaderInfo
    *                          is used to query the MonitorManager service.
    * @param[out] rawFile      File name of the existing FITS file.
    */
-  virtual void writeHeaderToFile(const TimeValue &time,
-                                 const TimeValue &expTime,
-                                 MonitorAgent *monitorAgent,
-                                 fitsfile *rawFile);
+  virtual void writeHeaderToFile(const TimeValue & time,
+                                 const TimeValue & expTime,
+                                 MonitorAgent * monitorAgent,
+                                 fitsfile * rawFile);
 
   /**
    * Force the sample operation of all specified monitors.
@@ -249,7 +249,7 @@ class FITSHeaderInfo
    *                         is used to force the sampling of the specified
    *                         monitors.
    */
-  virtual void forceSampleData(MonitorAgent *monitorAgent) const;
+  virtual void forceSampleData(MonitorAgent * monitorAgent) const;
 
   /**
    * Getter method that returns the list of all keyword names,
@@ -259,7 +259,7 @@ class FITSHeaderInfo
    *
    * @return List of all keyword names.
    */
-  virtual const KeywordNamesContainer& getKeywordNameList() const;
+  virtual const KeywordNamesContainer & getKeywordNameList() const;
 
   /**
    * Getter method that returns the list of all keywords instances with
@@ -271,7 +271,7 @@ class FITSHeaderInfo
    *         successfully parsed from file.
    *         successfully parsed from file.
    */
-  virtual const FixedKeywordContainer& getFixedKeywordList() const;
+  virtual const FixedKeywordContainer & getFixedKeywordList() const;
 
   /**
    * Getter method that returns the list of all MonitorKeyword instances,
@@ -282,7 +282,7 @@ class FITSHeaderInfo
    * @return List of MonitorKeyword instances, which were successfully
    *         parsed from file.
    */
-  virtual const MonitorKeywordContainer& getMonitorKeywordList() const;
+  virtual const MonitorKeywordContainer & getMonitorKeywordList() const;
 
   /**
    * Getter method that returns the list of the keyword names,
@@ -293,7 +293,7 @@ class FITSHeaderInfo
    * @return List of keyword names, which were successfully
    *         parsed from file.
    */
-  virtual const ParsedKeywordsContainer& getParsedKeywords() const;
+  virtual const ParsedKeywordsContainer & getParsedKeywords() const;
 
   /**
    * Getter method that returns the set of node identifiers,
@@ -304,7 +304,7 @@ class FITSHeaderInfo
    * @return List of the node identifiers, which could not
    *         be parsed.
    */
-  virtual const NotParsedNodesIDContainer& getNotParsedNodesID() const;
+  virtual const NotParsedNodesIDContainer & getNotParsedNodesID() const;
 
   /**
    * Getter method that returns the set of keyword names,
@@ -315,7 +315,7 @@ class FITSHeaderInfo
    * @return List of keyword names, which could not be
    *         written at header file.
    */
-  virtual const NotWrittenKeywordsContainer& getNotWrittenKeywords() const;
+  virtual const NotWrittenKeywordsContainer & getNotWrittenKeywords() const;
 
   /**
    * Getter method that returns the number of the discrete monitors,
@@ -326,7 +326,7 @@ class FITSHeaderInfo
    * @return Number of the discrete monitors, which were successfully
    *         parsed from file.
    */
-  virtual const NumberOfKeywords& getNumberOfDiscreteKeywords() const;
+  virtual const NumberOfKeywords & getNumberOfDiscreteKeywords() const;
 
   /**
    * Getter method that returns the number of the sampled monitors,
@@ -337,16 +337,16 @@ class FITSHeaderInfo
    * @return Number of the sampled monitors, which were successfully
    *         parsed from file.
    */
-  virtual const NumberOfKeywords& getNumberOfSampledKeywords() const;
+  virtual const NumberOfKeywords & getNumberOfSampledKeywords() const;
 
   //########################## PUBLIC MEMBERS ############################
 
   static AllowedFileNames allowedFieldNamesForFixedKeywords;
 
-  //--------------------------------------------------
-  // protected section
-  //--------------------------------------------------
-  protected:
+ //--------------------------------------------------
+ // protected section
+ //--------------------------------------------------
+ protected:
 
   //########################### PROTECTED TYPES ##########################
 
@@ -368,7 +368,7 @@ class FITSHeaderInfo
    * @param[in] fileName File that contains all desired keywords related to
    *                     a monitor, using an custom format.
    */
-  virtual void parseFITSHeaderKeywordsFromPlainTextFile_(const std::string &fileName);
+  virtual void parseFITSHeaderKeywordsFromPlainTextFile_(const std::string & fileName);
 
   /**
    * Parses a file to extract all the desired keywords related to a monitor.
@@ -377,7 +377,7 @@ class FITSHeaderInfo
    * @param[in] fileName File that contains all desired keywords related to
    *                     a monitor, using JSON as format.
    */
-  virtual void parseFITSHeaderKeywordsFromJSONFile_(const std::string &fileName);
+  virtual void parseFITSHeaderKeywordsFromJSONFile_(const std::string & fileName);
 
   /**
    * @brief Parses a node from JSON and appends it to the list of
@@ -387,7 +387,7 @@ class FITSHeaderInfo
    *
    * @related fixedKeywordList_
    */
-  virtual void parseFixedKeywords_(const unsigned int& nodeNumber, const Json::Value& node);
+  virtual void parseFixedKeywords_(const unsigned int & nodeNumber, const Json::Value & node);
 
   /**
    * @brief Parses a node from JSON and appends it to the list of
@@ -397,7 +397,7 @@ class FITSHeaderInfo
    *
    * @related monitorKeywordList_
    */
-  virtual void parseMonitorKeywords_(const unsigned int& nodeNumber, const Json::Value& node);
+  virtual void parseMonitorKeywords_(const unsigned int & nodeNumber, const Json::Value & node);
 
   /**
    * Extracts the data of a sampled monitor (scalar or array) related to a
@@ -407,9 +407,9 @@ class FITSHeaderInfo
    * @param[in]  mons    Result of the query to the database of a sampled monitor.
    * @param[out] header  Header where the keyword will be written.
    */
-  virtual void gatherSampledMonitor_(const MonitorKeyword &keyword,
-                                     const MM::DataBlock &mons,
-                                     DataDescription &header) ;
+  virtual void gatherSampledMonitor_(const MonitorKeyword & keyword,
+                                     const MM::DataBlock & mons,
+                                     DataDescription & header);
 
   /**
    * Extracts the data of a discrete monitor (enum or boolean) related to a
@@ -419,9 +419,9 @@ class FITSHeaderInfo
    * @param[in]  mons    Result of the query to the database of a scalar monitor.
    * @param[out] header  Header where the keyword will be written.
    */
-  virtual void gatherDiscreteMonitor_(const MonitorKeyword &keyword,
-                                      const MM::MagnitudeChange &mons,
-                                      DataDescription &header);
+  virtual void gatherDiscreteMonitor_(const MonitorKeyword & keyword,
+                                      const MM::MagnitudeChange & mons,
+                                      DataDescription & header);
 
   /**
    * Extracts the data of a scalar monitor (double, float, long, short and
@@ -435,9 +435,9 @@ class FITSHeaderInfo
    * @param[out] header        Header where the keyword will be written.
    */
   template<typename ArrayListType, typename ValueType>
-  void addSampledMonitorKeyword_(const MonitorKeyword &keyword,
-                                 const ArrayListType &arrayList,
-                                 DataDescription &header);
+  void addSampledMonitorKeyword_(const MonitorKeyword & keyword,
+                                 const ArrayListType & arrayList,
+                                 DataDescription & header);
 
   /**
    * Extracts the data of a array monitor (double, float, long, short and
@@ -451,9 +451,9 @@ class FITSHeaderInfo
    * @param[out] header        Header where the keyword will be written.
    */
   template<typename ArrayListType, typename ValueType>
-  void addArrayToScalarKeywords_(const MonitorKeyword &keyword,
-                                 const ArrayListType &arrayList,
-                                 DataDescription &header) ;
+  void addArrayToScalarKeywords_(const MonitorKeyword & keyword,
+                                 const ArrayListType & arrayList,
+                                 DataDescription & header);
 
   /**
    * Trims a array, using the range information of the keyword.
@@ -464,8 +464,8 @@ class FITSHeaderInfo
    * @return               Trimmed array.
    */
   template<typename ArrayType>
-  ArrayType trimmedArray1D_(const MonitorKeyword &keyword,
-                            const ArrayType &arrayIn) ;
+  ArrayType trimmedArray1D_(const MonitorKeyword & keyword,
+                            const ArrayType & arrayIn);
 
   /**
    * Represents a array into a output stream object.
@@ -478,8 +478,8 @@ class FITSHeaderInfo
    *                             representation.
    */
   template<typename ArrayType>
-  std::ostream &toStream_(std::ostream &ost,
-                          const ArrayType &array) ;
+  std::ostream & toStream_(std::ostream & ost,
+                           const ArrayType & array);
 
   /**
    * Transforms an angle in radians to its string representation in
@@ -489,7 +489,7 @@ class FITSHeaderInfo
    * @return        String representation in hours(H), minutes(m),
    *                seconds(s) of an angle in radians.
    */
-  virtual std::string formatRadianToHms_(const double &rad) const;
+  virtual std::string formatRadianToHms_(const double & rad) const;
 
   /**
    * Transforms an angle in radians to its string representation in
@@ -499,15 +499,15 @@ class FITSHeaderInfo
    * @return        String representation in degrees(D), arcminutes(m),
    *                arcseconds(s) of an angle in radians.
    */
-  virtual std::string formatRadianToDms_(const double &rad) const;
+  virtual std::string formatRadianToDms_(const double & rad) const;
 
- /**
-  * Transforms an angle in radians to degrees(Deg).
-  *
-  * @param rad Value of an angle in radians.
-  * @return    Value of an angle in degrees.
-  */
- virtual double formatRadianToDeg_(const double &rad) const;
+  /**
+   * Transforms an angle in radians to degrees(Deg).
+   *
+   * @param rad Value of an angle in radians.
+   * @return    Value of an angle in degrees.
+   */
+  virtual double formatRadianToDeg_(const double & rad) const;
 
   //########################## PROTECTED MEMBERS #########################
 
@@ -556,25 +556,25 @@ class FITSHeaderInfo
    * Pointer of a MonitorAgent instance,
    * which will be used to retrieve the values of all monitors.
    */
-  MonitorAgent *monitorAgent_;
+  MonitorAgent * monitorAgent_;
 
   /**
    * Pointer of a LogAgent instance,
    * which is related to the invoke the constructor of this object.
    */
-  LogAgent *logAgent_;
+  LogAgent * logAgent_;
 
   /**
    * Pointer of a Trace instance,
    * which is related to the invoke the constructor of this object.
    */
-  Trace *trace_;
+  Trace * trace_;
 
 
   //--------------------------------------------------
   // private section
   //--------------------------------------------------
-  private:
+ private:
 
   //############################ PRIVATE TYPES ###########################
 
@@ -599,7 +599,7 @@ class FITSHeaderInfo
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is equal to rhs. False, otherwise.
    */
-  friend bool operator==(const FITSHeaderInfo &lhs, const FITSHeaderInfo &rhs) /*noexcept*/;
+  friend bool operator==(const FITSHeaderInfo & lhs, const FITSHeaderInfo & rhs) /*noexcept*/;
 
   /**
    * Relational operator, which determines if lhs is not equal to rhs or not.
@@ -608,7 +608,7 @@ class FITSHeaderInfo
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is not equal to rhs. False, otherwise.
    */
-  friend bool operator!=(const FITSHeaderInfo &lhs, const FITSHeaderInfo &rhs) /*noexcept*/;
+  friend bool operator!=(const FITSHeaderInfo & lhs, const FITSHeaderInfo & rhs) /*noexcept*/;
 
   /**
    * Relational operator, which determines if lhs is less than rhs or not.
@@ -617,7 +617,7 @@ class FITSHeaderInfo
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is less than rhs. False, otherwise.
    */
-  friend bool operator<(const FITSHeaderInfo &lhs, const FITSHeaderInfo &rhs) /*noexcept*/;
+  friend bool operator<(const FITSHeaderInfo & lhs, const FITSHeaderInfo & rhs) /*noexcept*/;
 
 };
 

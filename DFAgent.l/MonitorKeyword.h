@@ -29,10 +29,10 @@
  */
 class MonitorKeyword
 {
-  //--------------------------------------------------
-  // public section
-  //--------------------------------------------------
-  public:
+ //--------------------------------------------------
+ // public section
+ //--------------------------------------------------
+ public:
 
   //############################ PUBLIC TYPES ############################
 
@@ -138,7 +138,7 @@ class MonitorKeyword
      */
     static const FieldType labels;
 
-    typedef std::set <std::string> FieldsContainterType;
+    typedef std::set<std::string> FieldsContainterType;
 
     /**
      * Represent the set of all allowed fields/members
@@ -165,6 +165,7 @@ class MonitorKeyword
      * @related all
      */
     static void insertAllAllowedFields();
+
     #endif
   };
 
@@ -179,8 +180,8 @@ class MonitorKeyword
   enum /*class*/ MonitorType /*: unsigned char*/
   {
     MonitorType_NONE = 'N', ///< Indicates an invalid or uninitialized value.
-    SAMPLED          = 'S', ///< Indicates that the monitor type is a number o an array of numbers.
-    DISCRETE         = 'D'  ///< Indicates that the monitor type is an enumeration o boolean.
+    SAMPLED = 'S', ///< Indicates that the monitor type is a number o an array of numbers.
+    DISCRETE = 'D'  ///< Indicates that the monitor type is an enumeration o boolean.
   };
 
   /**
@@ -193,8 +194,8 @@ class MonitorKeyword
   enum /*class*/ When /*: unsigned char*/
   {
     When_NONE = 'N', ///< Indicates an invalid or uninitialized value.
-    START     = 'S', ///< Indicates that the timestamp used to retrieved the monitor is before the exposure.
-    END       = 'E'  ///< Indicates that the timestamp used to retrieved the monitor is after the exposure.
+    START = 'S', ///< Indicates that the timestamp used to retrieved the monitor is before the exposure.
+    END = 'E'  ///< Indicates that the timestamp used to retrieved the monitor is after the exposure.
   };
 
   /**
@@ -205,11 +206,11 @@ class MonitorKeyword
    */
   enum /*class*/ KeyFormat /*: signed short*/
   {
-    KeyFormat_NONE  = -1, ///< Indicates that no conversions will be applied.
-    RAD_TO_HMS      =  1, ///< It can only be used for scalar monitor to convert an angle in radians to hours, minutes, seconds.
-    RAD_TO_DMS      =  2, ///< It can only be used for scalar monitor to convert an angle in radians to degrees, arcminutes, arcseconds.
-    RAD_TO_DEG      =  3, ///< It can only be used for scalar monitor to convert an angle in radians to degrees.
-    ARRAY_TO_SCALAR =  4  ///< It can only be used for array monitor.
+    KeyFormat_NONE = -1, ///< Indicates that no conversions will be applied.
+    RAD_TO_HMS = 1, ///< It can only be used for scalar monitor to convert an angle in radians to hours, minutes, seconds.
+    RAD_TO_DMS = 2, ///< It can only be used for scalar monitor to convert an angle in radians to degrees, arcminutes, arcseconds.
+    RAD_TO_DEG = 3, ///< It can only be used for scalar monitor to convert an angle in radians to degrees.
+    ARRAY_TO_SCALAR = 4  ///< It can only be used for array monitor.
   };
 
   typedef std::pair<unsigned int, unsigned int> ArrayRange;
@@ -237,11 +238,11 @@ class MonitorKeyword
    *                       that invokes this constructor.
    * @param[in] verbose    Level for traces and logs.
    */
-  /*explicit*/ MonitorKeyword(const std::string &line,
-                          const unsigned int &nodeID,
-                          LogAgent *logAgent,
-                          Trace &trace,
-                          const unsigned short &verbose = 0);
+  /*explicit*/ MonitorKeyword(const std::string & line,
+                              const unsigned int & nodeID,
+                              LogAgent * logAgent,
+                              Trace & trace,
+                              const unsigned short & verbose = 0);
 
   /**
    * Customized constructor: fills all its internal members with information
@@ -255,11 +256,11 @@ class MonitorKeyword
    *                     that invokes this constructor.
    * @param[in] verbose  Level for traces and logs.
    */
-  /*explicit*/ MonitorKeyword(const Json::Value &node,
-                          const unsigned int &nodeID,
-                          LogAgent *logAgent,
-                          Trace &trace,
-                          const unsigned short &verbose = 0);
+  /*explicit*/ MonitorKeyword(const Json::Value & node,
+                              const unsigned int & nodeID,
+                              LogAgent * logAgent,
+                              Trace & trace,
+                              const unsigned short & verbose = 0);
 
   /**
    * Copy constructor.
@@ -311,9 +312,9 @@ class MonitorKeyword
    * @param[in] lineNumber Number of line on file.
    * @param[in] verbose    Level for traces and logs.
    */
-  virtual void parseFromPlainText(const std::string &line,
-                                  const unsigned int &lineNumber,
-                                  const unsigned short &verbose);
+  virtual void parseFromPlainText(const std::string & line,
+                                  const unsigned int & lineNumber,
+                                  const unsigned short & verbose);
 
   /**
    * Parses the JSON node and extracts its information to fill all internal members.
@@ -322,9 +323,9 @@ class MonitorKeyword
    * @param[in] nodeID  Identifier number of the JSON node in the file.
    * @param[in] verbose Level for traces and logs.
    */
-  virtual void parseFromJSON(const Json::Value &node,
-                             const unsigned int &nodeID,
-                             const unsigned short &verbose);
+  virtual void parseFromJSON(const Json::Value & node,
+                             const unsigned int & nodeID,
+                             const unsigned short & verbose);
 
   /**
    * Assigns a new value to the internal logAgent_ member.
@@ -333,7 +334,7 @@ class MonitorKeyword
    *
    * @param[in] logAgent Pointer to LogAgent instance.
    */
-  virtual void setLogAgent(LogAgent *logAgent);
+  virtual void setLogAgent(LogAgent * logAgent);
 
   /**
    * Assigns a new value to the internal trace_ member.
@@ -342,7 +343,7 @@ class MonitorKeyword
    *
    * @param[in] trace Pointer to Trace instance.
    */
-  virtual void setTrace(Trace *&trace);
+  virtual void setTrace(Trace *& trace);
 
   /**
    * Indicates whether the given member is allowed or not.
@@ -350,7 +351,7 @@ class MonitorKeyword
    * @param[in] member String of the member to check.
    * @return true, if the member is allowed. false, otherwise.
    */
-  virtual bool isMemberAllowed(const std::string &member) const;
+  virtual bool isMemberAllowed(const std::string & member) const;
 
   /**
    * Indicates whether the member given member is present or not.
@@ -358,7 +359,7 @@ class MonitorKeyword
    * @param[in] member String of the member to check.
    * @return true, if the member is allowed and is present. false, otherwise.
    */
-  virtual bool isMemberPresent(const std::string &member) const;
+  virtual bool isMemberPresent(const std::string & member) const;
 
   //########################## PUBLIC MEMBERS ############################
 
@@ -564,7 +565,7 @@ class MonitorKeyword
   //--------------------------------------------------
   // protected section
   //--------------------------------------------------
-  protected:
+ protected:
 
   //########################### PROTECTED TYPES ##########################
 
@@ -618,7 +619,7 @@ class MonitorKeyword
    *
    * @param[in] monitorManager Reference to the MonitorManager service.
    */
-  virtual void checkDataBaseDescription_(const MM::MonitorManager_ifce_var &monitorManager);
+  virtual void checkDataBaseDescription_(const MM::MonitorManager_ifce_var & monitorManager);
 
   /**
    * Contrasts the given information with the description of the scalar or array monitor,
@@ -629,7 +630,7 @@ class MonitorKeyword
    *
    * @param[in] monitorDescription Reference to the monitor description.
    */
-  virtual void checkMonitorDescription_(const MM::Description_var &monitorDescription);
+  virtual void checkMonitorDescription_(const MM::Description_var & monitorDescription);
 
   /**
    * Contrasts the given information with the description of the enum or boolean monitor,
@@ -640,7 +641,7 @@ class MonitorKeyword
    *
    * @param[in] magnitudeDescription Reference to the magnitude description.
    */
-  virtual void checkMagnitudeDescription_(const MM::MagnitudeDescription_var &magnitudeDescription);
+  virtual void checkMagnitudeDescription_(const MM::MagnitudeDescription_var & magnitudeDescription);
 
   //########################## PROTECTED MEMBERS #########################
 
@@ -658,13 +659,13 @@ class MonitorKeyword
    * Pointer of a LogAgent instance,
    * which is related to the invoke the constructor of this object.
    */
-  LogAgent *logAgent_;
+  LogAgent * logAgent_;
 
   /**
    * Pointer of a Trace instance,
    * which is related to the invoke the constructor of this object.
    */
-  Trace *trace_;
+  Trace * trace_;
 
  //--------------------------------------------------
  // private section
@@ -695,7 +696,7 @@ class MonitorKeyword
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is equal to rhs. False, otherwise.
    */
-  friend bool operator==(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/;
+  friend bool operator==(const MonitorKeyword & lhs, const MonitorKeyword & rhs) /*noexcept*/;
 
   /**
    * Equality operator, which determines if lhs is not equal to rhs or not.
@@ -704,7 +705,7 @@ class MonitorKeyword
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is not equal to rhs. False, otherwise.
    */
-  friend bool operator!=(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/;
+  friend bool operator!=(const MonitorKeyword & lhs, const MonitorKeyword & rhs) /*noexcept*/;
   //</editor-fold>
 
   //<editor-fold desc="Relational operators">
@@ -715,7 +716,7 @@ class MonitorKeyword
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is less than rhs. False, otherwise.
    */
-  friend bool operator<(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/;
+  friend bool operator<(const MonitorKeyword & lhs, const MonitorKeyword & rhs) /*noexcept*/;
 
   /**
    * Relational operator, which determines if lhs is greater than rhs or not.
@@ -724,7 +725,7 @@ class MonitorKeyword
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is greater than rhs. False, otherwise.
    */
-  friend bool operator>(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/;
+  friend bool operator>(const MonitorKeyword & lhs, const MonitorKeyword & rhs) /*noexcept*/;
 
   /**
    * Relational operator, which determines if lhs is less than or equal to rhs or not.
@@ -733,7 +734,7 @@ class MonitorKeyword
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is less than or equal to rhs. False, otherwise.
    */
-  friend bool operator<=(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/;
+  friend bool operator<=(const MonitorKeyword & lhs, const MonitorKeyword & rhs) /*noexcept*/;
 
   /**
    * Relational operator, which determines if lhs is greater than or equal to rhs or not.
@@ -742,7 +743,7 @@ class MonitorKeyword
    * @param[in] rhs Right-hand side operand.
    * @return True, if lhs is greater than or equal to rhs. False, otherwise.
    */
-  friend bool operator>=(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/;
+  friend bool operator>=(const MonitorKeyword & lhs, const MonitorKeyword & rhs) /*noexcept*/;
   //</editor-fold>
 
   //<editor-fold desc="operator<<">
@@ -752,7 +753,7 @@ class MonitorKeyword
    * @param[in]     obj Object to insert to the output stream.
    * @return Output stream with the given object inserted.
    */
-  friend std::ostream& operator<<(std::ostream& out, const MonitorKeyword &obj);
+  friend std::ostream & operator<<(std::ostream & out, const MonitorKeyword & obj);
   //</editor-fold desc="operator<<">
 
 };
@@ -777,7 +778,7 @@ class MonitorKeyword
  * @endcode
  *
  */
-void from_string(MonitorKeyword::MonitorType &obj, std::string str);
+void from_string(MonitorKeyword::MonitorType & obj, std::string str);
 
 /**
  * Convert a string to a valid value of MonitorKeyword::When
@@ -798,7 +799,7 @@ void from_string(MonitorKeyword::MonitorType &obj, std::string str);
  * @endcode
  *
  */
-void from_string(MonitorKeyword::When &obj, std::string str);
+void from_string(MonitorKeyword::When & obj, std::string str);
 
 /**
  * Convert a string to a valid value of MonitorKeyword::KeyFormat
@@ -821,7 +822,7 @@ void from_string(MonitorKeyword::When &obj, std::string str);
  * @endcode
  *
  */
-void from_string(MonitorKeyword::KeyFormat &obj, std::string str);
+void from_string(MonitorKeyword::KeyFormat & obj, std::string str);
 
 /**
  * Convert a string to a valid value of MonitorKeyword::ArrayRange,
@@ -841,7 +842,7 @@ void from_string(MonitorKeyword::KeyFormat &obj, std::string str);
  * from_string(range, "1,2");
  * @endcode
  */
-void from_string(MonitorKeyword::ArrayRange &obj, std::string &str);
+void from_string(MonitorKeyword::ArrayRange & obj, std::string & str);
 
 /**
  * Convert a string to a valid value of MonitorKeyword::EnumLabels,
@@ -860,7 +861,7 @@ void from_string(MonitorKeyword::ArrayRange &obj, std::string &str);
  * from_string(labels, "IN,OUT");
  * @endcode
  */
-void from_string(MonitorKeyword::EnumLabels &obj, std::string &str);
+void from_string(MonitorKeyword::EnumLabels & obj, std::string & str);
 //</editor-fold>
 
 //<editor-fold desc="to_string">
@@ -874,7 +875,7 @@ void from_string(MonitorKeyword::EnumLabels &obj, std::string &str);
  * This exception is thrown if the given value of the given variable doesn't
  * match with a declared value of MonitorKeyword::MonitorType.
  */
-const char* to_string(const MonitorKeyword::MonitorType &obj);
+const char * to_string(const MonitorKeyword::MonitorType & obj);
 
 /**
  * Convert a value of MonitorKeyword::When to its string representation.
@@ -886,7 +887,7 @@ const char* to_string(const MonitorKeyword::MonitorType &obj);
  * This exception is thrown if the given value of the given variable doesn't
  * match with a declared value of MonitorKeyword::When.
  */
-const char* to_string(const MonitorKeyword::When &obj);
+const char * to_string(const MonitorKeyword::When & obj);
 
 /**
  * Convert a value of MonitorKeyword::KeyFormat to its string representation.
@@ -898,7 +899,7 @@ const char* to_string(const MonitorKeyword::When &obj);
  * This exception is thrown if the given value of the given variable doesn't
  * match with a declared value of MonitorKeyword::KeyFormat.
  */
-const char* to_string(const MonitorKeyword::KeyFormat &obj);
+const char * to_string(const MonitorKeyword::KeyFormat & obj);
 
 /**
  * Convert a value of MonitorKeyword::ArrayRange to its string representation.
@@ -915,7 +916,7 @@ const char* to_string(const MonitorKeyword::KeyFormat &obj);
  * std::string strRange (to_string(range)); "1,2"
  * @endcode
  */
-const char* to_string(const MonitorKeyword::ArrayRange &obj);
+const char * to_string(const MonitorKeyword::ArrayRange & obj);
 
 /**
  * Convert a value of MonitorKeyword::EnumLabels to its string representation.
@@ -932,7 +933,7 @@ const char* to_string(const MonitorKeyword::ArrayRange &obj);
  * std::string strLabels (to_string(labels)); // "IN,OUT"
  * @endcode
  */
-const char* to_string(const MonitorKeyword::EnumLabels &obj);
+const char * to_string(const MonitorKeyword::EnumLabels & obj);
 //</editor-fold>
 
 //<editor-fold desc="operator<<">
@@ -942,7 +943,7 @@ const char* to_string(const MonitorKeyword::EnumLabels &obj);
  * @param[in]     obj Object to insert to the output stream.
  * @return Output stream with the given object inserted.
  */
-std::ostream& operator<<(std::ostream& out, const MonitorKeyword::MonitorType &obj);
+std::ostream & operator<<(std::ostream & out, const MonitorKeyword::MonitorType & obj);
 
 /**
  * Insert formatted output of MonitorKeyword::When variable to an output stream.
@@ -950,7 +951,7 @@ std::ostream& operator<<(std::ostream& out, const MonitorKeyword::MonitorType &o
  * @param[in]     obj Object to insert to the output stream.
  * @return Output stream with the given object inserted.
  */
-std::ostream& operator<<(std::ostream& out, const MonitorKeyword::When &obj);
+std::ostream & operator<<(std::ostream & out, const MonitorKeyword::When & obj);
 
 /**
  * Insert formatted output of MonitorKeyword::KeyFormat variable to an output stream.
@@ -958,7 +959,7 @@ std::ostream& operator<<(std::ostream& out, const MonitorKeyword::When &obj);
  * @param[in]     obj Object to insert to the output stream.
  * @return Output stream with the given object inserted.
  */
-std::ostream& operator<<(std::ostream& out, const MonitorKeyword::KeyFormat &obj);
+std::ostream & operator<<(std::ostream & out, const MonitorKeyword::KeyFormat & obj);
 //</editor-fold>
 
 #endif // _MonitorKeyword_h_
