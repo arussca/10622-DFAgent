@@ -51,7 +51,7 @@ int main(int argc, char** argv)
     printf("Mode     = INTEGRATED  ");
     if(updateProfile) printf("*** Update profile requested");
   }
-  else if(mode==0) 
+  else if(mode==0)
   {
     printf("Mode     = STANDALONE  ");
     if(updateProfile) printf("*** Update option ignored in this mode");
@@ -62,7 +62,7 @@ int main(int argc, char** argv)
   printf("Threads  = %d \n",threads);
 
   helpShow();
-  
+
   do
   {
     //taskDelay(20);

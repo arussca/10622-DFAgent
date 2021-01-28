@@ -10,13 +10,13 @@
 , { "keyword": "TID1_d2", "comment": "Double monitor 1",      "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleMonitor2"      , "type": "SAMPLED", "format": "RAD_TO_DMS" }
 , { "keyword": "TID1_d3", "comment": "Double monitor 1",      "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleMonitor3"      , "type": "SAMPLED", "format": "RAD_TO_DEG" }
 , { "keyword": "TID1_O",  "comment": "ByteArray1D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "byteArray1DMonitor"  , "type": "SAMPLED", "format": "NONE" }
-, { "keyword": "TID1_S",  "comment": "ShortArray1D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortArray1DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transposed": true, "initialIndex": 10, "range": [0,9] }
-, { "keyword": "TID1_L",  "comment": "LongArray1D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "longArray1DMonitor"  , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transposed": true, "initialIndex": 1, "range": [4,7] }
-, { "keyword": "TID1_F",  "comment": "FloatArray1D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "floatArray1DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transposed": true, "range": [0,3] }
+, { "keyword": "TID1_S",  "comment": "ShortArray1D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortArray1DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transpose": true, "indexstart": 10, "range": [0,9] }
+, { "keyword": "TID1_L",  "comment": "LongArray1D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "longArray1DMonitor"  , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transpose": true, "indexstart": 1, "range": [4,7] }
+, { "keyword": "TID1_F",  "comment": "FloatArray1D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "floatArray1DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "transpose": true, "range": [0,3] }
 , { "keyword": "TID1_D",  "comment": "DoubleArray1D monitor", "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleArray1DMonitor", "type": "SAMPLED", "format": "NONE" }
 , { "keyword": "TID1_5",  "comment": "ByteArray2D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "byteArray2DMonitor"  , "type": "SAMPLED", "format": "NONE" }
-, { "keyword": "TID1_6",  "comment": "ShortArray2D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortArray2DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "initialIndex": 1 }
+, { "keyword": "TID1_6",  "comment": "ShortArray2D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "shortArray2DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "indexstart": 1 }
 , { "keyword": "TID1_7",  "comment": "LongArray2D monitor",   "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "longArray2DMonitor"  , "type": "SAMPLED", "format": "NONE", "when": "END" }
 , { "keyword": "TID1_8",  "comment": "FloatArray2D monitor",  "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "floatArray2DMonitor" , "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "when": "START" }
-, { "keyword": "TID1_9",  "comment": "DoubleArray2D monitor", "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleArray2DMonitor", "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "initialIndex": 2 }
+, { "keyword": "TID1_9",  "comment": "DoubleArray2D monitor", "unit": "None", "component": "Test/InspectorDevice_1", "monitor": "doubleArray2DMonitor", "type": "SAMPLED", "format": "ARRAY_TO_SCALAR", "indexstart": 2 }
 ]

@@ -8,14 +8,14 @@ void DictionaryMap::fromPortableObject( const PortableObject& object,
                                           WordSet& wordSet )
 {
   std::string attribute;
-      
+
   attribute = object.getAttribute("rawFrame");
   if(attribute == "")
   {
     std::string msg = "Attribute '" + attribute +
-      	      	      "' not found in portable object";
+                      "' not found in portable object";
     throw NotFound("DictionaryMap::fromPortableObjecct()", msg.c_str());
-  }    
+  }
   try
   {
     wordSet.rawFrame = attribute;
@@ -26,14 +26,14 @@ void DictionaryMap::fromPortableObject( const PortableObject& object,
     throw;
   }
 
-      
+
   attribute = object.getAttribute("exposureTime");
   if(attribute == "")
   {
     std::string msg = "Attribute '" + attribute +
-      	      	      "' not found in portable object";
+                      "' not found in portable object";
     throw NotFound("DictionaryMap::fromPortableObjecct()", msg.c_str());
-  }    
+  }
   try
   {
     wordSet.exposureTime = attribute;
@@ -48,9 +48,9 @@ void DictionaryMap::fromPortableObject( const PortableObject& object,
   if(attribute == "")
   {
     std::string msg = "Attribute '" + attribute +
-      	      	      "' not found in portable object";
+                      "' not found in portable object";
     throw NotFound("DictionaryMap::fromPortableObjecct()", msg.c_str());
-  }    
+  }
   try
   {
     wordSet.theExcludedLensletIDsCophasing = attribute;
@@ -66,7 +66,7 @@ void DictionaryMap::fromPortableObject( const PortableObject& object,
 std::string DictionaryMap::fetchTranslation(const std::string& word, const std::string& wordSetID)
 {
   try
-  { 
+  {
     if(word == "rawFrame")
     {
       return this->entry(wordSetID).rawFrame;
@@ -78,7 +78,7 @@ std::string DictionaryMap::fetchTranslation(const std::string& word, const std::
     else if(word == "theExcludedLensletIDsCophasing")
     {
       return this->entry(wordSetID).theExcludedLensletIDsCophasing;
-    }    
+    }
     else
     {
       // no translation found
@@ -95,7 +95,7 @@ std::string DictionaryMap::fetchTranslation(const std::string& word, const std::
 std::string DictionaryMap::fetchOriginal(const std::string& word, const std::string& wordSetID)
 {
   try
-  { 
+  {
     if(this->entry(wordSetID).rawFrame == word)
     {
       return std::string("rawFrame");
@@ -107,7 +107,7 @@ std::string DictionaryMap::fetchOriginal(const std::string& word, const std::str
     else if(this->entry(wordSetID).theExcludedLensletIDsCophasing == word)
     {
       return std::string("theExcludedLensletIDsCophasing");
-    }    
+    }
     else
     {
       //no original found

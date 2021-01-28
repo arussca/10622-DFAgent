@@ -60,8 +60,8 @@ const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::when         = "when";
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::format       = "format";
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::range        = "range";
-const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::transposed   = "transposed";
-const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::initialIndex = "initialIndex";
+const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::transposed   = "transpose";
+const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::initialIndex = "indexstart";
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::labels       = "labels";
 
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
@@ -164,7 +164,7 @@ MonitorKeyword::MonitorKeyword()
   MonitorKeyword::AllowedMembers::insertAllAllowedFields();
   #endif
 
-  
+
 }
 
 //----------------------------------------------------------------------
@@ -1237,18 +1237,42 @@ void MonitorKeyword::checkMonitorDescription_(const MM::Description_var &monitor
 
     case MM::TYPE_SAMPLE_OCTET_ARRAY2D_LIST:
     {
-      if (isMemberPresent(MonitorKeyword::AllowedMembers::format)
-          and keyFormat not_eq MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR
-          and keyFormat not_eq MonitorKeyword/*::KeyFormat*/::KeyFormat_NONE)
+      if (isMemberPresent(MonitorKeyword::AllowedMembers::format))
       {
-        InvalidValue exception(__PRETTY_FUNCTION__);
-        exception.addText("The '%s' member must be 'ARRAY_TO_SCALAR' or 'NONE', because the monitor '%s.%s' is an array.",
-                          MonitorKeyword::AllowedMembers::format, deviceName.c_str(), monitorName.c_str());
-        throw exception;
+        switch (keyFormat)
+        {
+          case MonitorKeyword/*::KeyFormat*/::RAD_TO_HMS:
+          case MonitorKeyword/*::KeyFormat*/::RAD_TO_DMS:
+          case MonitorKeyword/*::KeyFormat*/::RAD_TO_DEG:
+          {
+            if ( not isMemberPresent(MonitorKeyword::AllowedMembers::range) or arrayRange.first != arrayRange.second )
+            {
+              InvalidValue exception(__PRETTY_FUNCTION__);
+              exception.addText(
+                "Unable to transform radian value of the monitor '%s.%s' when format value is '%s' and there is not defined range or their values are not equals.",
+                deviceName.c_str(), monitorName.c_str(), MonitorKeyword::AllowedMembers::format
+              );
+              throw exception;
+            }
+          }
+          case MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR:
+          case MonitorKeyword/*::KeyFormat*/::KeyFormat_NONE:
+          {
+            break;
+          }
+          default:
+          {
+            InvalidValue exception(__PRETTY_FUNCTION__);
+            exception.addText("Unknown format value ('%s') of the monitor '%s.%s'",
+                              MonitorKeyword::AllowedMembers::format,
+                              deviceName.c_str(), monitorName.c_str());
+            throw exception;
+          }
+        }
       }
       break;
     }
-      // Unknown type
+    // Unknown type
     default:
     {
       InvalidValue exception(__PRETTY_FUNCTION__);
@@ -1386,11 +1410,22 @@ bool operator!=(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept
 bool operator<(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept*/
 {
   MonitorKeyword_TRACE
+  // deviceName
   if (lhs.deviceName < rhs.deviceName)
     return true;
   if (rhs.deviceName < lhs.deviceName)
     return false;
-  return lhs.monitorName < rhs.monitorName;
+  // monitorName
+  if (lhs.monitorName < rhs.monitorName)
+    return true;
+  if (rhs.monitorName < lhs.monitorName)
+    return false;
+  // keyFormat
+  if (lhs.keyFormat < rhs.keyFormat)
+    return true;
+  if (rhs.keyFormat < lhs.keyFormat)
+    return false;
+  return lhs.keyName < rhs.keyName;
 }
 
 //----------------------------------------------------------------------
@@ -1421,7 +1456,7 @@ bool operator>=(const MonitorKeyword &lhs, const MonitorKeyword &rhs) /*noexcept
 }
 
 //----------------------------------------------------------------------
-// std::ostream << MonitorKeyword 
+// std::ostream << MonitorKeyword
 //----------------------------------------------------------------------
 std::ostream& operator<<(std::ostream &os, const MonitorKeyword &obj)
 {

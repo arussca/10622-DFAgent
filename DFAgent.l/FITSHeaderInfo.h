@@ -126,7 +126,7 @@ class FITSHeaderInfo
    *
    * @param[in] monitorAgent Pointer to MonitorAgent instance.
    */
-  void setMonitorAgent(MonitorAgent *& monitorAgent);
+  void setMonitorAgent(MonitorAgent * monitorAgent);
 
   /**
    * Assigns a new value to the internal logAgent_ member.
@@ -135,7 +135,7 @@ class FITSHeaderInfo
    *
    * @param[in] logAgent Pointer to LogAgent instance.
    */
-  void setLogAgent(LogAgent *& logAgent);
+  void setLogAgent(LogAgent * logAgent);
 
   /**
    * Assigns a new value to the internal trace_ member.
@@ -144,7 +144,7 @@ class FITSHeaderInfo
    *
    * @param[in] trace Pointer to Trace instance.
    */
-  void setTrace(Trace *& trace);
+  void setTrace(Trace * trace);
 
   /**
    * Parses a file to extract all the desired keywords related to a monitor.

@@ -1,3 +1,32 @@
+            RELEASE NOTES 1.3.12
+Interface
+- #2135 New DFAgent for better management of header configurations compatible
+  with C/C ++ 98
+  - Reformat files: remove tailing blanks and replace tabs with spaces.
+  - Add some configuration files as examples.
+  - Adjust some conditions when evaluating the information integrity to allow
+    convertions of only one element in an array monitor. It affects to
+    MonitorKeyword class.
+  - Transform initialIndex to initialindex on MonitorKeyword class.
+  - Improve traces and logs.
+  - Fixed a detected bug in integration tests when the discreted monitors were
+    partially retrieved from database.
+  - Fixed a detected bug in integration tests, which do not allow to introduce
+    a keyword-monitor where the device and monitor names already exist.
+    See operator<(MonitorKeyword, MonitorKeyword).
+
+Bugs
+
+Implementation
+
+Known errors
+- #2135 New DFAgent for better management of header configurations compatible
+  with C/C ++ 98
+  - Detected a bug in integration tests, which do not allow to introduce
+    a keyword, whose values will be converted from radians and come from an array monitor.
+    This bug is present in previous versions.
+
+
             RELEASE NOTES 1.3.11
 Interface
 - Reformat some header files.
@@ -14,14 +43,14 @@ Interface
 
   #2135 - New DFAgent for better management of header configurations compatible
   with C/ C ++ 98
-    
+
 Bugs
-   
+
 Implementation
 
   #2135 - New DFAgent for better management of header configurations compatible
   with C/ C ++ 98
- 
+
 Known errors
 
 
@@ -29,16 +58,16 @@ Known errors
             RELEASE NOTES 1.3.9
 Interface
 
-	#151 -  Observation Strategies
-	
-		- When reverting the code a feature was missing, the posibillity
-    to send a reduction result to several recipe as recipe input in a 
+  #151 -  Observation Strategies
+
+    - When reverting the code a feature was missing, the posibillity
+    to send a reduction result to several recipe as recipe input in a
     strategy.
-    
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
@@ -46,33 +75,33 @@ Known errors
             RELEASE NOTES 1.3.8
 Interface
 
-	#151 -  Observation Strategies
-	
-		- Revert the 1.3.7 changes since they are using C/C++ 11, not 
-		compatible with VxWork. These functionality will be implemented
-		into a new DFAgent, DFAgentPro.
+  #151 -  Observation Strategies
+
+    - Revert the 1.3.7 changes since they are using C/C++ 11, not
+    compatible with VxWork. These functionality will be implemented
+    into a new DFAgent, DFAgentPro.
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
             RELEASE NOTES 1.3.7
 Interface
-- The FITSHeaderInfo class was redefined to improve the parsing of the 
-  keyword file, using both JavaScript Object Notation (JSON) and 
+- The FITSHeaderInfo class was redefined to improve the parsing of the
+  keyword file, using both JavaScript Object Notation (JSON) and
   GTC notation.
-- The MonitorKeyword class was added to support the analysis tasks and 
+- The MonitorKeyword class was added to support the analysis tasks and
   to check the integrity of the given monitor information, comparing with
   the information contained in the database for that same monitor.
 
 Bugs
 - Not known.
-   
+
 Implementation
 - Moved lmk.linux file into DFAgent.l dir.
-- Added a dedicated mutex to protect a critical regions, which are related to 
+- Added a dedicated mutex to protect a critical regions, which are related to
   the management of the observation strategies, and thus avoid inter-blocking
   situations.
 - Some DFAgent methods have been declared as virtual.
@@ -84,66 +113,66 @@ Implementation
     - Now, there are to_string methods to do the same.
 - Now the setter method of obsModeKeywordListPath property does not parse
   the content of the file. To do that the derived DFAgent classes need to
-  inkove parseFITSHeaderKeywordsFromFile_ method when the connection with 
+  inkove parseFITSHeaderKeywordsFromFile_ method when the connection with
   the DFAgent will be feasible.
 - The keyword files that use JavaScript Object Notation (JSON):
   - They have two sections:
-    - keyword-section: section where several sets of keywords to be used by 
+    - keyword-section: section where several sets of keywords to be used by
       the observation modes are defined.
       Each set of keywords can be defined inline or point to an external file
       also in JSON.
       The values of keywords can come from a monitor (monitor keywords) or
       from user (fixed keywords). Both can be defined in the same set of
       keywords.
-    - observation-modes: section used to create a relationship between each 
+    - observation-modes: section used to create a relationship between each
       observation mode and one or more sets of keywords.
 - The keyword files in GTC notation don't support the above sections.
 - Some unit tests were added. The unit tests for FITSHeaderInfo class have to
   be implemented.
- 
+
 Known errors
 - None.
 
             RELEASE NOTES 1.3.6
 Interface
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
-		-- Correct inter-blocking in setting the observation low level mode
-		  
+    -- Correct inter-blocking in setting the observation low level mode
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
             RELEASE NOTES 1.3.5
 Interface
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
-		-- Allow paralelization in the recipe execution
-		  
+    -- Allow paralelization in the recipe execution
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
             RELEASE NOTES 1.3.4
 Interface
 
-		  
+
 Bugs
-   
+
 Implementation
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
-		-- Added new example
+    -- Added new example
 
- 
+
 Known errors
 
 
@@ -151,229 +180,229 @@ Known errors
             RELEASE NOTES 1.3.3
 Interface
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
-		-- Allow paralelization in the recipe execution
-		  
+    -- Allow paralelization in the recipe execution
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
             RELEASE NOTES 1.3.2
 Interface
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
-		-- Correct bug to subscribe correctly to a reduction result.
-		  
+    -- Correct bug to subscribe correctly to a reduction result.
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
             RELEASE NOTES 1.3.1
 Interface
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
-		-- Close the observation strategy session.
-		-- Unsubscribe from the previous reduction resutl.
-		-- Add methods to the send detector raw frame method the propagate and save parameters.
-		-- Refactoring to clean up the code.
-		  
+    -- Close the observation strategy session.
+    -- Unsubscribe from the previous reduction resutl.
+    -- Add methods to the send detector raw frame method the propagate and save parameters.
+    -- Refactoring to clean up the code.
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
             RELEASE NOTES 1.3.0
 Interface
 
-	#151 -  Observation Strategies
+  #151 -  Observation Strategies
 
 
-		-- Changed the DFAgent interface: subscribe to recipe result, to coordinate the observation strategy; added a method
-		to set Observation Mode, using the observation mode name; added a property for the DF Manager instance name.
+    -- Changed the DFAgent interface: subscribe to recipe result, to coordinate the observation strategy; added a method
+    to set Observation Mode, using the observation mode name; added a property for the DF Manager instance name.
 
-		-- A new class DFObservationStrategy to manage the observation strategy information.
+    -- A new class DFObservationStrategy to manage the observation strategy information.
 
-		-- Added two methods to receive detector raw frames and raw frames.
+    -- Added two methods to receive detector raw frames and raw frames.
 
-		-- The branch, after receiving the observation strategy, coordinate the execution of the recipes.
-  
+    -- The branch, after receiving the observation strategy, coordinate the execution of the recipes.
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
 
             RELEASE NOTES 1.2.4
 Interface
-  
+
 Bugs
-   
+
 Implementation
- 
+
 Known errors
 
 
             RELEASE NOTES 1.2.31
 Interface
-  
+
 Bugs
-   
+
 Implementation
 
-	Fix a bug switch block gather monitores. Added a break
+  Fix a bug switch block gather monitores. Added a break
 
- 
+
 Known errors
 
 
            RELEASE NOTES 1.2.30
 Interface
-  
+
 Bugs
-   
+
 Implementation
 
    Don't call writeWCSKeywords_ function is frame is not 2D (so allows the frame to be 3D)
- 
+
 Known errors
 
 
            RELEASE NOTES 1.2.29
 Interface
-  
+
 Bugs
-   
+
 Implementation
 
    Added support for array monitors to be gathered as a list of scalar keywords
- 
+
 Known errors
 
 
            RELEASE NOTES 1.2.28
 Interface
-  
+
 Bugs
-   
+
 Implementation
 
    New enum choices for ObservationType: BIAS, DARK, SKY_FLAT, DOME_FLAT, SPECTRAL_FLAT, ARC, SKY, OBJECTS
- 
+
 Known errors
 
 
            RELEASE NOTES 1.2.27
 Interface
-  
+
 Bugs
-   
+
 Implementation
- 
-	correct bug format keywords in arrays
- 
+
+  correct bug format keywords in arrays
+
 Known errors
 
 
            RELEASE NOTES 1.2.26
 Interface
-  
+
 Bugs
-   
+
 Implementation
- 
+
   . Changed the receiveFrame method to avoid converting the idl Frame to a
-    C++ concrete object. 
-         
+    C++ concrete object.
+
 Known errors
 
 
            RELEASE NOTES 1.2.25
 Interface
-  
+
 Bugs
-   
+
 Implementation
- 
+
   . Added some features in the keyword gathering process needed by EMIR: gather keywords
     from a bidimiensional array monitor, ability to transpose an array monitor and
     support co create a list of scalar keywords from an array monitor
-         
+
 Known errors
 
            RELEASE NOTES 1.2.24
 Interface
-  
+
 Bugs
-	- Airmass and IPA Keywords were not correctly treated, two actions:
-        1. FITSHeaderInfo::gatherMonitorKeywords: Airmass is now obtained only once in middle of 
+  - Airmass and IPA Keywords were not correctly treated, two actions:
+        1. FITSHeaderInfo::gatherMonitorKeywords: Airmass is now obtained only once in middle of
             exposure, no average value. This seems to be the right science requirement.
-	    2. FITSHeaderInfo::gatherSpecialMonitorKeywords_: Bug with string comparison corrected.
-   
+      2. FITSHeaderInfo::gatherSpecialMonitorKeywords_: Bug with string comparison corrected.
+
 Implementation
-     
+
 Known errors
 
 
            RELEASE NOTES 1.2.23
 Interface
-  
+
 Bugs
     - Correct a bug extracting the value for an array to be include in the header of the image.
-    
+
 Implementation
-     
+
 Known errors
 
 
            RELEASE NOTES 1.2.22
 Interface
-  
+
 Bugs
     - There was an error when dealing with same monitor with different keyword name.
-    
+
 Implementation
-     
+
 Known errors
 
 
            RELEASE NOTES 1.2.20
 Interface
-  
+
 Bugs
-     
+
 Implementation
      - Change CORBA object to type _var in order to avoid warning in solgnu.
-     
+
 Known errors
 
            RELEASE NOTES 1.2.19
 Interface
-  
+
 Bugs
      - Array monitors defined via "range" keyword in spec file are not processed correctly.
-     
+
 Implementation
      - Monitors are now requested to Monitor Manager by batches instead of one by one.
-     
+
 Known errors
 
            RELEASE NOTES 1.2.18
 Interface
-  
+
 Bugs
-  
+
 Implementation
      - Update lmk to include Array_IO library
 Known errors
@@ -381,60 +410,60 @@ Known errors
 
            RELEASE NOTES 1.2.17
 Interface
-  
+
 Bugs
-  
+
 Implementation
      - Removed several "cout"
-     
+
 Known errors
 
             RELEASE NOTES 1.2.16
 Interface
-  
+
 Bugs
-  
+
 Implementation
      - Change (char*) by CORBA::string_dup in functions that return char*.
 Known errors
 
-         
+
             RELEASE NOTES 1.2.15
 Interface
-  
+
 Bugs
-  
+
 Implementation
      - Compile linux platform
 Known errors
 
             RELEASE NOTES 1.2.14
 Interface
-  
+
 Bugs
-  
+
 Implementation
   - Adapted to changes in keyword system in DPKF
-    
+
 Known errors
 
           RELEASE NOTES 1.2.13
 Interface
-  
+
 Bugs
   - Either sign '+' or '-' didn't appear after conversion from radian to DMS values.
-  
+
 Implementation
   - Plus sign doesn't show up when using HMS or DMS units.
-    
+
 Known errors
 
 
           RELEASE NOTES 1.2.12
 Interface
-  
+
 Bugs
-  
+
 Implementation
   - Some keyword comments have been changed to comply with GTC Fits standard.
   - OBJECTCLASS keyword deprecated.
@@ -442,68 +471,68 @@ Implementation
   spcial keywords like IPA that needs further calculations.
   - FITSHeaderInfo: New parameter expTime to be added needed for some
   keywords.
-  
+
 Known errors
 
 
           RELEASE NOTES 1.2.11
 Interface
-  
+
 Bugs
-  
+
 Implementation
   - New member function writeAdditionalKeywords_, to be defined by derived
   class.
-  
+
 Known errors
 
 
           RELEASE NOTES 1.2.10
 Interface
-  
+
 Bugs
-  
+
 Implementation
-  - Undo last changes. Go back to version 1.2.8. 
-  
+  - Undo last changes. Go back to version 1.2.8.
+
 Known errors
 
 
           RELEASE NOTES 1.2.9
 Interface
-  
+
 Bugs
-  
+
 Implementation
   - gatherMonitorKeywords requires exposition time as an argument.
   - Some keyword descriptions have been modified.
-  
+
 Known errors
 
 
           RELEASE NOTES 1.2.8
 Interface
-  
+
 Bugs
-  
+
 Implementation
   - Some tweaks after testing new Monitor Manager at ORM.
-  
+
 Known errors
 
           RELEASE NOTES 1.2.7
 Interface
-  
+
 Bugs
   - Compiling problem soved: MonitorHubFactory.h included in DFAgent.h file.
-  
+
 Implementation
 
 Known errors
 
           RELEASE NOTES 1.2.6
 Interface
-  
+
 Bugs
 
 Implementation
@@ -515,7 +544,7 @@ Known errors
           RELEASE NOTES 1.2.5
 Interface
   - It no longer inherits from Consumer_ifce.
-  
+
 Bugs
 
 Implementation
@@ -526,13 +555,13 @@ Known errors
           RELEASE NOTES 1.2.4
 Interface
   - Reference to monitor manager has been removed.
-  
+
 Bugs
 
 Implementation
   - Changes to adapt DFAgent to the new Monitor Manager interface.
   - Two new fields have been added to the spec file.
-  
+
 Known errors
 
 
@@ -566,71 +595,71 @@ Implementation
 Known errors
 
 
-	RELEASE NOTES 1.2.0
+  RELEASE NOTES 1.2.0
 Interface
 
 Bugs
-	-lmnk proble
+  -lmnk proble
 Implementation
 
 Known errors
-        
 
-	RELEASE NOTES 1.1.9
+
+  RELEASE NOTES 1.1.9
 Interface
-      
+
 Bugs
-  
+
 Implementation
   - Function receiveFrame doesn't convert frames to double by default anymore.
   It has to be done by derievd class now if necessary.
   - Function sendElement now has a new argument to indicate whether the frame
   has arrived or not.
-  
+
 Known errors
 
 
 RELEASE NOTES 1.1.8
 Interface
-      
+
 Bugs
-  
+
 Implementation
   - writeAdditionalKeywords_ and writeStandardKeywords_ functions from
   DFAgent.cpp, now accept DataDescription elements as arguments in order to make
   it more generic.
   - Functions from FITSHeaderInfo.cpp now accept DataDescription element as
   arguments in order to make it more generic.
-  
+
 Known errors
 
 RELEASE NOTES 1.1.7
 Interface
-      
+
 Bugs
-  
+
 Implementation
   - Keyword comments have been changed to standard ones.
   - Implementing a more robust way of reading spec configuration file.
-  
+
 Known errors
 
 RELEASE NOTES 1.1.6
 Interface
-      
+
 Bugs
-  
+
 Implementation
   - scanDirectory fuction has been removed.
-  
+
 Known errors
 
 RELEASE NOTES 1.1.5
 Interface
-      
+
 Bugs
   - Reset Obs Mode settings to default only when changing to a new one.
-  
+
 Implementation
 
 Known errors
@@ -639,7 +668,7 @@ RELEASE NOTES 1.1.4
 Interface
   - Corba function setESOProgramId added
   - Attribute testingMode added to profile
-      
+
 Bugs
 
 Implementation
@@ -654,7 +683,7 @@ Known errors
 RELEASE NOTES 1.1.3
 Interface
   - New method getObjectName has been added.
-    
+
 Bugs
 
 Implementation
@@ -664,58 +693,58 @@ Known errors
 
 RELEASE NOTES 1.1.2
 Interface
-  
+
 Bugs
 
 Implementation
   - Two more profile properties: flippedImage and referencePixel.
-      
+
 Known errors
 
 RELEASE NOTES 1.1.1
 Interface
-  
+
 Bugs
 
 Implementation
   - Comment out some goRunning, goIdle callings.
-      
+
 Known errors
 
 RELEASE NOTES 1.1.0
 Interface
-  
+
 Bugs
 
 Implementation
   - Subscribe to EKW's monitors, read and include them in FITS header.
   - Initialize pointer within sendElement_ function.
   - Change timeout when subscribing to monitors from 60 to 1.
-    
+
 Known errors
 
 RELEASE NOTES 1.0.9
 Interface
   - Now inherits from MONITOR::Consumer_ifce.
-  
+
 Bugs
 
 Implementation
   - Subscribe to monitors before read values from them.
   - New element added to dicctionary.
-    
+
 Known errors
 
 RELEASE NOTES 1.0.8
 Interface
   - New enum type ObservationType has been added.
   - Two new methods added: setObservationType, setInstrumentMode
-  
+
 Bugs
 
 Implementation
   - Two new methods added: setObservationType, setInstrumentMode
-    
+
 Known errors
 
 RELEASE NOTES 1.0.7
@@ -725,7 +754,7 @@ Bugs
 
 Implementation
   - FrameServer library is obsolete and was removed from lmk.solgnu files.
-  
+
 Known errors
 
 RELEASE NOTES 1.0.6
@@ -735,7 +764,7 @@ Bugs
 
 Implementation
   - Pass on exception when encounter a problem.
-  
+
 Known errors
 
 RELEASE NOTES 1.0.5
@@ -745,7 +774,7 @@ Bugs
 
 Implementation
   - Refresh CORBA pointers when string object names are updated.
-  
+
 Known errors
 
 RELEASE NOTES 1.0.4
@@ -756,14 +785,14 @@ Bugs
 Implementation
   - Exception handled when readimg keywords from monitor manager.
   - Checking Monitor Manager status when initializing pointer.
-  
+
 Known errors
 
 RELEASE NOTES 1.0.3
 Interface
 
 Bugs
-	Bug: Reconnect with branch and reiniziate session 
+  Bug: Reconnect with branch and reiniziate session
 Implementation
 Known errors
 
@@ -779,14 +808,14 @@ Known errors
 
 
 Release notes for module DFAgent
-	
-	RELEASE NOTES 1.0.1
+
+  RELEASE NOTES 1.0.1
 Interface
 
 Bugs
 
 Implementation
-				lmk updated by gcsenv
+        lmk updated by gcsenv
 Known errors
 
 
@@ -795,9 +824,9 @@ Release notes for module DFAgent
                       RELEASE NOTES 1.0
 
 Interface
-	
-Bugs 
-	
+
+Bugs
+
 Implementation
 
 Known errors

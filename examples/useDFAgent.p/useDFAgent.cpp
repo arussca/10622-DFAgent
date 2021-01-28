@@ -28,7 +28,7 @@ int main(int argc, char** argv)
   DFAGENT::DFAgent_ifce* device = 0;
   int quit=FALSE;
   int option, result=0;
-  
+
   printf("-------------------------------------------------------------\n");
   printf("DFAgent:\n");
   try
@@ -63,7 +63,7 @@ int main(int argc, char** argv)
     printf(" - device found\n");
     State state = ::fromIDL(*device->state());
     cout << "The device " << devicename << " is in state=" << state << endl;
-    
+
     helpShow();
     do
     {
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
   }
   catch (...)
   {
-    return(1); 
+    return(1);
   }
   cerr << "Bye" << endl;
   return(result);  // On error return 1; On success return 0

@@ -17,7 +17,7 @@ static const char rcsid[]="@(#) $Id$";
 #include <string>
 
 // Constructor
-dfAgentLCU::dfAgentLCU(char* name) 
+dfAgentLCU::dfAgentLCU(char* name)
               :LCU(name)
 {
 }
@@ -120,18 +120,18 @@ dfAgentLCU* _dfAgentLCU_;
 extern "C" void start_LCU(int update=0)
 {
   _dfAgentLCU_ = new dfAgentLCU("dfAgentLCU");
-  _dfAgentLCU_->start(update); 
+  _dfAgentLCU_->start(update);
 }
 
 extern "C" void stop_LCU()
 {
-  _dfAgentLCU_->stop(); 
+  _dfAgentLCU_->stop();
   delete _dfAgentLCU_;
 }
 
 extern "C" void reboot_LCU()
 {
-  _dfAgentLCU_->reBoot(); 
+  _dfAgentLCU_->reBoot();
 }
 #else
 int main(int argc, char** argv)
@@ -142,7 +142,7 @@ int main(int argc, char** argv)
   CommandLine cl(argc, argv);
   update = cl.getFlag("-update");
   _dfAgentLCU_ = new dfAgentLCU(const_cast<char*>("dfAgentLCU"));
-  _dfAgentLCU_->start(update); 
+  _dfAgentLCU_->start(update);
   // Leave the program running
   while(true)
   {

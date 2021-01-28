@@ -1,16 +1,16 @@
 // Copyright (c) 2001 Gran Telescopio de Canarias, S.A. (GRANTECAN)
 // All Rights Reserved
 /* $Log */
- 
+
 package gtc.DSL.CK.GDEV;
- 
+
 public abstract class DFAgent
 {
- 
+
    //-------------------------------------------------------------
    // Commands
-   //------------------------------------------------------------- 
-    
+   //-------------------------------------------------------------
+
    /**
    * Starts the process when a frame is received
    */
@@ -19,8 +19,8 @@ public abstract class DFAgent
    /**
    * Sets the image propietary name
    */
-   void setPIName(String piName);   
-   
+   void setPIName(String piName);
+
    /**
    * Sets the observer name
    */
@@ -35,28 +35,28 @@ public abstract class DFAgent
    * Sets Program Identifier
    */
    void setGtcProgId(String progId);
-   
+
    /**
    * Sets OB Identifier
    */
    void setGtcOBId(String obId);
-      
+
    /**
    * Sets Image Title
    */
    void setImageTitle(String imageTitle);
-   
+
    /**
    * Sets Observation Comment
    */
    void setObservationComment(String observationComment);
-              
+
    /**
    * Sets up observation mode
    *  @param obsMode Short associated with observation mode
    */
    void setObsModeLowLevel (short obsMode);
-   
+
    /**
    * Sets frame propagate flag state
    */
@@ -81,7 +81,7 @@ public abstract class DFAgent
    * Creates archive fits
    */
    void createArchiveFits();
-   
+
    /**
    * Imports fits file
    */
@@ -107,10 +107,10 @@ public abstract class DFAgent
    */
    void commitOR();
 
-  
+
    //-------------------------------------------------------------
    // Monitors
-   //-------------------------------------------------------------  
+   //-------------------------------------------------------------
 
    /**
    * Current state of saveFrame flag
@@ -125,7 +125,7 @@ public abstract class DFAgent
    * @description propagate Frame flag
    */
    private boolean doesPropagateFrame;
-  
+
    /**
    * Current state of saveFITS flag
    * @magnitude
@@ -139,12 +139,12 @@ public abstract class DFAgent
    * @description propagate FITS flag
    */
    private boolean doesPropagateFITS;
-  
-  
+
+
    //-------------------------------------------------------------
    // Alarms
    //-------------------------------------------------------------
- 
+
    /**
    * Generic alarm
    * @alarm
@@ -153,14 +153,14 @@ public abstract class DFAgent
    * @acknowledge Yes
    * @actions "Check status"
    */
-   private Alarm DeviceFault;  
- 
+   private Alarm DeviceFault;
+
 
    //----------------------------------------------------------------------
    //  Device Properties
-   //  
+   //
    //----------------------------------------------------------------------
- 
+
    /**
    * Path to directory where instrument places the image
    * @property
@@ -224,7 +224,7 @@ public abstract class DFAgent
    * @default 1
    */
    private short saveFITS;
-   
+
    /**
    * Array with paths to keyword list for each obs mode
    * @property
@@ -232,7 +232,7 @@ public abstract class DFAgent
    * @default Path
    */
    private String obsModeKeywordListPath;
-   
+
    /**
    * Path to recipe dictionary
    * @property
@@ -257,11 +257,11 @@ public abstract class DFAgent
    */
    private String cameraName;
 
-   
+
    //----------------------------------------------------------------------
    //  INSTANCES of class DFAgent
    //----------------------------------------------------------------------
- 
+
    /**
    * DFAgent
    * @instance
@@ -271,27 +271,27 @@ public abstract class DFAgent
    * @threads   4
    */
    private Device dfAgent;
-  
+
    //----------------------------------------------------------------------
    //  APPLICATION
    //----------------------------------------------------------------------
- 
+
    /**
    * Application is used to create the device
    * @application
    * @name dfAgentApp
    */
-   private Application dfAgentApp;   
- 
+   private Application dfAgentApp;
+
    //----------------------------------------------------------------------
    //  LCU
    //----------------------------------------------------------------------
- 
+
    /**
    * The LCU starts the applications
    * @lcu
    * @name dfAgentLCU
    */
    private LCU dfAgentLCU;
-  
+
 }

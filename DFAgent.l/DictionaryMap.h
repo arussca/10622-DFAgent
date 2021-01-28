@@ -19,7 +19,7 @@ class DictionaryMap : public PersistentHashMap< WordSet >
     std::string fetchTranslation(const std::string& word, const std::string& wordSetID);
     std::string fetchOriginal(const std::string& word, const std::string& wordSetID);
     inline size_t size() const;
-    
+
   private:
     void fromPortableObject(const PortableObject& object, WordSet& wordSet);
 };

@@ -4,6 +4,7 @@
 // Includes
 #include "FITSHeaderInfo.h"
 
+#include <cstdio>                         // std::fprintf
 #include <fstream>                        // std::ifstream
 #include <sstream>                        // std::ostringstream, std::stringstream
 #include <iomanip>                        // std::setw, std::setfill
@@ -42,6 +43,28 @@
   //;
 #endif
 //</editor-fold>
+
+#ifndef _FITSHeaderInfo_cpp_
+#define _FITSHeaderInfo_cpp_
+
+#define log_out(args...) \
+  if (logAgent_ not_eq NULL) { logAgent_->logInfo(args); }
+
+#define log_err(args...) \
+  if (logAgent_ not_eq NULL) { logAgent_->logError(args); }
+
+#define trace_out(args...) \
+  if (trace_ not_eq NULL) { trace_->out(args); } \
+  else { std::fprintf(stdout, args); }
+
+#define trace_err(args...) \
+  if (trace_ not_eq NULL) { trace_->err(args); } \
+  else { std::fprintf(stderr, args); }
+
+#define log_trace_out(args...)  log_out(args) trace_out(args)
+#define log_trace_err(args...)  log_err(args) trace_err(args)
+
+#endif // _FITSHeaderInfo_cpp_
 
 /************************************************************************
 *************************************************************************
@@ -239,7 +262,7 @@ FITSHeaderInfo::~FITSHeaderInfo()
 //----------------------------------------------------------------------
 // setMonitorAgent
 //----------------------------------------------------------------------
-void FITSHeaderInfo::setMonitorAgent(MonitorAgent *&monitorAgent)
+void FITSHeaderInfo::setMonitorAgent(MonitorAgent *monitorAgent)
 {
   FITSHeaderInfo_TRACE
   monitorAgent_ = monitorAgent;
@@ -248,7 +271,7 @@ void FITSHeaderInfo::setMonitorAgent(MonitorAgent *&monitorAgent)
 //----------------------------------------------------------------------
 // setLogAgent
 //----------------------------------------------------------------------
-void FITSHeaderInfo::setLogAgent(LogAgent *&logAgent)
+void FITSHeaderInfo::setLogAgent(LogAgent *logAgent)
 {
   FITSHeaderInfo_TRACE
   logAgent_ = logAgent;
@@ -257,7 +280,7 @@ void FITSHeaderInfo::setLogAgent(LogAgent *&logAgent)
 //----------------------------------------------------------------------
 // setTrace
 //----------------------------------------------------------------------
-void FITSHeaderInfo::setTrace(Trace *&trace)
+void FITSHeaderInfo::setTrace(Trace *trace)
 {
   FITSHeaderInfo_TRACE
   trace_ = trace;
@@ -323,10 +346,7 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromInline(const Json::Value &root)
     {
       id = i+1;
       const unsigned int verbose = 0;
-      if ( trace_ not_eq NULL )
-      {
-        trace_->out("Parsing node #%03d", id);
-      }
+      trace_out("Parsing node #%03d", id)
       // Is a fixed keyword?
       if ( root[i].isMember("value") )
       {
@@ -341,10 +361,7 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromInline(const Json::Value &root)
       {
         SyntaxError exception(__PRETTY_FUNCTION__);
         exception.addText("One of following fields should be provided: 'value' or 'monitor'.");
-        if (trace_ not_eq NULL)
-          trace_->err(exception.text());
-        if (logAgent_ not_eq NULL)
-          logAgent_->logError(exception.text());
+        log_trace_err(exception.text())
         throw exception;
       }
     }
@@ -352,6 +369,8 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromInline(const Json::Value &root)
     {
       notParsedNodesID_.insert( id );
       exception.addToTrace(__PRETTY_FUNCTION__);
+      exception.addText("Unable to parse the node #%03d. Check syntax or allowed fields or theirs values.", id );
+      log_trace_err(exception.text())
       throw;
     }
     catch (...)
@@ -359,15 +378,7 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromInline(const Json::Value &root)
       notParsedNodesID_.insert( id );
       UnknownException exception(__PRETTY_FUNCTION__);
       exception.addText("Unable to parse the node #%03d. Check syntax or allowed fields or theirs values.", id );
-      std::cerr << exception.toString() << std::endl;
-      if (trace_ not_eq NULL)
-      {
-        trace_->err(exception.text());
-      }
-      if (logAgent_ not_eq NULL)
-      {
-        logAgent_->logError(exception.text());
-      }
+      log_trace_err(exception.text())
       throw;
     }
   }
@@ -411,14 +422,7 @@ void FITSHeaderInfo::merge(const FITSHeaderInfo &other)
     if (keywordNamesList_.count((*item)->name()) > 0)
     {
       // item exists in 'this' list of monitor keyword -> discard item.
-      if ( trace_ not_eq NULL )
-      {
-        trace_->err("Repeated fixed-keyword '%s', which will be discarded.", (*item)->name().c_str() );
-      }
-      if ( logAgent_ not_eq NULL )
-      {
-        logAgent_->logError("Repeated fixed-keyword '%s', which will be discarded.", (*item)->name().c_str() );
-      }
+      log_trace_err("Duplicated fixed-keyword '%s', which will be discarded.", (*item)->name().c_str() )
       ++repeatedKeywordsCounter;
       continue; // Ignore this keyword definition.
     }
@@ -438,14 +442,7 @@ void FITSHeaderInfo::merge(const FITSHeaderInfo &other)
     if (keywordNamesList_.count(item->keyName) > 0)
     {
       // item exists in 'this' list of monitor keyword -> discard item.
-      if ( trace_ not_eq NULL )
-      {
-        trace_->err("Repeated monitor-keyword '%s', which will be discarded.", item->keyName.c_str() );
-      }
-      if ( logAgent_ not_eq NULL )
-      {
-        logAgent_->logError("Repeated monitor-keyword '%s', which will be discarded.", item->keyName.c_str() );
-      }
+      log_trace_err("Duplicated monitor-keyword '%s', which will be discarded.", item->keyName.c_str() )
       ++repeatedKeywordsCounter;
       continue; // @note: Ignore keyword definition.
     }
@@ -502,20 +499,14 @@ bool FITSHeaderInfo::gatherFixedKeywords(DataDescription &header)
     {
       exception.addToTrace(__PRETTY_FUNCTION__);
       exception.addText("Problem to add keyword '%s' in header.", (*item)->name().c_str() );
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       everythingOK = false;
     }
     catch (...)
     {
       UnknownException exception(__PRETTY_FUNCTION__);
       exception.addText("Problem to add keyword '%s' in header.", (*item)->name().c_str() );
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       everythingOK = false;
     }
   }
@@ -575,19 +566,27 @@ bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
         query.time_stamp = idlEndTime;
       // Add query to its respective group
       if (monitorKeyword->monitorType == MonitorKeyword/*::MonitorType*/::SAMPLED)
+      {
         sampledQueryList[++indexSampled] = query;
+      }
       else if (monitorKeyword->monitorType == MonitorKeyword/*::MonitorType*/::DISCRETE)
+      {
         discreteQueryList[++indexDiscrete] = query;
+      }
+      else
+      {
+        InvalidValue exception(__PRETTY_FUNCTION__);
+        exception.addText("Unknown type was found for monitor '%s.%s'.",
+                          monitorKeyword->deviceName.c_str(),
+                          monitorKeyword->monitorName.c_str());
+        throw exception;
+      }
     }
     catch (...)
     {
       UnknownException exception(__PRETTY_FUNCTION__);
       exception.addText("Unable to create the query for the keyword '%s'", monitorKeyword->keyName.c_str() );
-      std::cerr << exception.toString() << std::endl;
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       notWrittenKeywords_.insert(monitorKeyword->keyName);
       returnValue = false;
     }
@@ -598,37 +597,31 @@ bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
   MM::DataBlockList retrievedMonitors;
   try
   {
-    retrievedMonitors =  *( monitorAgent->retrieveLastDataSet(sampledQueryList) );
+    if ( sampledQueryList.length() > 0 )
+    {
+      retrievedMonitors = *(monitorAgent->retrieveLastDataSet(sampledQueryList));
+    }
   }
-  catch (CORBA::Exception &ex)
+  catch (const CORBA::Exception &corbaException)
   {
-    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-    gcsex.addToTrace(__PRETTY_FUNCTION__);
-    gcsex.addText("Unable to retrieve all SAMPLED monitors");
-    if ( trace_ not_eq NULL )
-      trace_->err(gcsex.toString());
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError(gcsex.toString());
+    GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to retrieve all SAMPLED monitors");
+    log_trace_err(exception.text())
     returnValue = false;
   }
-  catch (GCSException &ex)
+  catch (GCSException &exception)
   {
-    ex.addToTrace(__PRETTY_FUNCTION__);
-    ex.addText("Unable to retrieve all SAMPLED monitors");
-    if ( trace_ not_eq NULL )
-      trace_->err(ex.toString());
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError(ex.toString());
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to retrieve all SAMPLED monitors");
+    log_trace_err(exception.text())
     returnValue = false;
   }
   catch (...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to retrieve all SAMPLED monitors");
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err(exception.text())
     returnValue = false;
   }
   //</editor-fold>
@@ -637,37 +630,31 @@ bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
   MM::MagnitudeChangeList retrievedMagnitudes;
   try
   {
-    retrievedMagnitudes = monitorAgent->retrieveLastMagnitudeSet(discreteQueryList);
+    if ( discreteQueryList.length() > 0)
+    {
+      retrievedMagnitudes = monitorAgent->retrieveLastMagnitudeSet(discreteQueryList);
+    }
   }
-  catch (CORBA::Exception &ex)
+  catch (const CORBA::Exception &corbaException)
   {
-    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-    gcsex.addToTrace(__PRETTY_FUNCTION__);
-    gcsex.addText("Unable to retrieve all DISCRETE monitors");
-    if ( trace_ not_eq NULL )
-      trace_->err(gcsex.toString());
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError(gcsex.toString());
+    GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to retrieve all DISCRETE monitors");
+    log_trace_err(exception.text())
     returnValue = false;
   }
-  catch (GCSException &ex)
+  catch (GCSException &exception)
   {
-    ex.addToTrace(__PRETTY_FUNCTION__);
-    ex.addText("Unable to retrieve all DISCRETE monitors");
-    if ( trace_ not_eq NULL )
-      trace_->err(ex.toString());
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError(ex.toString());
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to retrieve all DISCRETE monitors");
+    log_trace_err(exception.text())
     returnValue = false;
   }
   catch (...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to retrieve all DISCRETE monitors");
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err(exception.text())
     returnValue = false;
   }
   //</editor-fold>
@@ -733,8 +720,8 @@ bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
             signed int i (-1);
             for( ; ++i < retrievedMagnitudesSize; )
             {
-              if ( monitorKeyword->deviceName ==  std::string ( retrievedMonitors[i].gcs_component.in() )
-                   and monitorKeyword->monitorName ==  std::string ( retrievedMonitors[i].magnitude.in() )
+              if ( monitorKeyword->deviceName ==  std::string ( retrievedMagnitudes[i].gcs_component.in() )
+                   and monitorKeyword->monitorName ==  std::string ( retrievedMagnitudes[i].magnitude.in() )
                   )
               {
                 gatherDiscreteMonitor_(*monitorKeyword, retrievedMagnitudes[i], header);
@@ -757,29 +744,23 @@ bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
         //</editor-fold>
       }
     }
-    catch (const CORBA::Exception &ex)
+    catch (const CORBA::Exception &corbaException)
     {
       notWrittenKeywords_.insert(monitorKeyword->keyName);
       returnValue = false;
-      GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-      gcsex.addToTrace(__PRETTY_FUNCTION__);
-      gcsex.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
-      if ( trace_ not_eq NULL )
-        trace_->err(gcsex.toString());
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError(gcsex.toString());
-      //throw ; // @note: Don't re-throw exception to prevent break loop
+      GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+      exception.addToTrace(__PRETTY_FUNCTION__);
+      exception.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
+      log_trace_err(exception.text())
+      //throw ; // @note: Don't re-throw corbaException to prevent break loop
     }
-    catch (GCSException &ex)
+    catch (GCSException &exception)
     {
       notWrittenKeywords_.insert(monitorKeyword->keyName);
       returnValue = false;
-      ex.addToTrace(__PRETTY_FUNCTION__);
-      ex.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
-      if ( trace_ not_eq NULL )
-        trace_->err(ex.toString());
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError(ex.toString());
+      exception.addToTrace(__PRETTY_FUNCTION__);
+      exception.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
+      log_trace_err(exception.text())
       //throw ; // @note: Don't re-throw exception to prevent break loop
     }
     catch (...)
@@ -788,10 +769,7 @@ bool FITSHeaderInfo::gatherMonitorKeywords(const TimeValue &startExpTime,
       returnValue = false;
       UnknownException exception(__PRETTY_FUNCTION__);
       exception.addText("Error writing header keyword '%s'.", monitorKeyword->keyName.c_str() );
-      if ( trace_ not_eq NULL )
-        trace_->err( exception.text() );
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError( exception.text() );
+      log_trace_err(exception.text())
       //throw ; // @note: Don't re-throw exception to prevent break loop
     }
   }
@@ -848,18 +826,18 @@ void FITSHeaderInfo::writeHeaderToFile(const TimeValue &time,
       }
     }
   }
-  catch(GCSException &ex)
+  catch(GCSException &exception)
   {
-    ex.addToTrace(__PRETTY_FUNCTION__);
-    ex.addText("ERROR While adding header to FITS file");
-    std::cerr << ex << std::endl;
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("ERROR While adding header to FITS file");
+    log_trace_err(exception.text())
     //throw ;
   }
   catch(...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("ERROR While adding header to FITS file");
-    std::cerr << exception << std::endl;
+    log_trace_err(exception.text())
     //throw ;
   }
 
@@ -905,24 +883,26 @@ void FITSHeaderInfo::forceSampleData(MonitorAgent *monitorAgent) const
     {
       monitorAgent->forceSampleData(item->deviceName, item->monitorName);
     }
-    catch (const CORBA::Exception &ex)
+    catch (const CORBA::Exception &corbaException)
     {
-      std::cerr << __PRETTY_FUNCTION__ << ": CORBA ERROR forcing sample data: " << item->keyName << std::endl;
-      std::cerr << ex << std::endl;
-      //throw; // @note: Don't re-throw exception
+      GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+      exception.addToTrace(__PRETTY_FUNCTION__);
+      exception.addText("ERROR forcing sample data: %s", item->keyName.c_str() );
+      log_trace_err(exception.text())
+      //throw; // @note: Don't re-throw corbaException
     }
-    catch (GCSException &ex)
+    catch (GCSException &exception)
     {
-      ex.addToTrace(__PRETTY_FUNCTION__);
-      ex.addText("ERROR forcing sample data: %s", item->keyName.c_str() );
-      std::cerr << ex << std::endl;
+      exception.addToTrace(__PRETTY_FUNCTION__);
+      exception.addText("ERROR forcing sample data: %s", item->keyName.c_str() );
+      log_trace_err(exception.text())
       //throw; // @note: Don't re-throw exception
     }
     catch (...)
     {
       UnknownException exception(__PRETTY_FUNCTION__);
       exception.addText("ERROR forcing sample data: %s", item->keyName.c_str() );
-      std::cerr << exception << std::endl;
+      log_trace_err(exception.text())
       //throw; // @note: Don't re-throw exception
     }
   }
@@ -1059,28 +1039,26 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromPlainTextFile_(const std::string
         break;
       }
       ++lineNumber;
-      if ( trace_ not_eq NULL )
-        trace_->out("Parsing line #%03d", lineNumber);
+      //trace_out("Parsing line #%03d.\n", lineNumber)
       try
       {
         MonitorKeyword keyMon (line, lineNumber, logAgent_, *trace_);
         if ( parsedKeywords_.count(keyMon.keyName) > 0 )
         {
-          // keyword repeated
+          // keyword duplicated
           notParsedNodesID_.insert( lineNumber );
-          if ( trace_ not_eq NULL )
-          {
-            trace_->err("FITSHeaderInfo::%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
-          }
-          if ( logAgent_ not_eq NULL )
-          {
-            logAgent_->logError("FITSHeaderInfo::%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
-          }
+          log_trace_err("FITSHeaderInfo::%s(...) Keyword name '%s' already exists.\n", __func__, keyMon.keyName.c_str())
           continue;
         }
         // Add keyword
         keywordNamesList_.insert(keyMon.keyName);
         parsedKeywords_.insert(keyMon.keyName);
+        if ( monitorKeywordList_.count(keyMon) > 0 )
+        {
+          notParsedNodesID_.insert( lineNumber );
+          log_trace_err("FITSHeaderInfo::%s(...) Keyword in line #%d already exists.\n", __func__, lineNumber)
+          continue;
+        }
         monitorKeywordList_.insert(keyMon);
         // Increase counters
         switch (keyMon.monitorType)
@@ -1093,27 +1071,21 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromPlainTextFile_(const std::string
             break;
         }
       }
-      catch (CORBA::Exception &ex)
+      catch (const CORBA::Exception &corbaException)
       {
         notParsedNodesID_.insert( lineNumber );
-        GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-        gcsex.addToTrace(__PRETTY_FUNCTION__);
-        gcsex.addText("Unable to parse the line #%02d", lineNumber );
-        if ( trace_ not_eq NULL )
-          trace_->err(gcsex.toString());
-        if ( logAgent_ not_eq NULL )
-          logAgent_->logError(gcsex.toString());
+        GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+        exception.addToTrace(__PRETTY_FUNCTION__);
+        exception.addText("Unable to parse the line #%02d", lineNumber );
+        log_trace_err(exception.text())
         throw ;
       }
-      catch (GCSException &ex)
+      catch (GCSException &exception)
       {
         notParsedNodesID_.insert( lineNumber );
-        ex.addToTrace(__PRETTY_FUNCTION__);
-        ex.addText("Unable to parse the line #%02d", lineNumber );
-        if ( trace_ not_eq NULL )
-          trace_->err(ex.toString());
-        if ( logAgent_ not_eq NULL )
-          logAgent_->logError(ex.toString());
+        exception.addToTrace(__PRETTY_FUNCTION__);
+        exception.addText("Unable to parse the line #%02d", lineNumber );
+        log_trace_err(exception.text())
         throw ;
       }
       catch (...)
@@ -1121,10 +1093,7 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromPlainTextFile_(const std::string
         notParsedNodesID_.insert( lineNumber );
         UnknownException exception(__PRETTY_FUNCTION__);
         exception.addText("Unable to parse the line #%d", lineNumber );
-        if ( trace_ not_eq NULL )
-          trace_->err( exception.text() );
-        if ( logAgent_ not_eq NULL )
-          logAgent_->logError( exception.text() );
+        log_trace_err(exception.text())
         throw ;
       }
     }
@@ -1151,6 +1120,7 @@ void FITSHeaderInfo::parseFITSHeaderKeywordsFromJSONFile_(const std::string &fil
   {
     SyntaxError exception(__PRETTY_FUNCTION__);
     exception.addText("Error when parsing JSON file ('%s'). Suggestion: Check JSON syntax.", fileName.c_str() );
+    log_trace_err(exception.text())
     throw exception;
   }
   file.close();
@@ -1188,10 +1158,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       SyntaxError exception(__PRETTY_FUNCTION__);
       exception.addText("The node number '%03d' must have defined the field called '%s'.", nodeNumber, *it);
-      if ( trace_ not_eq NULL )
-        trace_->err( exception.text() );
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError( exception.text() );
+      log_trace_err(exception.text())
       throw exception;
     }
   }
@@ -1211,10 +1178,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       SyntaxError exception(__PRETTY_FUNCTION__);
       exception.addText("The type of field '%s' must be a string.", keywordFieldName);
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       throw exception;
     }
     // Check type of commentFieldName"" field.
@@ -1222,10 +1186,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       SyntaxError exception(__PRETTY_FUNCTION__);
       exception.addText("The type of field '%s' must be a string.", commentFieldName);
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       throw exception;
     }
     // Check type of "unitsFieldName" field.
@@ -1233,10 +1194,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       SyntaxError exception(__PRETTY_FUNCTION__);
       exception.addText("The type of field '%s' must be a string.", unitsFieldName);
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       throw exception;
     }
     // Check type of "valueFieldName" field.
@@ -1245,10 +1203,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       SyntaxError exception(__PRETTY_FUNCTION__);
       exception.addText("The type of field '%s' can be a string, bool, long, double.", valueFieldName);
-      if (trace_ not_eq NULL)
-        trace_->err(exception.text());
-      if (logAgent_ not_eq NULL)
-        logAgent_->logError(exception.text());
+      log_trace_err(exception.text())
       throw exception;
     }
   }
@@ -1256,14 +1211,11 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to parse the node #%d. Check syntax or allowed fields or theirs values.", nodeNumber );
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err(exception.text())
     throw ;
   }
 
-  
+
   // Define variables and assign the content of fields values.
   std::string
       keywordFieldValue(nodeKeyword.asString()),
@@ -1309,10 +1261,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
       {
         SyntaxError exception(__PRETTY_FUNCTION__);
         exception.addText("The type of field '%s' can be a string, bool, double, long.", valueFieldName);
-        if ( trace_ not_eq NULL )
-          trace_->err( exception.text() );
-        if ( logAgent_ not_eq NULL )
-          logAgent_->logError( exception.text() );
+        log_trace_err(exception.text())
         throw exception;
       }
     }
@@ -1321,10 +1270,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       CannotProceed exception(__PRETTY_FUNCTION__);
       exception.addText("Unable to allocate memory.");
-      if ( trace_ not_eq NULL )
-        trace_->err( exception.text() );
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError( exception.text() );
+      log_trace_err(exception.text())
       throw exception;
     }
 
@@ -1332,10 +1278,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
     {
       // keyword repeated
       notParsedNodesID_.insert( nodeNumber );
-      if ( trace_ not_eq NULL )
-        trace_->err("%s(...) Keyword '%s' already exists", __func__, keywordFieldValue.c_str());
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError("%s(...) Keyword '%s' already exists", __func__, keywordFieldValue.c_str());
+      log_trace_err("FITSHeaderInfo::%s(...) Keyword '%s' already exists", __func__, keywordFieldValue.c_str())
       return;
     }
 
@@ -1348,10 +1291,7 @@ void FITSHeaderInfo::parseFixedKeywords_(const unsigned int &nodeNumber, const J
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Problems to parse fixed keyword of the node #%03d.", nodeNumber );
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err(exception.text())
     throw ;
   }
 }
@@ -1369,10 +1309,7 @@ void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const
     {
       // keyword repeated
       notParsedNodesID_.insert( nodeNumber );
-      if ( trace_ not_eq NULL )
-        trace_->err("%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
-      if ( logAgent_ not_eq NULL )
-        logAgent_->logError("%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str());
+      log_trace_err(("%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str()))
       return;
     }
     // Add keyword
@@ -1394,35 +1331,26 @@ void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const
       }
     }
   }
-  catch (CORBA::Exception &ex)
+  catch (const CORBA::Exception &corbaException)
   {
-    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-    gcsex.addToTrace(__PRETTY_FUNCTION__);
-    gcsex.addText("Unable to parse a JSON node #%03d.", nodeNumber );
-    if ( trace_ not_eq NULL )
-      trace_->err(gcsex.toString());
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError(gcsex.toString());
+    GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to parse a JSON node #%03d.", nodeNumber );
+    log_trace_err(exception.text())
     throw ;
   }
-  catch (GCSException &ex)
+  catch (GCSException &exception)
   {
-    ex.addToTrace(__PRETTY_FUNCTION__);
-    ex.addText("Unable to parse a JSON node #%03d.", nodeNumber );
-    if ( trace_ not_eq NULL )
-      trace_->err(ex.toString());
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError(ex.toString());
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to parse a JSON node #%03d.", nodeNumber );
+    log_trace_err(exception.text())
     throw ;
   }
   catch (...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to parse the node #%03d.", nodeNumber );
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err( exception.text() )
     throw ;
   }
 }
@@ -1540,25 +1468,25 @@ void FITSHeaderInfo::gatherSampledMonitor_(const MonitorKeyword &keyword,
 
     }
   }
-  catch (GCSException &ex)
+  catch (const CORBA::Exception &corbaException)
   {
-    ex.addToTrace(__PRETTY_FUNCTION__);
-    throw;
+    GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to gather sampled-monitor.");
+    log_trace_err(exception.text())
+    throw exception;
   }
-  catch (const CORBA::Exception &ex)
+  catch (GCSException &exception)
   {
-    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-    gcsex.addToTrace(__PRETTY_FUNCTION__);
-    throw gcsex;
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to gather sampled-monitor.");
+    throw;
   }
   catch (...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to gather sampled-monitor.");
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err(exception.text() );
     throw ;
   }
 
@@ -1584,25 +1512,26 @@ void FITSHeaderInfo::gatherDiscreteMonitor_(const MonitorKeyword &keyword,
       header.addKeyword(DPKF::Keyword<std::string>(keyword.keyName, keyword.enumLabels[mons.new_value], keyword.keyComment, keyword.keyUnit));
     }
   }
-  catch (GCSException &ex)
+  catch (const CORBA::Exception &corbaException)
   {
-    ex.addToTrace(__PRETTY_FUNCTION__);
-    throw;
+    GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to gather discrete-monitor.");
+    log_trace_err(exception.text())
+    throw exception;
   }
-  catch (const CORBA::Exception &ex)
+  catch (GCSException &exception)
   {
-    GCSException gcsex = DException::mapCORBAException(const_cast<CORBA::Exception&>(ex));
-    gcsex.addToTrace(__PRETTY_FUNCTION__);
-    throw gcsex;
+    exception.addToTrace(__PRETTY_FUNCTION__);
+    exception.addText("Unable to gather discrete-monitor.");
+    log_trace_err(exception.text())
+    throw;
   }
   catch (...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to gather discrete-monitor.");
-    if ( trace_ not_eq NULL )
-      trace_->err( exception.text() );
-    if ( logAgent_ not_eq NULL )
-      logAgent_->logError( exception.text() );
+    log_trace_err(exception.text())
     throw ;
   }
 }

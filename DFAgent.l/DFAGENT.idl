@@ -28,78 +28,78 @@ module DFAGENT
   {
     SCIENCE, CALIB
   };
-  
-  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce, DF::RecipeResultConsumer_ifce 
+
+  interface DFAgent_ifce : DCF::Device_ifce, DF::RawFrameReceiver_ifce, DF::RecipeResultConsumer_ifce
   {
 
-    void setPrincipalInvestigatorName(in string piName) 
-			raises (DGT::GCSException); 
+    void setPrincipalInvestigatorName(in string piName)
+      raises (DGT::GCSException);
 
-    void setObservationType(in ObservationType obsType) 
-			raises (DGT::GCSException); 
+    void setObservationType(in ObservationType obsType)
+      raises (DGT::GCSException);
 
-    void setObservationClass(in ObservationClass obsClass) 
-			raises (DGT::GCSException); 
- 
-    void setInstrumentMode(in string insMode) 
-			raises (DGT::GCSException); 
+    void setObservationClass(in ObservationClass obsClass)
+      raises (DGT::GCSException);
 
-    void setObserverName(in string observerName) 
-			raises (DGT::GCSException); 
+    void setInstrumentMode(in string insMode)
+      raises (DGT::GCSException);
 
-    void setObjectName(in string objectName) 
-			raises (DGT::GCSException); 
+    void setObserverName(in string observerName)
+      raises (DGT::GCSException);
 
-    string getObjectName() 
-			raises (DGT::GCSException); 
+    void setObjectName(in string objectName)
+      raises (DGT::GCSException);
 
-    void setProgramId(in string programId) 
-			raises (DGT::GCSException); 
+    string getObjectName()
+      raises (DGT::GCSException);
 
-    void setESOProgramId(in string esoProgramId) 
-			raises (DGT::GCSException); 
+    void setProgramId(in string programId)
+      raises (DGT::GCSException);
 
-    void setObservationBlockId(in string obId) 
-			raises (DGT::GCSException); 
+    void setESOProgramId(in string esoProgramId)
+      raises (DGT::GCSException);
 
-    void setImageTitle(in string imageTitle) 
-			raises (DGT::GCSException); 
+    void setObservationBlockId(in string obId)
+      raises (DGT::GCSException);
 
-    void setObservationComment(in string observationComment) 
-			raises (DGT::GCSException); 
+    void setImageTitle(in string imageTitle)
+      raises (DGT::GCSException);
 
-    void setObsModeLowLevel(in short obsMode) 
-			raises (DGT::GCSException); 
+    void setObservationComment(in string observationComment)
+      raises (DGT::GCSException);
 
-    void setObservationMode(in string obsMode) 
-			raises (DGT::GCSException); 
+    void setObsModeLowLevel(in short obsMode)
+      raises (DGT::GCSException);
 
-    void setPropagateFrame(in boolean doesPropagate) 
-			raises (DGT::GCSException); 
+    void setObservationMode(in string obsMode)
+      raises (DGT::GCSException);
 
-    void setSaveFrame(in boolean doesSave) 
-			raises (DGT::GCSException); 
+    void setPropagateFrame(in boolean doesPropagate)
+      raises (DGT::GCSException);
 
-    void setPropagateFITS(in boolean doesPropagate) 
-			raises (DGT::GCSException); 
+    void setSaveFrame(in boolean doesSave)
+      raises (DGT::GCSException);
 
-    void setSaveFITS(in boolean doesSave) 
-			raises (DGT::GCSException); 
+    void setPropagateFITS(in boolean doesPropagate)
+      raises (DGT::GCSException);
 
-    void setAutoReduce(in boolean doesAutoReduce) 
-			raises (DGT::GCSException); 
+    void setSaveFITS(in boolean doesSave)
+      raises (DGT::GCSException);
 
-    void setWriteKeywords(in boolean doesWriteKeywords) 
-			raises (DGT::GCSException); 
-         
+    void setAutoReduce(in boolean doesAutoReduce)
+      raises (DGT::GCSException);
+
+    void setWriteKeywords(in boolean doesWriteKeywords)
+      raises (DGT::GCSException);
+
     // Monitorable attributes (device magnitudes)
     readonly attribute boolean              doesSaveFrame;
     readonly attribute boolean              doesPropagateFrame;
     readonly attribute boolean              doesSaveFITS;
     readonly attribute boolean              doesPropagateFITS;
     readonly attribute boolean              doesAutoReduce;
-    readonly attribute boolean              doesWriteKeywords;    
-    
+    readonly attribute boolean              doesWriteKeywords;
+
     // Configurable attributes (device properties)
     attribute string               offlineImagesPath;
     attribute string               dfBranchInstanceName;
@@ -110,15 +110,15 @@ module DFAGENT
     attribute short                propagateFITS;
     attribute short                saveFITS;
     attribute short                autoReduce;
-    attribute short                writeKeywords;    
-    attribute short                flippedImage;    
-    attribute short                testingMode;    
+    attribute short                writeKeywords;
+    attribute short                flippedImage;
+    attribute short                testingMode;
     attribute string               obsModeKeywordListPath;
     attribute string               recipeDictionaryPath;
     attribute string               gcsComponent;
     attribute string               cameraName;
-    attribute DGT::DoubleArray     referencePixel;    
+    attribute DGT::DoubleArray     referencePixel;
   };
 };
-#endif // _DFAGENT_idl_ 
+#endif // _DFAGENT_idl_
 

@@ -11,7 +11,7 @@ static const char rcsid[]="@(#) $Id$";
 #include "DFAgent.h"
 
 // Constructor
-dfAgentApp::dfAgentApp(char* name) 
+dfAgentApp::dfAgentApp(char* name)
               :Application(name)
 {
 }
@@ -62,12 +62,12 @@ int dfAgentApp::run(int update)
   return(0);
 }
 
-// Delete the Devices of the family 
+// Delete the Devices of the family
 int dfAgentApp::quit()
 {
   try
   {
-    // Delete Device 
+    // Delete Device
     // dfAgent_->halt();
     // dfAgent_->shutdown();
     dfAgent_->disconnect();
@@ -90,12 +90,12 @@ dfAgentApp* _dfAgentApp_;
 extern "C" void run_dfAgentApp(int update=0)
 {
   _dfAgentApp_ = new dfAgentApp("dfAgentApp");
-  _dfAgentApp_->run(update); 
+  _dfAgentApp_->run(update);
 }
 
 extern "C" void quit_dfAgentApp(void)
 {
-  _dfAgentApp_->quit(); 
+  _dfAgentApp_->quit();
   delete _dfAgentApp_;
 }
 #endif
