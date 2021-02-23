@@ -28,7 +28,7 @@ LDLIBS += -lDCF
 LDLIBS += -lDCFCorba
 LDLIBS += -lArray_IO
 LDLIBS += ${JSON_LIBS} -ljsoncpp
-LDLIBS += -lgtest
+LDLIBS += ${GOOGLETEST_LIBS}
 
 CPPFLAGS += -std=c++11                  # [-std=] Determine the language standard.
                                         # [c++11] The 2011 ISO C++ standard plus amendments.
