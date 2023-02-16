@@ -34,7 +34,7 @@ class DFAgentTest;
 /**
  *
  */
-class DFAgent : public Device
+class DFAgent : virtual public Device
 {
  //--------------------------------------------------
  // public section

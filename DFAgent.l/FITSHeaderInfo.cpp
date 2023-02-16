@@ -5,6 +5,7 @@
 #include "FITSHeaderInfo.h"
 
 #include <cstdio>                         // std::fprintf
+#include <cstdlib>                        // std::atof
 #include <fstream>                        // std::ifstream
 #include <sstream>                        // std::ostringstream, std::stringstream
 #include <iomanip>                        // std::setw, std::setfill
@@ -1393,101 +1394,70 @@ void FITSHeaderInfo::gatherSampledMonitor_(const MonitorKeyword &keyword,
         break;
       }
       case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
+      case MM::TYPE_SAMPLE_DOUBLE_ARRAY2D_LIST:
       {
-        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
-        {
-          addArrayToScalarKeywords_<MM::SampleDoubleArrayList, double>(keyword, mons.samples.array_d(), header);
-        }
-        else
-        {
-          std::ostringstream formatbuf;
-          toStream_<MM::SampleDoubleArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_d()[0] ));
-          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
-        }
+        addArrayKeywords_<MM::SampleDoubleArrayList, double>(keyword, mons.samples.array_d(), header);
         break;
       }
       case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
+      case MM::TYPE_SAMPLE_FLOAT_ARRAY2D_LIST:
       {
-        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
-        {
-          addArrayToScalarKeywords_<MM::SampleFloatArrayList, double>(keyword, mons.samples.array_f(), header);
-        }
-        else
-        {
-          std::ostringstream formatbuf;
-          toStream_<MM::SampleFloatArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_f()[0] ));
-          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
-        }
-      }
+        addArrayKeywords_<MM::SampleFloatArrayList, double>(keyword, mons.samples.array_f(), header);
         break;
+      }
       case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
+      case MM::TYPE_SAMPLE_LONG_ARRAY2D_LIST:
       {
-        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
-        {
-          addArrayToScalarKeywords_<MM::SampleLongArrayList, long>(keyword, mons.samples.array_l(), header);
-        }
-        else
-        {
-          std::ostringstream formatbuf;
-          toStream_<MM::SampleLongArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_l()[0] ));
-          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
-        }
-      }
+        addArrayKeywords_<MM::SampleLongArrayList, long>(keyword, mons.samples.array_l(), header);
         break;
+      }
       case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
+      case MM::TYPE_SAMPLE_SHORT_ARRAY2D_LIST:
       {
-        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
-        {
-          addArrayToScalarKeywords_<MM::SampleShortArrayList, long>(keyword, mons.samples.array_s(), header);
-        }
-        else
-        {
-          std::ostringstream formatbuf;
-          toStream_<MM::SampleShortArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_s()[0] ));
-          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
-        }
-      }
+        addArrayKeywords_<MM::SampleShortArrayList, long>(keyword, mons.samples.array_s(), header);
         break;
+      }
       case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
+      case MM::TYPE_SAMPLE_OCTET_ARRAY2D_LIST:
       {
-        if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
-        {
-          addArrayToScalarKeywords_<MM::SampleOctetArrayList, long>(keyword, mons.samples.array_o(), header);
-        }
-        else
-        {
-          std::ostringstream formatbuf;
-          toStream_<MM::SampleOctetArray>(formatbuf, trimmedArray1D_( keyword, mons.samples.array_o()[0] ));
-          header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, formatbuf.str(), keyword.keyComment));
-        }
-      }
+        addArrayKeywords_<MM::SampleOctetArrayList, long>(keyword, mons.samples.array_o(), header);
         break;
-
+      }
       default:
+      {
         throw InvalidValue(__PRETTY_FUNCTION__,"No type identified.");
-
+      }
     }
   }
   catch (const CORBA::Exception &corbaException)
   {
     GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
     exception.addToTrace(__PRETTY_FUNCTION__);
-    exception.addText("Unable to gather sampled-monitor.");
+    exception.addText(
+      "Unable to gather sampled-monitor for keyword '%s'.",
+      keyword.keyName.c_str()
+    );
     log_trace_err(exception.text())
     throw exception;
   }
   catch (GCSException &exception)
   {
     exception.addToTrace(__PRETTY_FUNCTION__);
-    exception.addText("Unable to gather sampled-monitor.");
+    exception.addText(
+      "Unable to gather sampled-monitor for keyword '%s'.",
+      keyword.keyName.c_str()
+    );
     throw;
   }
   catch (...)
   {
     UnknownException exception(__PRETTY_FUNCTION__);
-    exception.addText("Unable to gather sampled-monitor.");
+    exception.addText(
+      "Unable to gather sampled-monitor for keyword '%s'.",
+      keyword.keyName.c_str()
+    );
     log_trace_err(exception.text() );
-    throw ;
+    throw;
   }
 
 }
@@ -1614,6 +1584,99 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const MonitorKeyword &keyword,
   {
     header.addKeyword (DPKF::Keyword<ValueType>(keyword.keyName, (ValueType) arrayList[0].value, keyword.keyComment, unitComment));
   }
+}
+
+//----------------------------------------------------------------------
+// addArrayKeywords_
+//----------------------------------------------------------------------
+template<typename SampledArrayListType, typename ValueType>
+void FITSHeaderInfo::addArrayKeywords_(const MonitorKeyword &keyword,
+                                       const SampledArrayListType &arrayList,
+                                       DataDescription &header)
+{
+  #if defined(__cplusplus) && (__cplusplus >= 201103L)
+  //<editor-fold desc="Check typenames at compile time">
+  // Check in compile time if SampledArrayListType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<MM::SampleDoubleArrayList, SampledArrayListType>::value or
+          std::is_same<MM::SampleFloatArrayList,  SampledArrayListType>::value or
+          std::is_same<MM::SampleLongArrayList,   SampledArrayListType>::value or
+          std::is_same<MM::SampleShortArrayList,  SampledArrayListType>::value or
+          std::is_same<MM::SampleOctetArrayList,  SampledArrayListType>::value
+      ),
+      "Invalid given type for SampledArrayListType typename."
+  );
+  // Check in compile time if ValueType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<double, ValueType>::value or
+          std::is_same<long,   ValueType>::value
+      ),
+      "Invalid given type for ValueType typename."
+  );
+  static_assert(
+      (
+          std::is_same<double, ValueType>::value and
+          (
+              std::is_same<MM::SampleDoubleArrayList, SampledArrayListType>::value or
+              std::is_same<MM::SampleFloatArrayList,  SampledArrayListType>::value
+          )
+      )
+      or
+      (
+          std::is_same<long, ValueType>::value and
+          (
+              std::is_same<MM::SampleLongArrayList,  SampledArrayListType>::value or
+              std::is_same<MM::SampleShortArrayList, SampledArrayListType>::value or
+              std::is_same<MM::SampleOctetArrayList, SampledArrayListType>::value
+          )
+      ),
+      "Invalid given combination of typename SampledArrayListType and typename ValueType."
+  );
+  //</editor-fold desc="Check typenames at compile time">
+  #endif
+  if(keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::ARRAY_TO_SCALAR)
+  {
+    addArrayToScalarKeywords_<SampledArrayListType, ValueType>(keyword, arrayList, header);
+    return;
+  }
+  std::ostringstream formatbuf;
+  toStream_<typename SampledArrayListType::element_type>(formatbuf, trimmedArray1D_(keyword, arrayList[0] ));
+  const std::string trimmed_array_1D (formatbuf.str());
+  if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::KeyFormat_NONE)
+  {
+    header.addKeyword (DPKF::Keyword<std::string>(keyword.keyName, trimmed_array_1D, keyword.keyComment));
+    return;
+  }
+  const double radian (std::atof(trimmed_array_1D.c_str()));
+  if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::RAD_TO_HMS)
+  {
+    const std::string unit ("H:M:S");
+    const std::string hms (formatRadianToHms_(radian));
+    header.addKeyword(DPKF::Keyword<std::string>(keyword.keyName, hms, keyword.keyComment, unit));
+    return;
+  }
+  if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::RAD_TO_DMS)
+  {
+    const string unit ("D:M:S");
+    const std::string dms (formatRadianToDms_(radian));
+    header.addKeyword(DPKF::Keyword<std::string>(keyword.keyName, dms, keyword.keyComment, unit));
+    return;
+  }
+  if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::RAD_TO_DEG)
+  {
+    const string unit ("degree");
+    const double degree (formatRadianToDeg_(radian));
+    header.addKeyword(DPKF::Keyword<double>(keyword.keyName, degree, keyword.keyComment, unit));
+    return;
+  }
+  InvalidValue exception(__PRETTY_FUNCTION__);
+  exception.addText(
+      "[%s:%ld] Invalid value provided for keyword format ('%s').",
+      __FILE__, __LINE__, to_string(keyword.keyFormat)
+  );
+  throw exception;
 }
 
 //----------------------------------------------------------------------
@@ -1763,11 +1826,11 @@ ArrayType FITSHeaderInfo::trimmedArray1D_(const MonitorKeyword &keyword,
   arrayOut.value.dimension.width = 1;
   arrayOut.value.dimension.height = size;
   arrayOut.value.data.length( size );
-  for (unsigned int i( 0 ), j ( keyword.arrayRange.first );
-       j < keyword.arrayRange.second;
-       ++j, ++i)
+  for (unsigned int arrayOut_index( 0 ), arrayIn_index ( keyword.arrayRange.first ), arrayIn_upper_limit ( keyword.arrayRange.second + 1 );
+       arrayIn_index < arrayIn_upper_limit ;
+       ++arrayIn_index, ++arrayOut_index)
   {
-    arrayOut.value.data[i] = arrayIn.value.data[j];
+    arrayOut.value.data[arrayOut_index] = arrayIn.value.data[arrayIn_index];
   }
   return arrayOut;
 }
