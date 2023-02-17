@@ -15,7 +15,7 @@
 class DFAgent;
 
 // Class used to configure DFAgentConfigAgent objects
-class DFAgentConfigAgent : public ConfigAgent
+class DFAgentConfigAgent : virtual public ConfigAgent
 {
   //--------------------------------------------------
   // public section

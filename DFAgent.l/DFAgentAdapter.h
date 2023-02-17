@@ -17,7 +17,7 @@ class DFAgent;
 //This class implements the IDL interface DFAgent_ifce
 class DFAgentAdapter : public virtual POA_DFAGENT::DFAgent_ifce,
 public virtual POA_DF::RecipeResultConsumer_ifce,
-public DeviceAdapter
+public virtual DeviceAdapter
 {
   //--------------------------------------------------
   // public section
