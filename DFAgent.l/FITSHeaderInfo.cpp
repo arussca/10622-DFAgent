@@ -1396,31 +1396,31 @@ void FITSHeaderInfo::gatherSampledMonitor_(const MonitorKeyword &keyword,
       case MM::TYPE_SAMPLE_DOUBLE_ARRAY1D_LIST:
       case MM::TYPE_SAMPLE_DOUBLE_ARRAY2D_LIST:
       {
-        addArrayKeywords_<MM::SampleDoubleArrayList, double>(keyword, mons.samples.array_d(), header);
+        addArrayKeywords_<MM::SampleDoubleArrayList, MM::SampleDoubleArray, double>(keyword, mons.samples.array_d(), header);
         break;
       }
       case MM::TYPE_SAMPLE_FLOAT_ARRAY1D_LIST:
       case MM::TYPE_SAMPLE_FLOAT_ARRAY2D_LIST:
       {
-        addArrayKeywords_<MM::SampleFloatArrayList, double>(keyword, mons.samples.array_f(), header);
+        addArrayKeywords_<MM::SampleFloatArrayList, MM::SampleFloatArray, double>(keyword, mons.samples.array_f(), header);
         break;
       }
       case MM::TYPE_SAMPLE_LONG_ARRAY1D_LIST:
       case MM::TYPE_SAMPLE_LONG_ARRAY2D_LIST:
       {
-        addArrayKeywords_<MM::SampleLongArrayList, long>(keyword, mons.samples.array_l(), header);
+        addArrayKeywords_<MM::SampleLongArrayList, MM::SampleLongArray, long>(keyword, mons.samples.array_l(), header);
         break;
       }
       case MM::TYPE_SAMPLE_SHORT_ARRAY1D_LIST:
       case MM::TYPE_SAMPLE_SHORT_ARRAY2D_LIST:
       {
-        addArrayKeywords_<MM::SampleShortArrayList, long>(keyword, mons.samples.array_s(), header);
+        addArrayKeywords_<MM::SampleShortArrayList, MM::SampleShortArray, long>(keyword, mons.samples.array_s(), header);
         break;
       }
       case MM::TYPE_SAMPLE_OCTET_ARRAY1D_LIST:
       case MM::TYPE_SAMPLE_OCTET_ARRAY2D_LIST:
       {
-        addArrayKeywords_<MM::SampleOctetArrayList, long>(keyword, mons.samples.array_o(), header);
+        addArrayKeywords_<MM::SampleOctetArrayList, MM::SampleOctetArray, long>(keyword, mons.samples.array_o(), header);
         break;
       }
       default:
@@ -1589,7 +1589,7 @@ void FITSHeaderInfo::addSampledMonitorKeyword_(const MonitorKeyword &keyword,
 //----------------------------------------------------------------------
 // addArrayKeywords_
 //----------------------------------------------------------------------
-template<typename SampledArrayListType, typename ValueType>
+template<typename SampledArrayListType, typename SampledArrayType, typename ValueType>
 void FITSHeaderInfo::addArrayKeywords_(const MonitorKeyword &keyword,
                                        const SampledArrayListType &arrayList,
                                        DataDescription &header)
@@ -1606,6 +1606,17 @@ void FITSHeaderInfo::addArrayKeywords_(const MonitorKeyword &keyword,
           std::is_same<MM::SampleOctetArrayList,  SampledArrayListType>::value
       ),
       "Invalid given type for SampledArrayListType typename."
+  );
+  // Check in compile time if SampledArrayType has a valid type or not.
+  static_assert(
+      (
+          std::is_same<MM::SampleDoubleArray, SampledArrayType>::value or
+          std::is_same<MM::SampleFloatArray,  SampledArrayType>::value or
+          std::is_same<MM::SampleLongArray,   SampledArrayType>::value or
+          std::is_same<MM::SampleShortArray,  SampledArrayType>::value or
+          std::is_same<MM::SampleOctetArray,  SampledArrayType>::value
+      ),
+      "Invalid given type for SampledArrayType typename."
   );
   // Check in compile time if ValueType has a valid type or not.
   static_assert(
@@ -1627,12 +1638,21 @@ void FITSHeaderInfo::addArrayKeywords_(const MonitorKeyword &keyword,
       (
           std::is_same<long, ValueType>::value and
           (
-              std::is_same<MM::SampleLongArrayList,  SampledArrayListType>::value or
-              std::is_same<MM::SampleShortArrayList, SampledArrayListType>::value or
-              std::is_same<MM::SampleOctetArrayList, SampledArrayListType>::value
+              (
+                  std::is_same<MM::SampleLongArrayList,  SampledArrayListType>::value and
+                  std::is_same<MM::SampleLongArray,  SampledArrayType>::value
+              ) or
+              (
+                  std::is_same<MM::SampleShortArrayList, SampledArrayListType>::value and
+                  std::is_same<MM::SampleShortArray, SampledArrayType>::value
+              ) or
+              (
+                  std::is_same<MM::SampleOctetArrayList, SampledArrayListType>::value and
+                  std::is_same<MM::SampleOctetArray, SampledArrayType>::value
+              )
           )
       ),
-      "Invalid given combination of typename SampledArrayListType and typename ValueType."
+      "Invalid given combination of SampledArrayType, SampledArrayListType and ValueType typenames."
   );
   //</editor-fold desc="Check typenames at compile time">
   #endif
@@ -1642,7 +1662,7 @@ void FITSHeaderInfo::addArrayKeywords_(const MonitorKeyword &keyword,
     return;
   }
   std::ostringstream formatbuf;
-  toStream_<typename SampledArrayListType::element_type>(formatbuf, trimmedArray1D_(keyword, arrayList[0] ));
+  toStream_<SampledArrayType>(formatbuf, trimmedArray1D_(keyword, arrayList[0] ));
   const std::string trimmed_array_1D (formatbuf.str());
   if (keyword.keyFormat == MonitorKeyword/*::KeyFormat*/::KeyFormat_NONE)
   {
