@@ -22,6 +22,7 @@ Implementation
 - Fixed the error when writing a keyword, whose monitor is an array and
   the spec file defines a radian transformation over a specific array
   element by using range.
+- Improve the detection of not parsed keyword.
 
 Known errors
 - None

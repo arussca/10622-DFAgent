@@ -1310,8 +1310,13 @@ void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const
     {
       // keyword repeated
       notParsedNodesID_.insert( nodeNumber );
-      log_trace_err(("%s(...) Keyword '%s' already exists", __func__, keyMon.keyName.c_str()))
-      return;
+      AlreadyExists exception(__PRETTY_FUNCTION__);
+      exception.addText(
+          "%s[%ld] Keyword '%s' already exists",
+          __FILE__, __LINE__, keyMon.keyName.c_str()
+      );
+      log_trace_err(exception.text())
+      throw exception;
     }
     // Add keyword
     keywordNamesList_.insert(keyMon.keyName);
@@ -1334,6 +1339,7 @@ void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const
   }
   catch (const CORBA::Exception &corbaException)
   {
+    notParsedNodesID_.insert( nodeNumber );
     GCSException exception = DException::mapCORBAException(const_cast<CORBA::Exception&>(corbaException));
     exception.addToTrace(__PRETTY_FUNCTION__);
     exception.addText("Unable to parse a JSON node #%03d.", nodeNumber );
@@ -1342,6 +1348,7 @@ void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const
   }
   catch (GCSException &exception)
   {
+    notParsedNodesID_.insert( nodeNumber );
     exception.addToTrace(__PRETTY_FUNCTION__);
     exception.addText("Unable to parse a JSON node #%03d.", nodeNumber );
     log_trace_err(exception.text())
@@ -1349,6 +1356,7 @@ void FITSHeaderInfo::parseMonitorKeywords_(const unsigned int &nodeNumber, const
   }
   catch (...)
   {
+    notParsedNodesID_.insert( nodeNumber );
     UnknownException exception(__PRETTY_FUNCTION__);
     exception.addText("Unable to parse the node #%03d.", nodeNumber );
     log_trace_err( exception.text() )
