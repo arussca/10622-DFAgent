@@ -443,6 +443,23 @@ class FITSHeaderInfo
    * Extracts the data of a array monitor (double, float, long, short and
    * octect) related to a concrete keyword and writes it into the given header.
    *
+   * @tparam SampledArrayListType Database sequence data type related to this monitor.
+   * @tparam SampledArrayType Database data type related to this monitor.
+   * @tparam ValueType            Keyword data type related to this monitor.
+   * @param[in]  keyword   Keyword information.
+   * @param[in]  arrayList IDL sequence related to SampledArrayListType,
+   *                       where the value of the monitor is contains.
+   * @param[out] header    Header where the keyword will be written.
+   */
+  template<typename SampledArrayListType, typename SampledArrayType, typename ValueType>
+  void addArrayKeywords_(const MonitorKeyword & keyword,
+                         const SampledArrayListType & arrayList,
+                         DataDescription & header);
+
+  /**
+   * Extracts the data of a array monitor (double, float, long, short and
+   * octect) related to a concrete keyword and writes it into the given header.
+   *
    * @tparam     ArrayListType Database data type related to this monitor.
    * @tparam     ValueType     Keyword data type related to this monitor.
    * @param[in]  keyword       Keyword information.
