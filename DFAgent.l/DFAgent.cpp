@@ -1000,6 +1000,23 @@ void DFAgent::setObservationMode(const char * obsMode) {
     observation_strategies_.push_back(observation_strategy);
     //Print debug info
     observation_strategy->debug();
+
+    // Open the observation mode session, only if there is no session running
+    {
+      //Get the first observation strategy node with room for new images.
+      DF::DFObservationStrategyPtr strategyPtr (NULL);
+      strategyPtr = DF::find1stObsStrategyNotAcquisitionCompleted(observation_strategies_);
+      //Obtain the next Observation Strategy
+      DF::DFObservationStrategy::ObservationStrategyPtr observation_strategy_node (strategyPtr->next());
+      //If a reduction session has not been opened
+      if(observation_strategy_node->session_id == 0)
+      {
+        subscribeToReductionResult_(observation_strategy_node->observation_mode.c_str());
+        configureObsMode_(observation_strategy_node->observation_mode.c_str(), strategyPtr->strategy_session_id);
+        observation_strategy_node->session_id=dfSessionId_;
+      }
+    }
+
   } else {
     throw InvalidValue("DFAgent::setObservationMode", "Observation Mode not defined in the Pipeline.");
   }

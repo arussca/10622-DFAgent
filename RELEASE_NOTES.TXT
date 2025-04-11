@@ -1,3 +1,17 @@
+            RELEASE NOTES 1.3.17
+Interface
+- Nothing has been changed.
+
+Bugs
+- Not known
+
+Implementation
+- Open the observation mode session in setObservationMode
+  function, only if there is no session running.
+
+Known errors
+- None
+
             RELEASE NOTES 1.3.16
 Interface
 - None
