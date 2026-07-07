@@ -1,4 +1,4 @@
-// Copyright (c) 2004 Gran Telescopio Canarias, S.A. (GRANTECAN)
+// Copyright (c) 2026 Gran Telescopio Canarias, S.A. (GRANTECAN)
 // All Rights Reserved
 
 // $Log$
