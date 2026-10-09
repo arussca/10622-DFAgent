@@ -138,6 +138,14 @@ class MonitorKeyword
      */
     static const FieldType labels;
 
+    /**
+     * Represents the keyword reserved to indicate the set of aliases when the
+     * monitor type is DISCRETE.
+     *
+     * @related enumAliases
+     */
+    static const FieldType aliases;
+
     typedef std::set<std::string> FieldsContainterType;
 
     /**
@@ -215,6 +223,7 @@ class MonitorKeyword
 
   typedef std::pair<unsigned int, unsigned int> ArrayRange;
   typedef std::vector<std::string>              EnumLabels;
+  typedef EnumLabels                            EnumAliases;
 
   //########################## PUBLIC CONSTANTS ##########################
 
@@ -561,6 +570,22 @@ class MonitorKeyword
    *   - It can only be present when the monitorType is "DISCRETE".
    */
   EnumLabels enumLabels;
+
+  /**
+   * List of aliases for an enum or boolean monitor.
+   *
+   * @related AllowedMembers::aliases
+   * @related AllowedMembers::type
+   * @related monitorType
+   *
+   * @note:
+   * - List of constraints:
+   *   - It is an optional member.
+   *   - All its values must be strings.
+   *   - All its values will not be compared with the description of the database.
+   *   - It can only be present when the monitorType is "DISCRETE".
+   */
+  EnumAliases enumAliases;
 
   //--------------------------------------------------
   // protected section

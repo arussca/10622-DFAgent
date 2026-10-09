@@ -63,6 +63,7 @@ const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::transposed   = "transpose";
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::initialIndex = "indexstart";
 const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::labels       = "labels";
+const MonitorKeyword::AllowedMembers::FieldType MonitorKeyword::AllowedMembers::aliases      = "aliases";
 
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
 
@@ -81,7 +82,7 @@ const MonitorKeyword::AllowedMembers::FieldsContainterType MonitorKeyword::Allow
         // Optional members related to sampled monitor
         format, transposed, range, initialIndex,
         // Optional members related to discrete monitor
-        labels,
+        labels, aliases
     });
 
 #else
@@ -117,6 +118,7 @@ void MonitorKeyword::AllowedMembers::insertAllAllowedFields()
     MonitorKeyword::AllowedMembers::all.insert(MonitorKeyword::AllowedMembers::initialIndex);
     // Optional members related to discrete monitor
     MonitorKeyword::AllowedMembers::all.insert(MonitorKeyword::AllowedMembers::labels);
+    MonitorKeyword::AllowedMembers::all.insert(MonitorKeyword::AllowedMembers::aliases);
   }
 }
 
@@ -148,6 +150,7 @@ MonitorKeyword::MonitorKeyword()
     , keyInitialIndex(0)
     , arrayRange()
     , enumLabels()
+    , enumAliases()
     // protected
     , presentMembers_()
     , verbose_(0)
@@ -189,6 +192,7 @@ MonitorKeyword::MonitorKeyword(const std::string &line,
     , keyInitialIndex(0)
     , arrayRange(std::make_pair(0, 0))
     , enumLabels()
+    , enumAliases()
     // protected
     , presentMembers_()
     , verbose_(verbose)
@@ -232,6 +236,7 @@ MonitorKeyword::MonitorKeyword(const Json::Value &node,
     , keyInitialIndex(0)
     , arrayRange(std::make_pair(0, 0))
     , enumLabels()
+    , enumAliases()
     // protected
     , presentMembers_()
     , verbose_(verbose)
@@ -270,6 +275,7 @@ MonitorKeyword::MonitorKeyword(const MonitorKeyword &other)
     , keyInitialIndex(other.keyInitialIndex)
     , arrayRange(other.arrayRange)
     , enumLabels(other.enumLabels)
+    , enumAliases(other.enumAliases)
     // protected
     , presentMembers_(other.presentMembers_)
     , verbose_(other.verbose_)
@@ -298,6 +304,7 @@ MonitorKeyword::MonitorKeyword(MonitorKeyword &&other)
     , keyInitialIndex(other.keyInitialIndex)
     , arrayRange(other.arrayRange)
     , enumLabels(other.enumLabels)
+    , enumAliases(other.enumAliases)
     // protected
     , presentMembers_(other.presentMembers_)
     , verbose_(other.verbose_)
@@ -331,6 +338,7 @@ MonitorKeyword& MonitorKeyword::operator=(const MonitorKeyword &other)
   this->keyInitialIndex = other.keyInitialIndex ;
   this->arrayRange      = other.arrayRange      ;
   this->enumLabels      = other.enumLabels      ;
+  this->enumAliases     = other.enumAliases     ;
   this->presentMembers_ = other.presentMembers_ ;
   this->verbose_        = other.verbose_        ;
   this->logAgent_       = other.logAgent_       ;
@@ -359,6 +367,7 @@ MonitorKeyword& MonitorKeyword::operator=(MonitorKeyword &&other)
   this->keyInitialIndex = other.keyInitialIndex ;
   this->arrayRange      = other.arrayRange      ;
   this->enumLabels      = other.enumLabels      ;
+  this->enumAliases     = other.enumAliases     ;
   this->presentMembers_ = other.presentMembers_ ;
   this->verbose_        = other.verbose_        ;
   this->logAgent_       = other.logAgent_       ;
@@ -543,6 +552,22 @@ void MonitorKeyword::parseFromPlainText(const std::string &line,
             throw;
           }
         }
+        else if ( tag == MonitorKeyword::AllowedMembers::aliases )
+        {
+          str = cell.substr((cell.find_first_of('[') + 1));
+          try
+          {
+            // Parse string with the format as follows; alias1,alias2,...,aliasN
+            from_string(enumAliases, str);
+            presentMembers_[MonitorKeyword::AllowedMembers::aliases] = true;
+          }
+          catch (GCSException& exception)
+          {
+            exception.addToTrace(__PRETTY_FUNCTION__);
+            exception.addText("Unable to get aliases from string [tag='%s'].", MonitorKeyword::AllowedMembers::aliases);
+            throw;
+          }
+        }
         else if ( tag == MonitorKeyword::AllowedMembers::comment )
         {
           // Parse string with the format as follows; [.+]
@@ -641,6 +666,7 @@ void MonitorKeyword::parseFromJSON(const Json::Value &node,
     , &nodeFormat       (node[MonitorKeyword::AllowedMembers::format      ])
     , &nodeTransposed   (node[MonitorKeyword::AllowedMembers::transposed  ])
     , &nodeLabels       (node[MonitorKeyword::AllowedMembers::labels      ])
+    , &nodeAliases      (node[MonitorKeyword::AllowedMembers::aliases     ])
     , &nodeRange        (node[MonitorKeyword::AllowedMembers::range       ])
     , &nodeInitialIndex (node[MonitorKeyword::AllowedMembers::initialIndex])
     , &nodeWhen         (node[MonitorKeyword::AllowedMembers::when        ])
@@ -674,12 +700,13 @@ void MonitorKeyword::parseFromJSON(const Json::Value &node,
 
   // Check types of present optional members.
   if (    ( isMemberPresent(MonitorKeyword::AllowedMembers::unit)         and not nodeUnit.isString()         )
-       // @note: comment should be a mandatory field, but meanwhile all thoses file do not contain this field,
+       // @note: comment should be a mandatory field, but meanwhile all theses file do not contain this field,
        // then is will be an optional field.
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::comment)      and not nodeComment.isString()      )
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::format)       and not nodeFormat.isString()       )
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::transposed)   and not nodeTransposed.isBool()     )
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::labels)       and not nodeLabels.isArray()        )
+       or ( isMemberPresent(MonitorKeyword::AllowedMembers::aliases)      and not nodeAliases.isArray()       )
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::range)        and not nodeRange.isArray()         )
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::initialIndex) and not (nodeInitialIndex.isInt() or nodeInitialIndex.isUInt() ) )
        or ( isMemberPresent(MonitorKeyword::AllowedMembers::when)         and not nodeWhen.isString()         )
@@ -692,6 +719,13 @@ void MonitorKeyword::parseFromJSON(const Json::Value &node,
   {
     SyntaxError exception (__PRETTY_FUNCTION__);
     exception.addText("'%s' member must have at least one string item.", MonitorKeyword::AllowedMembers::labels);
+    throw exception;
+  }
+  // aliases member must have at least one string element
+  if ( isMemberPresent(MonitorKeyword::AllowedMembers::aliases) and nodeAliases.size() < 1 )
+  {
+    SyntaxError exception (__PRETTY_FUNCTION__);
+    exception.addText("'%s' member must have at least one string item.", MonitorKeyword::AllowedMembers::aliases);
     throw exception;
   }
   // range member must have two natural numbers
@@ -736,6 +770,17 @@ void MonitorKeyword::parseFromJSON(const Json::Value &node,
       throw exception;
     }
     enumLabels.push_back(nodeLabels[i].asString());
+  }
+  for ( ArrayIndex i (0) ; isMemberPresent(MonitorKeyword::AllowedMembers::aliases) and i < nodeAliases.size() ; ++i )
+  {
+    if ( not nodeAliases[i].isString() )
+    {
+      SyntaxError exception (__PRETTY_FUNCTION__);
+      exception.addText("The data type of member #%02d in '%s' must be a string.",
+                        (i+1), MonitorKeyword::AllowedMembers::aliases );
+      throw exception;
+    }
+    enumAliases.push_back(nodeAliases[i].asString());
   }
   arrayRange =
       isMemberPresent(MonitorKeyword::AllowedMembers::range) ?
@@ -960,6 +1005,7 @@ void MonitorKeyword::clearAllMembers_()
   keyInitialIndex = 0;
   arrayRange      = ArrayRange(0,0);
   enumLabels.clear();
+  enumAliases.clear();
   // protected members
   presentMembers_.clear();
   verbose_ = 0;
@@ -984,6 +1030,15 @@ void MonitorKeyword::detectOptionalMembersNotAllowed_()
         SyntaxError exception (__PRETTY_FUNCTION__);
         exception.addText("'%s' is an optional member reserved when '%s' member is DISCRETE.",
                           MonitorKeyword::AllowedMembers::labels, MonitorKeyword::AllowedMembers::type);
+        throw exception;
+      }
+      // aliases member is present, but it is not allowed when type is SAMPLED
+      if ( isMemberPresent(MonitorKeyword::AllowedMembers::aliases) )
+      {
+        presentMembers_[MonitorKeyword::AllowedMembers::aliases] = false;
+        SyntaxError exception (__PRETTY_FUNCTION__);
+        exception.addText("'%s' is an optional member reserved when '%s' member is DISCRETE.",
+                          MonitorKeyword::AllowedMembers::aliases, MonitorKeyword::AllowedMembers::type);
         throw exception;
       }
 
@@ -1325,46 +1380,78 @@ void MonitorKeyword::checkMonitorDescription_(const MM::Description_var &monitor
 void MonitorKeyword::checkMagnitudeDescription_(const MM::MagnitudeDescription_var &magnitudeDescription)
 {
   MonitorKeyword_TRACE
-  // Check if elements of labels have valid values or assign values, which are retrieved from database, to labels member.
-  const CORBA::ULong & magnitudeDescriptionValuesSize = magnitudeDescription->values.length();
-  if ( isMemberPresent(MonitorKeyword::AllowedMembers::labels) )
+  //<editor-fold desc="Check if elements of labels have valid values or assign values, which are retrieved from database, to labels member.">
   {
-    // Check if both sizes match.
-    if ( enumLabels.size() not_eq magnitudeDescriptionValuesSize )
+    const CORBA::ULong & magnitudeDescriptionValuesSize = magnitudeDescription->values.length();
+    if ( isMemberPresent(MonitorKeyword::AllowedMembers::labels) )
     {
-      InvalidValue exception(__PRETTY_FUNCTION__);
-      exception.addText(
-          "Mismatch sizes of the specified '%s' member ('%d') and the retrieved information from database of the '%s.%s' monitor ('%d').",
-          MonitorKeyword::AllowedMembers::labels, enumLabels.size(), deviceName.c_str(), monitorName.c_str(), magnitudeDescriptionValuesSize
-      );
-      throw exception;
-    }
-    // Check if all elements match
-    for (unsigned int i (0); i < magnitudeDescriptionValuesSize; ++i)
-    {
-      const std::string& dataBaseElement =  magnitudeDescription->values[i].in();
-      const std::string& specifiedLabel = enumLabels[i];
-      if ( dataBaseElement not_eq specifiedLabel )
+      // Check if both sizes match.
+      if ( enumLabels.size() not_eq magnitudeDescriptionValuesSize )
       {
         InvalidValue exception(__PRETTY_FUNCTION__);
         exception.addText(
+          "Mismatch sizes of the specified '%s' member ('%d') and the retrieved information from database of the '%s.%s' monitor ('%d').",
+          MonitorKeyword::AllowedMembers::labels, enumLabels.size(), deviceName.c_str(), monitorName.c_str(), magnitudeDescriptionValuesSize
+        );
+        throw exception;
+      }
+      // Check if all elements match
+      for (unsigned int i (0); i < magnitudeDescriptionValuesSize; ++i)
+      {
+        const std::string& dataBaseElement =  magnitudeDescription->values[i].in();
+        const std::string& specifiedLabel = enumLabels[i];
+        if ( dataBaseElement not_eq specifiedLabel )
+        {
+          InvalidValue exception(__PRETTY_FUNCTION__);
+          exception.addText(
             "Mismatch the specified information (%s[%d]='%s') and the retrieved information from database ('%s.%s'.values[%d]='%s').",
             MonitorKeyword::AllowedMembers::labels, i, specifiedLabel.c_str(), deviceName.c_str(), monitorName.c_str(), i, dataBaseElement.c_str()
+          );
+          throw exception;
+        }
+      }
+    }
+    else
+    {
+      // No specified labels means the database labels are applied
+      enumLabels.clear();
+      for (unsigned int i (0); i < magnitudeDescriptionValuesSize; ++i)
+      {
+        enumLabels.push_back( magnitudeDescription->values[i].in() );
+      }
+      presentMembers_[MonitorKeyword::AllowedMembers::labels] = true;
+    }
+  }
+  //<\editor-fold desc="Check if elements of labels have valid values or assign values, which are retrieved from database, to labels member.">
+
+  //<editor-fold desc="Check if elements of aliases have valid values or assign values, which are retrieved from database, to aliases member.">
+  {
+    const CORBA::ULong & magnitudeDescriptionValuesSize = magnitudeDescription->values.length();
+    if ( isMemberPresent(MonitorKeyword::AllowedMembers::aliases) )
+    {
+      // Check if both sizes match.
+      if ( enumAliases.size() not_eq magnitudeDescriptionValuesSize )
+      {
+        InvalidValue exception(__PRETTY_FUNCTION__);
+        exception.addText(
+          "Mismatch sizes of the specified '%s' member ('%d') and the retrieved information from database of the '%s.%s' monitor ('%d').",
+          MonitorKeyword::AllowedMembers::aliases, enumAliases.size(), deviceName.c_str(), monitorName.c_str(), magnitudeDescriptionValuesSize
         );
         throw exception;
       }
     }
-  }
-  else
-  {
-    // No specified labels means the database labels are applied
-    enumLabels.clear();
-    for (unsigned int i (0); i < magnitudeDescriptionValuesSize; ++i)
+    else
     {
-      enumLabels.push_back( magnitudeDescription->values[i].in() );
+      // No specified aliases means the database aliases are applied
+      enumAliases.clear();
+      for (unsigned int i (0); i < magnitudeDescriptionValuesSize; ++i)
+      {
+        enumAliases.push_back( magnitudeDescription->values[i].in() );
+      }
+      presentMembers_[MonitorKeyword::AllowedMembers::aliases] = true;
     }
-    presentMembers_[MonitorKeyword::AllowedMembers::labels] = true;
   }
+  //</editor-fold desc="Check if elements of aliases have valid values or assign values, which are retrieved from database, to aliases member.">
 }
 
 /************************************************************************
@@ -1481,6 +1568,8 @@ std::ostream& operator<<(std::ostream &os, const MonitorKeyword &obj)
     os << " arrayRange: [" << to_string(obj.arrayRange) << "]";
   if ( obj.isMemberPresent(MonitorKeyword::AllowedMembers::labels ) )
     os << " enumLabels: [" << to_string(obj.enumLabels) << "]";
+  if ( obj.isMemberPresent(MonitorKeyword::AllowedMembers::aliases ) )
+    os << " enumAliases: [" << to_string(obj.enumAliases) << "]";
   os << "]";
   return os;
 }
